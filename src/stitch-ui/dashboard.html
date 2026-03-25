@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KINETIC_LAB | Project Alpha Analysis</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container": "#19191c",
+              "secondary-fixed-dim": "#00ed7e",
+              "primary-dim": "#ff734a",
+              "primary-fixed": "#ff7851",
+              "on-tertiary-fixed-variant": "#4000ad",
+              "tertiary-dim": "#7e51ff",
+              "on-background": "#fffbfe",
+              "tertiary": "#a68cff",
+              "background": "#0e0e10",
+              "on-secondary-fixed": "#004621",
+              "surface-container-high": "#1f1f22",
+              "on-secondary": "#005b2c",
+              "on-primary-container": "#470e00",
+              "secondary-fixed": "#00fd87",
+              "on-tertiary": "#25006b",
+              "secondary-dim": "#00ed7e",
+              "on-surface-variant": "#acaaad",
+              "on-surface": "#fffbfe",
+              "surface-dim": "#0e0e10",
+              "error": "#ff716c",
+              "surface-tint": "#ff8f6f",
+              "secondary": "#00fd87",
+              "error-dim": "#d7383b",
+              "primary-container": "#ff7851",
+              "secondary-container": "#006d37",
+              "surface-container-lowest": "#000000",
+              "on-secondary-container": "#e3ffe4",
+              "on-error": "#490006",
+              "on-secondary-fixed-variant": "#006632",
+              "inverse-on-surface": "#555557",
+              "outline-variant": "#48474a",
+              "on-error-container": "#ffa8a3",
+              "primary-fixed-dim": "#ff5d2b",
+              "on-primary-fixed-variant": "#581300",
+              "tertiary-fixed-dim": "#ab93ff",
+              "tertiary-container": "#7c4dff",
+              "outline": "#767577",
+              "surface-container-highest": "#252528",
+              "surface": "#0e0e10",
+              "inverse-primary": "#b12f00",
+              "surface-container-low": "#131315",
+              "surface-bright": "#2c2c2f",
+              "surface-variant": "#252528",
+              "primary": "#ff8f6f",
+              "on-primary": "#5c1400",
+              "inverse-surface": "#fcf8fb",
+              "on-tertiary-fixed": "#1c0055",
+              "on-primary-fixed": "#000000",
+              "error-container": "#9f0519",
+              "on-tertiary-container": "#ffffff",
+              "tertiary-fixed": "#b8a3ff"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Manrope"],
+              "label": ["Space Grotesk"],
+              "mono": ["JetBrains Mono"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+    }
+.grainy-overlay {
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuD69qw00mAKLoAKr08Md15s3s0QwwFSO0T55wMgYezZxji1krDIu0hmAkKI-AmdFKC7u2xMOO7t496E6jUxLVmpyfd4RysSS1TAInUfsFnJt-UkMz6sx_h9Inm8Otd1Zsv8ngX4LBAcghYtnZAUxzHArp83t8igL2jE534bV9evVCBbqmM_G-7OAqN1IUsm5vy43latMVoZZvB5gTLH9503_7Bg4eBkgwxpsH_OjVo_8oAlM1ToeHpj5uv-X_31I8drYPxgOgFJrw);
+    opacity: 0.03;
+    pointer-events: none
+    }
+.glass-panel {
+    backdrop-filter: blur(24px);
+    background: rgba(31, 31, 34, 0.7)
+    }</style>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-primary selection:text-on-primary">
+<div class="fixed inset-0 grainy-overlay z-[100]"></div>
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#0e0e10]/80 backdrop-blur-2xl flex justify-between items-center px-8 py-4 w-full shadow-[0_8px_32px_0_rgba(0,0,0,0.4)]">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#ff8f6f] uppercase font-headline">KINETIC_LAB</span>
+<div class="hidden md:flex items-center gap-6 font-plus-jakarta-sans text-sm tracking-tight">
+<a class="text-[#ff8f6f] font-semibold hover:text-[#ff8f6f] transition-colors duration-300" href="#">Documentation</a>
+<a class="text-gray-400 font-medium hover:text-[#ff8f6f] transition-colors duration-300" href="#">Changelog</a>
+<a class="text-gray-400 font-medium hover:text-[#ff8f6f] transition-colors duration-300" href="#">Status</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-gray-400 hover:text-[#ff8f6f] transition-transform scale-95 active:scale-90">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-gray-400 hover:text-[#ff8f6f] transition-transform scale-95 active:scale-90">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-white/10 ml-2">
+<img alt="User profile avatar" data-alt="Professional headshot of a developer in high-contrast cinematic lighting with dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSPWO2ehzjNeKxNtsipXuUoUANWp8n8JQeqdCQneIHDBAseP5f9k5mOBiUCz4xLHgWglkDlW5gZlzL-z9CMTOmIFk-FUxDUjLyeU7BLi3zm3Do957RDZdii_XlAKvqfEVx2zSQYM19GsvVfM-EAjhsJqQ_ZtebJ7Cfnj2vL483pube4SVwvYI1DhQ4f19T8NdEfvI3hmkbEzxqTrxlO5RyFRQq8LMm4fwuCCVSJN3Z3iyFRL2qs9bpTIRmRPMg6bC_dd0nG1Pkug"/>
+</div>
+</div>
+<div class="absolute bottom-0 left-0 bg-gradient-to-b from-white/5 to-transparent h-[1px] w-full"></div>
+</nav>
+<div class="flex pt-16 h-screen overflow-hidden">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-full w-64 bg-[#0e0e10] border-r border-white/5 p-4 space-y-2 font-plus-jakarta-sans text-sm">
+<div class="px-4 py-6 mb-4">
+<div class="flex items-center gap-3 mb-1">
+<div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">terminal</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface font-bold tracking-tight">Project Alpha</span>
+<span class="text-xs text-gray-500 font-mono">v2.4.0-stable</span>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-[#ff8f6f] bg-white/5 rounded-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] spring-300ms hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Overview</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-white/5 hover:text-gray-200 rounded-xl transition-all spring-300ms hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span>Data Flows</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-white/5 hover:text-gray-200 rounded-xl transition-all spring-300ms hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span>AI Query</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-white/5 hover:text-gray-200 rounded-xl transition-all spring-300ms hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">security</span>
+<span>Security</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-white/5 hover:text-gray-200 rounded-xl transition-all spring-300ms hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span>Pulse</span>
+</a>
+</nav>
+<div class="pt-4 border-t border-white/5 space-y-1">
+<button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary py-3 rounded-xl font-bold mb-4 shadow-lg shadow-primary/10 transition-transform active:scale-95">
+                    New Analysis
+                </button>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-white/5 hover:text-gray-200 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span>Help</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-white/5 hover:text-gray-200 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">maps_ugc</span>
+<span>Feedback</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-surface-dim relative">
+<!-- Background Glows -->
+<div class="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary-dim/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
+<div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/5 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2"></div>
+<div class="max-w-7xl mx-auto p-8 space-y-8 relative z-10">
+<!-- Hero Section: Key Metrics -->
+<header class="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
+<div class="space-y-2">
+<div class="flex items-center gap-2 text-primary font-label tracking-widest text-xs uppercase font-bold">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                            Live System Health
+                        </div>
+<h1 class="text-5xl font-extrabold font-headline tracking-tighter text-on-surface">Repository Analytics</h1>
+</div>
+<div class="flex gap-4">
+<div class="bg-surface-container-high p-6 rounded-2xl flex flex-col min-w-[180px] shadow-2xl shadow-black/40">
+<span class="text-gray-500 text-xs font-label font-bold uppercase tracking-wider mb-1">Build Health</span>
+<span class="text-3xl font-extrabold text-secondary-fixed-dim font-headline">99.8%</span>
+<div class="mt-2 w-full h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-secondary-fixed-dim h-full w-[99.8%]"></div>
+</div>
+</div>
+<div class="bg-surface-container-high p-6 rounded-2xl flex flex-col min-w-[180px] shadow-2xl shadow-black/40">
+<span class="text-gray-500 text-xs font-label font-bold uppercase tracking-wider mb-1">Codebase Size</span>
+<span class="text-3xl font-extrabold text-on-surface font-headline">1.2M <span class="text-lg text-gray-600">LOC</span></span>
+<div class="mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-secondary text-sm">trending_up</span>
+<span class="text-xs text-secondary font-mono">+12k today</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- File Explorer (macOS inspired) -->
+<div class="md:col-span-4 bg-surface-container-low rounded-lg p-6 space-y-4">
+<div class="flex items-center justify-between mb-2">
+<h3 class="font-headline font-bold text-lg">Directory Tree</h3>
+<div class="flex gap-1.5">
+<div class="w-3 h-3 rounded-full bg-error/40"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-secondary/40"></div>
+</div>
+</div>
+<div class="space-y-1 font-mono text-sm">
+<div class="flex items-center gap-2 p-2 rounded-md hover:bg-white/5 cursor-pointer text-on-surface">
+<span class="material-symbols-outlined text-amber-500 text-lg">folder</span>
+<span>src/</span>
+</div>
+<div class="flex items-center gap-2 p-2 pl-6 rounded-md hover:bg-white/5 cursor-pointer text-gray-400">
+<span class="material-symbols-outlined text-blue-400 text-lg">folder</span>
+<span>core/</span>
+</div>
+<div class="flex items-center gap-2 p-2 pl-10 rounded-md bg-white/5 text-primary border-r-2 border-primary">
+<span class="material-symbols-outlined text-sm">description</span>
+<span>kernel.rs</span>
+</div>
+<div class="flex items-center gap-2 p-2 pl-10 rounded-md hover:bg-white/5 cursor-pointer text-gray-400">
+<span class="material-symbols-outlined text-sm">description</span>
+<span>scheduler.rs</span>
+</div>
+<div class="flex items-center gap-2 p-2 pl-6 rounded-md hover:bg-white/5 cursor-pointer text-gray-400">
+<span class="material-symbols-outlined text-blue-400 text-lg">folder</span>
+<span>drivers/</span>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-md hover:bg-white/5 cursor-pointer text-on-surface">
+<span class="material-symbols-outlined text-amber-500 text-lg">folder</span>
+<span>tests/</span>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-md hover:bg-white/5 cursor-pointer text-gray-500">
+<span class="material-symbols-outlined text-sm">settings</span>
+<span>Cargo.toml</span>
+</div>
+</div>
+</div>
+<!-- Core Framework Analysis -->
+<div class="md:col-span-8 space-y-6">
+<div class="bg-surface-container-high rounded-lg p-8 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-8 opacity-10">
+<span class="material-symbols-outlined text-[120px]">analytics</span>
+</div>
+<h3 class="font-headline font-bold text-2xl mb-8">Core Framework Analysis</h3>
+<div class="space-y-8">
+<!-- Tech Stack -->
+<div class="space-y-6">
+<div class="space-y-3">
+<div class="flex justify-between items-end font-label text-sm">
+<span class="text-on-surface font-bold">Rust</span>
+<span class="text-gray-500">68% — Performance Core</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[68%] shadow-[0_0_12px_rgba(255,143,111,0.4)]"></div>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-end font-label text-sm">
+<span class="text-on-surface font-bold">TypeScript</span>
+<span class="text-gray-500">24% — Tooling &amp; UI</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary-fixed-dim rounded-full w-[24%] shadow-[0_0_12px_rgba(0,237,126,0.3)]"></div>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-end font-label text-sm">
+<span class="text-on-surface font-bold">WebAssembly</span>
+<span class="text-gray-500">8% — Edge Modules</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full w-[8%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Mini Stats Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<div class="bg-surface-container-low p-6 rounded-lg flex items-center gap-6 group hover:bg-surface-container-high transition-colors">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<div>
+<div class="text-2xl font-bold font-headline">42ms</div>
+<div class="text-xs text-gray-500 font-label uppercase tracking-wider">Avg Boot Time</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-lg flex items-center gap-6 group hover:bg-surface-container-high transition-colors">
+<div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">memory</span>
+</div>
+<div>
+<div class="text-2xl font-bold font-headline">128MB</div>
+<div class="text-xs text-gray-500 font-label uppercase tracking-wider">Memory Ceiling</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Dependency Map / Visual Element -->
+<div class="md:col-span-12 lg:col-span-12 bg-surface-container-high rounded-lg p-8 h-80 relative overflow-hidden flex items-center justify-center">
+<img class="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-luminosity" data-alt="Abstract network of glowing cyan lines and digital data points on a dark black background, representing a high-tech data grid" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChQZuv503YGNHMwF1MwvfMEWS5EvmZL28sZ30UHJolJTMsrXpJGupytsXWSZh58TJUyIVQWhEK-1EZtMnFe7PQ6q6SztNve2JKMCMtX0zdumE5REr5nPFER6Dpi18IFqipmxxTSfGpT9x116gk6XBuhVWfegYrk_9kq4Ve-WDfMcv_AAh1cnqGhd9KHgHrkKvJkAU0e7fTBrHEgZTsrks7o0NAmLoWLxavK_N5BkIUZkCJGNg6Ea-RhdA2m7S7D3qI_jjioeq-kA"/>
+<div class="relative z-10 text-center space-y-4">
+<div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-container-lowest border border-white/10 mb-2">
+<span class="material-symbols-outlined text-primary text-3xl">share_reviews</span>
+</div>
+<h4 class="text-xl font-bold font-headline">Graph Topology Analysis</h4>
+<p class="text-gray-400 max-w-md mx-auto text-sm">Module interdependence is currently optimized at <span class="text-secondary">O(log n)</span>. No circular dependencies detected in the current build cycle.</p>
+<button class="px-6 py-2 rounded-full border border-outline-variant text-xs font-bold uppercase tracking-widest hover:bg-white/5 transition-colors">View Detailed Map</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Floating Action Button -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary-fixed rounded-full flex items-center justify-center text-on-primary-fixed shadow-[8px_8px_24px_rgba(0,0,0,0.5)] transition-transform hover:scale-110 active:scale-95 z-50">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+</button>
+</body></html>
