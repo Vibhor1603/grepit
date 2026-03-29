@@ -125,49 +125,54 @@ export default function Overview({ analysis, theme, eli5, onNavigate }) {
   ].slice(0, 6);
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_360px] gap-6 items-start">
-      <div className="space-y-5">
-        <section className={`card-brutal rounded-none p-6 ${d ? "bg-d-card" : "bg-white"}`}>
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.75fr)_340px] gap-6 xl:gap-8 items-start">
+      <div className="space-y-6">
+        <section className="workspace-card p-7 md:p-8">
           <div className="flex flex-wrap items-center gap-2 mb-4">
-            <h2 className="text-2xl font-black tracking-tight">What This Codebase Does</h2>
+            <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">What This Codebase Does</h2>
             {arch.projectType && (
-              <span className={`px-2.5 py-1 text-[11px] font-mono border-2 font-bold ${d ? "border-white bg-lime text-ink" : "border-black bg-lime text-ink"}`}>
+              <span className="workspace-chip">
                 {arch.projectType}
               </span>
             )}
           </div>
-          <p className={`text-[15px] leading-8 ${d ? "text-d-muted" : "text-ink-muted"}`}>
+          <p className={`text-[15px] md:text-[16px] leading-8 md:leading-9 max-w-4xl ${d ? "text-d-muted" : "text-ink-muted"}`}>
             {eli5 ? `${analysis.repo_name} is a software project with different parts that work together. ${productNarrative}` : productNarrative}
           </p>
-          <ul className="mt-5 space-y-2.5">
+          <ul className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
             {capabilityBullets.map((point) => (
               <li key={point} className={`text-[14px] leading-7 flex items-start gap-3 ${d ? "text-d-muted" : "text-ink-muted"}`}>
-                <span className="mt-1.5 text-blue">•</span>
+                <span className={`mt-2 h-2.5 w-2.5 rounded-full shrink-0 ${d ? "bg-blue" : "bg-purple"}`}></span>
                 <span>{point}</span>
               </li>
             ))}
           </ul>
         </section>
 
-        <section className={`card-brutal rounded-none p-6 ${d ? "bg-blue/12" : "bg-white"}`}>
-          <h3 className="text-xl font-black tracking-tight mb-4">Where To Go Next</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <section className="workspace-card p-6 md:p-7">
+          <div className="flex items-center justify-between gap-4 mb-5">
+            <div>
+              <h3 className="text-xl md:text-2xl font-semibold tracking-tight">Where To Go Next</h3>
+              <p className={`text-sm mt-1 ${d ? "text-d-muted" : "text-ink-muted"}`}>Jump straight into the part of the analysis that matches what you want to inspect.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {quickLinks.map((item) => (
               <button
                 key={item.tab}
                 onClick={() => onNavigate?.(item.tab)}
-                className={`text-left border-2 p-4 rounded-none transition-all ${d ? "border-white bg-d-bg hover:bg-blue/12" : "border-black bg-cream hover:bg-sand"}`}
+                className={`workspace-button text-left p-5`}
               >
-                <div className="text-sm font-black">{item.label}</div>
-                <div className={`text-[12px] mt-2 leading-6 ${d ? "text-d-muted" : "text-ink-muted"}`}>{item.description}</div>
+                <div className="text-sm font-semibold">{item.label}</div>
+                <div className={`text-[13px] mt-2 leading-6 ${d ? "text-d-muted" : "text-ink-muted"}`}>{item.description}</div>
               </button>
             ))}
           </div>
         </section>
       </div>
 
-      <div className="space-y-5">
-        <section className={`card-brutal rounded-none p-5 ${d ? "bg-purple/12" : "bg-white"}`}>
+      <div className="space-y-6">
+        <section className="workspace-card p-5 md:p-6">
           <div className={`text-[10px] font-mono uppercase tracking-[0.22em] mb-3 ${d ? "text-d-subtle" : "text-ink-faint"}`}>At A Glance</div>
           <div className="space-y-3">
             {[
@@ -183,14 +188,14 @@ export default function Overview({ analysis, theme, eli5, onNavigate }) {
           </div>
         </section>
 
-        <section className={`card-brutal rounded-none p-5 ${d ? "bg-lime/12" : "bg-white"}`}>
+        <section className="workspace-card p-5 md:p-6">
           <div className={`text-[10px] font-mono uppercase tracking-[0.22em] mb-3 ${d ? "text-d-subtle" : "text-ink-faint"}`}>Start Reading Here</div>
           <div className="space-y-2">
             {readableStartPoints.length > 0 ? readableStartPoints.map((item) => (
               <button
                 key={`${item.hint}-${item.label}`}
                 onClick={item.action}
-                className={`w-full text-left border-2 rounded-none p-3 transition-all ${d ? "border-white bg-d-bg hover:bg-lime/12" : "border-black bg-cream hover:bg-sand"}`}
+                className="workspace-button w-full text-left p-4"
               >
                 <div className="text-[13px] font-mono font-bold break-all">{item.label}</div>
                 <div className={`text-[11px] mt-1 ${d ? "text-d-subtle" : "text-ink-faint"}`}>{item.hint}</div>

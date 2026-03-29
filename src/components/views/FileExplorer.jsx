@@ -249,18 +249,35 @@ export default function FileExplorer({ analysis, theme, eli5, initialPath = '', 
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">File Explorer</h1>
-      <div className={`card-brutal rounded-none p-3 ${d ? 'bg-d-card' : 'bg-white'}`}>
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">File Explorer</h1>
+          <p className={`text-sm mt-1 ${d ? 'text-d-muted' : 'text-ink-muted'}`}>Browse real source code, inspect file metadata, and jump to related views without losing context.</p>
+        </div>
+        {selectedFileIntel && (
+          <div className="flex flex-wrap gap-2">
+            {[
+              selectedFileIntel.language,
+              selectedFileIntel.fileKind,
+              `${selectedFileIntel.lineCount || 0} lines`,
+              codeSource === 'github-live' ? 'live source' : null,
+            ].filter(Boolean).map((chip) => (
+              <span key={chip} className="workspace-chip">{chip}</span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="workspace-card p-3 md:p-4">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search files or folders..."
-          className={`w-full px-3 py-2 rounded-none text-[13px] font-mono border ${d ? 'bg-d-bg border-d-border text-d-text placeholder:text-d-subtle' : 'bg-cream border-ink/10 text-ink placeholder:text-ink-faint'}`}
+          className={`workspace-input w-full px-4 py-3 text-[13px] font-mono ${d ? 'text-d-text placeholder:text-d-subtle' : 'text-ink placeholder:text-ink-faint'}`}
         />
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,320px)_minmax(0,2.2fr)_minmax(260px,320px)] gap-4 items-start">
-        <div className={`card-brutal rounded-none p-4 max-h-[72vh] overflow-y-auto ${d ? 'bg-blue/12' : 'bg-white'}`}>
+      <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1.6fr)_340px] gap-5 xl:gap-6 items-start">
+        <div className="workspace-card p-4 md:p-5 max-h-[74vh] overflow-y-auto">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
               <div className={`text-[10px] font-mono uppercase tracking-[0.2em] ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>Repository Tree</div>
@@ -270,13 +287,13 @@ export default function FileExplorer({ analysis, theme, eli5, initialPath = '', 
           </div>
           {renderNode(tree)}
         </div>
-        <div className={`card-brutal rounded-none p-5 overflow-hidden min-w-0 ${d ? 'bg-purple/12' : 'bg-white'}`}>
+        <div className="workspace-card p-5 md:p-6 overflow-hidden min-w-0">
           {selectedFile ? (
             <>
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
-                <div>
+              <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 mb-5">
+                <div className="min-w-0">
                   <h3 className="font-mono text-sm font-semibold mb-1 break-all">{selectedFile}</h3>
-                  <div className={`text-[12px] ${d ? 'text-d-muted' : 'text-ink-muted'}`}>{selectedFileIntel?.summary || 'Source preview'}</div>
+                  <div className={`text-[13px] leading-6 max-w-3xl ${d ? 'text-d-muted' : 'text-ink-muted'}`}>{selectedFileIntel?.summary || 'Source preview'}</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {repoBaseUrl && (
@@ -284,14 +301,14 @@ export default function FileExplorer({ analysis, theme, eli5, initialPath = '', 
                       href={`${repoBaseUrl}/blob/${repoRevision}/${selectedFile}`}
                       target="_blank"
                       rel="noreferrer"
-                      className={`px-3 py-2 border-2 text-[12px] font-mono ${d ? 'border-white bg-d-bg text-d-text' : 'border-black bg-cream text-ink'}`}
+                      className="workspace-button px-4 py-3 text-[12px] font-mono"
                     >
                       Open on GitHub
                     </a>
                   )}
                   <button
                     onClick={getFileInsight}
-                    className={`px-3 py-2 border-2 text-[12px] font-mono ${d ? 'border-white bg-lime text-ink' : 'border-black bg-lime text-ink'}`}
+                    className={`px-4 py-3 text-[12px] font-mono btn-brutal ${d ? 'bg-lime text-ink' : 'bg-purple text-ink'}`}
                   >
                     Analyze this file
                   </button>
@@ -299,17 +316,6 @@ export default function FileExplorer({ analysis, theme, eli5, initialPath = '', 
               </div>
               {selectedFileIntel && (
                 <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      selectedFileIntel.language,
-                      selectedFileIntel.fileKind,
-                      `${selectedFileIntel.lineCount || 0} lines`,
-                      `${selectedFileIntel.size || 0} bytes`,
-                      codeSource === 'github-live' ? 'live source' : null,
-                    ].filter(Boolean).map((chip) => (
-                      <span key={chip} className={`px-2.5 py-1 text-[11px] font-mono border-2 ${d ? 'border-white bg-d-bg' : 'border-black bg-cream'}`}>{chip}</span>
-                    ))}
-                  </div>
                   {loadingCode && (
                     <div className={`text-[12px] font-mono ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>Loading latest file contents...</div>
                   )}
@@ -322,7 +328,7 @@ export default function FileExplorer({ analysis, theme, eli5, initialPath = '', 
                         <button
                           key={view.tab}
                           onClick={() => onNavigate?.(view.tab, { path: selectedFile })}
-                          className={`px-2.5 py-1 text-[11px] font-mono border-2 ${d ? 'border-white bg-d-bg hover:bg-blue/12' : 'border-black bg-cream hover:bg-sand'}`}
+                          className="workspace-button px-3 py-2 text-[11px] font-mono"
                         >
                           {view.label}
                         </button>
@@ -330,7 +336,7 @@ export default function FileExplorer({ analysis, theme, eli5, initialPath = '', 
                     </div>
                   )}
                   {liveCode && (
-                    <div className={`border-2 ${d ? 'border-d-border bg-black text-green-200' : 'border-ink/10 bg-ink text-cream'} overflow-auto max-h-[72vh]`}>
+                    <div className={`workspace-code ${d ? 'bg-black text-green-200' : 'bg-ink text-cream'} overflow-auto max-h-[72vh]`}>
                       <div className="grid grid-cols-[auto_1fr] text-[12px] font-mono">
                         {liveCode.split('\n').map((line, index) => (
                           <div key={index} className="contents">
@@ -352,18 +358,18 @@ export default function FileExplorer({ analysis, theme, eli5, initialPath = '', 
             </div>
           )}
         </div>
-        <div className={`card-brutal rounded-none p-5 ${d ? 'bg-lime/10' : 'bg-white'}`}>
+        <div className="workspace-card p-5 md:p-6">
           {selectedFileIntel ? (
-            <div className="space-y-4">
-              <div>
+            <div className="space-y-5">
+              <div className="workspace-panel p-4 md:p-5">
                 <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-2 ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>Why this file matters</div>
                 <p className={`text-sm leading-relaxed ${d ? 'text-d-muted' : 'text-ink-muted'}`}>{selectedFileIntel.why}</p>
               </div>
               {detailSections.map((section) => (
-                <div key={section.title} className={`border-2 p-4 ${section.tone}`}>
+                <div key={section.title} className="workspace-panel p-4 md:p-5">
                   <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-2 ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>{section.title}</div>
                   {section.content.length > 0 ? section.content.map((item, index) => (
-                    <div key={index} className="text-[12px] font-mono mb-2">
+                    <div key={index} className="text-[12px] font-mono mb-2 last:mb-0">
                       <button
                         type="button"
                         onClick={() => onNavigate?.('symbols', { symbol: item.primary })}
@@ -378,7 +384,7 @@ export default function FileExplorer({ analysis, theme, eli5, initialPath = '', 
                 </div>
               ))}
               {(selectedFileIntel.schemas?.request?.length > 0 || selectedFileIntel.schemas?.response?.length > 0) && (
-                <div className={`border-2 p-4 ${d ? 'border-d-border bg-peach/15' : 'border-ink/10 bg-cream'}`}>
+                <div className="workspace-panel p-4 md:p-5">
                   <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-2 ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>Request / Response</div>
                   <div className="space-y-3">
                     {selectedFileIntel.schemas?.request?.length > 0 && <div className="text-[12px] font-mono">request: {selectedFileIntel.schemas.request.join(', ')}</div>}
@@ -386,7 +392,7 @@ export default function FileExplorer({ analysis, theme, eli5, initialPath = '', 
                   </div>
                 </div>
               )}
-              <div className={`border-2 p-4 ${d ? 'border-d-border bg-blue/15' : 'border-ink/10 bg-cream'}`}>
+              <div className="workspace-panel p-4 md:p-5">
                 <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-2 ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>AI Insight</div>
                 {loadingInsight ? (
                   <div className="flex items-center gap-2"><svg className={`w-4 h-4 animate-spin ${d ? 'text-d-subtle' : 'text-ink-faint'}`} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg><span className={`text-sm font-mono ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>thinking...</span></div>

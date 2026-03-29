@@ -28,43 +28,43 @@ export default function SymbolExplorer({ analysis, theme, onNavigate, initialSym
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight mb-1">Code Intel</h1>
-        <p className={`text-sm font-mono ${d ? "text-d-muted" : "text-ink-muted"}`}>Functions, classes, methods, and where they live</p>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-1">Code Intel</h1>
+        <p className={`text-sm ${d ? "text-d-muted" : "text-ink-muted"}`}>Functions, classes, methods, and usage relationships across the codebase.</p>
       </div>
-      <div className={`card-brutal rounded-none p-3 ${d ? "bg-d-card" : "bg-white"}`}>
+      <div className="workspace-card p-3 md:p-4">
         <input
           type="text"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search symbols..."
-          className={`w-full px-3 py-2 rounded-none text-[13px] font-mono border ${d ? "bg-d-bg border-d-border text-d-text placeholder:text-d-subtle" : "bg-cream border-ink/10 text-ink placeholder:text-ink-faint"}`}
+          className={`workspace-input w-full px-4 py-3 text-[13px] font-mono ${d ? "text-d-text placeholder:text-d-subtle" : "text-ink placeholder:text-ink-faint"}`}
         />
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)] gap-4">
-        <div className={`card-brutal rounded-none p-3 max-h-[680px] overflow-y-auto ${d ? "bg-d-card" : "bg-white"}`}>
+      <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-5 xl:gap-6">
+        <div className="workspace-card p-4 md:p-5 max-h-[680px] overflow-y-auto">
           {filtered.map((symbol, index) => (
             <button
               key={`${symbol.file}-${symbol.name}-${index}`}
               onClick={() => setSelectedName(symbol.name)}
-              className={`w-full text-left rounded-none p-3 border-2 mb-2 ${
+              className={`w-full text-left p-4 mb-3 rounded-[18px] border transition-all ${
                 selected?.name === symbol.name
-                  ? (d ? "border-white bg-blue/20 text-d-text" : "border-black bg-blue text-ink")
-                  : (d ? "border-d-border text-d-muted hover:bg-d-bg" : "border-ink/10 text-ink-muted hover:bg-sand/70")
+                  ? (d ? "border-white/10 bg-blue/12 text-d-text shadow-[0_18px_34px_rgba(0,0,0,0.28)]" : "border-black/10 bg-blue/10 text-ink shadow-[0_16px_32px_rgba(15,23,42,0.08)]")
+                  : (d ? "border-d-border text-d-muted hover:bg-white/5" : "border-ink/10 text-ink-muted hover:bg-sand/70")
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-sm font-extrabold">{symbol.name}</span>
+                <span className="font-mono text-sm font-semibold">{symbol.name}</span>
                 <span className={`text-[10px] uppercase tracking-[0.2em] font-mono ${d ? "text-d-subtle" : "text-ink-faint"}`}>{symbol.type}</span>
               </div>
               <div className={`text-[11px] font-mono mt-1 break-all ${d ? "text-d-subtle" : "text-ink-faint"}`}>{symbol.file}</div>
             </button>
           ))}
         </div>
-        <div className={`card-brutal rounded-none p-5 ${d ? "bg-d-card" : "bg-white"}`}>
+        <div className="workspace-card p-6 md:p-7">
           {selected ? (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-extrabold tracking-tight">{selected.name}</h2>
+                <h2 className="text-xl md:text-2xl font-semibold tracking-tight">{selected.name}</h2>
                 <button
                   type="button"
                   onClick={() => onNavigate?.("files", { path: selected.file })}
@@ -74,19 +74,19 @@ export default function SymbolExplorer({ analysis, theme, onNavigate, initialSym
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className={`border-2 p-4 ${d ? "border-d-border bg-d-bg" : "border-ink/10 bg-cream"}`}>
+                <div className="workspace-panel p-4 md:p-5">
                   <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-3 ${d ? "text-d-subtle" : "text-ink-faint"}`}>Arguments</div>
                   {(selected.args || []).length ? selected.args.map((arg, index) => (
                     <div key={index} className={`text-sm font-mono mb-2 ${d ? "text-purple" : "text-ink"}`}>{arg}</div>
                   )) : <div className={`text-sm ${d ? "text-d-subtle" : "text-ink-faint"}`}>No arguments inferred.</div>}
                 </div>
-                <div className={`border-2 p-4 ${d ? "border-d-border bg-d-bg" : "border-ink/10 bg-cream"}`}>
+                <div className="workspace-panel p-4 md:p-5">
                   <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-3 ${d ? "text-d-subtle" : "text-ink-faint"}`}>Methods</div>
                   {(selected.methods || []).length ? selected.methods.map((method, index) => (
                     <div key={index} className={`text-sm font-mono mb-2 ${d ? "text-blue" : "text-ink"}`}>{method}</div>
                   )) : <div className={`text-sm ${d ? "text-d-subtle" : "text-ink-faint"}`}>No methods inferred.</div>}
                 </div>
-                <div className={`border-2 p-4 ${d ? "border-d-border bg-d-bg" : "border-ink/10 bg-cream"}`}>
+                <div className="workspace-panel p-4 md:p-5">
                   <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-3 ${d ? "text-d-subtle" : "text-ink-faint"}`}>Used In</div>
                   {(selected.usedBy || []).length ? selected.usedBy.map((usage, index) => (
                     <button
@@ -101,11 +101,11 @@ export default function SymbolExplorer({ analysis, theme, onNavigate, initialSym
                 </div>
               </div>
               {selected.returns?.length > 0 && (
-                <div className={`border-2 p-4 ${d ? "border-d-border bg-d-bg" : "border-ink/10 bg-cream"}`}>
+                <div className="workspace-panel p-4 md:p-5">
                   <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-3 ${d ? "text-d-subtle" : "text-ink-faint"}`}>Returns</div>
                   <div className="flex flex-wrap gap-2">
                     {selected.returns.map((item, index) => (
-                      <span key={index} className={`px-2 py-1 text-xs font-mono border-2 ${d ? "border-white bg-d-card" : "border-black bg-white"}`}>{item}</span>
+                      <span key={index} className="workspace-chip">{item}</span>
                     ))}
                   </div>
                 </div>

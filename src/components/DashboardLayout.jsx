@@ -166,27 +166,27 @@ export default function DashboardLayout() {
   const textFaint = isDark ? 'text-d-subtle' : 'text-ink-faint';
 
   return (
-    <div className={`min-h-screen ${bg} ${textPrimary} transition-colors duration-300`}>
+    <div className={`workspace-shell min-h-screen ${bg} ${textPrimary} transition-colors duration-300`}>
       {/* Top bar */}
-      <nav className={`fixed top-0 w-full z-50 border-b ${border} ${isDark ? 'bg-d-bg/90' : 'bg-cream/90'} backdrop-blur-md`}>
-        <div className="px-4 h-12 flex items-center justify-between">
+      <nav className={`fixed top-0 w-full z-50 border-b ${border} ${isDark ? 'bg-d-bg/70' : 'bg-cream/70'} backdrop-blur-xl`}>
+        <div className="px-5 md:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <a href="/" className="text-sm font-bold font-mono tracking-tight">vibo</a>
+            <a href="/" className="text-sm font-semibold font-mono tracking-tight">vibo</a>
             <span className={textFaint}>/</span>
-            <span className="text-sm font-mono truncate max-w-[200px]">{analysis?.repo_name || '...'}</span>
+            <span className="text-sm font-mono truncate max-w-[280px]">{analysis?.repo_name || '...'}</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setEli5(!eli5)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono transition-colors ${eli5 ? (isDark ? 'bg-blue/20 text-blue' : 'bg-blue/20 text-ink') : `${textFaint} hover:${textMuted}`}`}>
+              className={`workspace-button flex items-center gap-1.5 px-3 py-2 text-xs font-mono ${eli5 ? (isDark ? 'bg-blue/20 text-blue' : 'bg-blue/20 text-ink') : textFaint}`}>
               <span className="material-symbols-outlined text-[14px]">school</span>
               ELI5
             </button>
-            <button onClick={toggle} className={`p-1.5 rounded-md ${isDark ? 'hover:bg-d-card' : 'hover:bg-sand'} transition-colors`}>
+            <button onClick={toggle} className={`workspace-button p-2.5`}>
               <span className={`material-symbols-outlined text-[16px] ${textMuted}`}>{isDark ? 'light_mode' : 'dark_mode'}</span>
             </button>
             {session ? (
               <div className="flex items-center gap-2">
-                <img src={session.user?.image} alt="" className="w-6 h-6 rounded-none" />
+                <img src={session.user?.image} alt="" className="w-7 h-7 rounded-full ring-1 ring-black/10 dark:ring-white/10" />
                 <button onClick={() => signOut({ callbackUrl: '/' })} className={`text-xs font-mono ${textFaint}`}>sign out</button>
               </div>
             ) : (
@@ -196,37 +196,37 @@ export default function DashboardLayout() {
         </div>
       </nav>
 
-      <div className="flex pt-12 h-screen">
+      <div className="flex pt-14 h-screen">
         {/* Sidebar */}
-        <aside className={`${sidebarHidden ? 'hidden' : 'hidden md:flex'} flex-col w-60 border-r ${border} ${bg} shrink-0 relative`}>
-          <div className="flex justify-end px-3 pt-3">
+        <aside className={`${sidebarHidden ? 'hidden' : 'hidden md:flex'} flex-col w-72 border-r ${border} ${isDark ? 'bg-d-bg/55' : 'bg-white/55'} backdrop-blur-xl shrink-0 relative`}>
+          <div className="flex justify-end px-4 pt-4">
             <button
               onClick={toggleSidebar}
-              className={`flex items-center justify-center w-9 h-9 rounded-none border-2 transition-colors ${isDark ? 'border-white bg-d-card text-d-muted hover:bg-blue/12 hover:text-d-text' : 'border-black bg-white text-ink-muted hover:bg-sand hover:text-ink'}`}
+              className={`workspace-button flex items-center justify-center w-10 h-10 ${isDark ? 'text-d-muted' : 'text-ink-muted'}`}
               aria-label="Hide sidebar"
               title="Hide sidebar"
             >
               <span className="material-symbols-outlined text-[18px]">left_panel_close</span>
             </button>
           </div>
-          <nav className="flex-1 px-2 pb-2 pt-2 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 pb-4 pt-3 space-y-2 overflow-y-auto">
             {dynamicTabs.map(tab => (
               <button key={tab.id} onClick={() => navigateTo(tab.id)}
-                className={`w-full text-left flex items-start gap-3 px-3 py-3 rounded-none text-[13px] font-mono transition-all font-bold ${
+                className={`workspace-sidebar-link w-full text-left flex items-start gap-3 px-4 py-4 text-[13px] font-mono transition-all ${
                   activeTab === tab.id
-                    ? `nav-item-active ${tab.tone} text-ink`
-                    : `border-3 border-transparent ${textMuted} ${isDark ? 'hover:bg-d-card hover:text-d-text' : 'hover:bg-sand/50 hover:translate-x-1'}`
+                    ? `active ${isDark ? 'text-d-text' : 'text-ink'}`
+                    : `${textMuted} ${isDark ? 'hover:bg-white/5 hover:text-d-text' : 'hover:bg-white/80 hover:text-ink'}`
                 }`}>
-                <span className="material-symbols-outlined text-[16px] mt-0.5">{tab.icon}</span>
+                <span className={`material-symbols-outlined text-[18px] mt-0.5 ${activeTab === tab.id ? (isDark ? 'text-blue' : 'text-purple') : ''}`}>{tab.icon}</span>
                 <span className="min-w-0">
-                  <span className="block text-[13px]">{tab.label}</span>
-                  <span className={`block mt-1 text-[10px] leading-relaxed ${activeTab === tab.id ? 'text-ink/80' : textFaint}`}>{tab.description}</span>
+                  <span className="block text-[13px] font-semibold">{tab.label}</span>
+                  <span className={`block mt-1 text-[11px] leading-relaxed ${activeTab === tab.id ? (isDark ? 'text-d-muted' : 'text-ink-muted') : textFaint}`}>{tab.description}</span>
                 </span>
               </button>
             ))}
           </nav>
-          <div className={`p-2 border-t ${border}`}>
-            <a href="/" className={`w-full flex items-center justify-center gap-2 px-2.5 py-2.5 rounded-none text-sm font-bold font-mono transition-all btn-brutal bg-purple text-ink`}>
+          <div className={`p-4 border-t ${border}`}>
+            <a href="/" className={`w-full flex items-center justify-center gap-2 px-3 py-3 text-sm font-semibold font-mono transition-all btn-brutal ${isDark ? 'bg-lime text-ink' : 'bg-purple text-ink'}`}>
               <span className="material-symbols-outlined text-[16px]">add</span>
               New analysis
             </a>
@@ -234,11 +234,11 @@ export default function DashboardLayout() {
         </aside>
 
         {/* Mobile tabs */}
-        <div className="md:hidden fixed top-12 w-full z-40 overflow-x-auto">
-          <div className={`flex border-b ${border} ${isDark ? 'bg-d-bg' : 'bg-cream'} px-2`}>
+        <div className="md:hidden fixed top-14 w-full z-40 overflow-x-auto">
+          <div className={`flex border-b ${border} ${isDark ? 'bg-d-bg/88' : 'bg-cream/88'} backdrop-blur-xl px-3`}>
             {dynamicTabs.map(tab => (
               <button key={tab.id} onClick={() => navigateTo(tab.id)}
-                className={`px-3 py-2 text-[11px] font-mono whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.id ? `${isDark ? 'border-purple text-d-text' : 'border-ink text-ink'}` : `border-transparent ${textFaint}`}`}>
+                className={`px-4 py-3 text-[11px] font-mono whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.id ? `${isDark ? 'border-blue text-d-text' : 'border-ink text-ink'}` : `border-transparent ${textFaint}`}`}>
                 {tab.label}
               </button>
             ))}
@@ -247,7 +247,7 @@ export default function DashboardLayout() {
 
         {/* Main */}
         <main className={`flex-1 overflow-y-auto ${bg}`}>
-          <div className="w-full px-5 md:px-8 xl:px-10 2xl:px-12 py-5">
+          <div className="w-full max-w-[1880px] mx-auto px-5 md:px-8 xl:px-10 2xl:px-12 py-6 md:py-8">
             {loading ? (
               <div className="flex items-center justify-center h-60">
                 <div className="flex flex-col items-center gap-3">
@@ -263,10 +263,10 @@ export default function DashboardLayout() {
             ) : (
               <>
                 {sidebarHidden && (
-                  <div className="hidden md:flex justify-start mb-4">
+                  <div className="hidden md:flex justify-start mb-5">
                     <button
                       onClick={toggleSidebar}
-                      className={`w-11 h-11 border-2 flex items-center justify-center rounded-none ${isDark ? 'border-white bg-d-card text-d-text hover:bg-blue/12' : 'border-black bg-white text-ink hover:bg-sand'}`}
+                      className={`workspace-button w-11 h-11 flex items-center justify-center ${isDark ? 'text-d-text' : 'text-ink'}`}
                       aria-label="Show navigation"
                       title="Show navigation"
                     >
@@ -276,22 +276,22 @@ export default function DashboardLayout() {
                 )}
                 {activeTab === 'overview' ? (
                   <section className="mb-6">
-                    <div className={`card-brutal rounded-none p-4 md:p-5 ${isDark ? 'bg-d-card' : 'bg-white'}`}>
+                    <div className={`workspace-card p-5 md:p-6`}>
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div className="flex items-start gap-3 min-w-0">
-                          <div className={`w-11 h-11 shrink-0 border-3 ${isDark ? 'border-white bg-lime text-ink' : 'border-black bg-lime text-ink'} flex items-center justify-center`}>
+                          <div className={`w-11 h-11 shrink-0 rounded-2xl ${isDark ? 'bg-lime/90 text-ink' : 'bg-lime text-ink'} flex items-center justify-center shadow-sm`}>
                             <span className="material-symbols-outlined text-[20px]">{activeTabMeta?.icon || 'dashboard'}</span>
                           </div>
                           <div className="min-w-0">
                             <div className={`text-[10px] font-mono uppercase tracking-[0.24em] ${textFaint}`}>Project Overview</div>
-                            <h1 className="text-2xl font-black tracking-tight mt-1">{analysis?.repo_name || 'Workspace'}</h1>
+                            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mt-1">{analysis?.repo_name || 'Workspace'}</h1>
                             <p className={`text-sm mt-1 max-w-3xl ${textMuted}`}>A cleaner, plain-English summary of what this codebase does, where its important parts live, and where to jump next.</p>
                           </div>
                         </div>
                         {surfaceSignals.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {surfaceSignals.map((signal, index) => (
-                              <span key={`${signal}-${index}`} className={`px-3 py-1 text-xs font-mono font-bold border-2 ${isDark ? 'border-white bg-d-bg' : 'border-black bg-cream'}`}>{signal}</span>
+                              <span key={`${signal}-${index}`} className="workspace-chip">{signal}</span>
                             ))}
                           </div>
                         )}
@@ -300,10 +300,10 @@ export default function DashboardLayout() {
                   </section>
                 ) : (
                   <section className="mb-6">
-                    <div className={`card-brutal rounded-none p-4 md:p-5 ${isDark ? 'bg-d-card' : 'bg-white'}`}>
+                    <div className="workspace-card p-5 md:p-6">
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div className="flex items-start gap-3 min-w-0">
-                          <div className={`w-11 h-11 shrink-0 border-3 ${isDark ? 'border-white bg-lime text-ink' : 'border-black bg-lime text-ink'} flex items-center justify-center`}>
+                          <div className={`w-11 h-11 shrink-0 rounded-2xl ${isDark ? 'bg-lime/90 text-ink' : 'bg-lime text-ink'} flex items-center justify-center shadow-sm`}>
                             <span className="material-symbols-outlined text-[20px]">{activeTabMeta?.icon || 'dashboard'}</span>
                           </div>
                           <div className="min-w-0">

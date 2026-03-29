@@ -130,17 +130,17 @@ export default function QueryWidget({ analysis, theme, eli5 }) {
               onClick={() => setOpen(false)}
               aria-label="Close assistant overlay"
             />
-            <div className={`fixed bottom-5 right-5 w-[min(980px,calc(100vw-2rem))] h-[min(78vh,760px)] card-brutal rounded-none flex flex-col ${d ? "bg-d-card text-d-text" : "bg-white text-ink"}`}>
-              <div className={`flex items-center justify-between gap-3 p-5 border-b ${d ? "border-d-border" : "border-ink/10"}`}>
+            <div className={`fixed bottom-5 right-5 w-[min(1040px,calc(100vw-2rem))] h-[min(80vh,780px)] workspace-card flex flex-col overflow-hidden ${d ? "text-d-text" : "text-ink"}`}>
+              <div className={`flex items-center justify-between gap-3 p-6 border-b ${d ? "border-d-border" : "border-ink/10"}`}>
                 <div>
-                  <div className="text-xl font-black tracking-tight">Ask Vibo</div>
+                  <div className="text-xl md:text-2xl font-semibold tracking-tight">Ask Vibo</div>
                   <div className={`text-[12px] font-mono mt-1 ${d ? "text-d-subtle" : "text-ink-faint"}`}>
                     Asking about {analysis?.repo_name || "this analysis"}
                   </div>
                 </div>
                 <button
                   onClick={() => setOpen(false)}
-                  className={`w-10 h-10 border-2 flex items-center justify-center ${d ? "border-white bg-d-bg hover:bg-blue/12" : "border-black bg-cream hover:bg-sand"}`}
+                  className="workspace-button w-11 h-11 flex items-center justify-center"
                   aria-label="Close assistant"
                   title="Close assistant"
                 >
@@ -149,7 +149,7 @@ export default function QueryWidget({ analysis, theme, eli5 }) {
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-[260px_minmax(0,1fr)] flex-1 min-h-0">
-                <div className={`border-r p-5 space-y-4 ${d ? "border-d-border bg-d-bg/70" : "border-ink/10 bg-cream/70"}`}>
+                <div className={`border-r p-5 md:p-6 space-y-5 ${d ? "border-d-border bg-d-bg/35" : "border-ink/10 bg-cream/40"}`}>
                   <div>
                     <div className={`text-[10px] uppercase tracking-[0.2em] font-mono mb-2 ${d ? "text-d-subtle" : "text-ink-faint"}`}>Quick Prompts</div>
                     <div className="flex flex-col gap-2">
@@ -157,7 +157,7 @@ export default function QueryWidget({ analysis, theme, eli5 }) {
                         <button
                           key={suggestion}
                           onClick={() => handleSend(suggestion)}
-                          className={`px-3 py-3 border-2 text-left text-[12px] font-mono ${d ? "border-white bg-d-card hover:bg-blue/12" : "border-black bg-white hover:bg-sand"}`}
+                          className="workspace-button px-3 py-3 text-left text-[12px] font-mono"
                         >
                           {suggestion}
                         </button>
@@ -170,11 +170,11 @@ export default function QueryWidget({ analysis, theme, eli5 }) {
                 </div>
 
                 <div className="flex flex-col min-h-0">
-                  <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                  <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-4">
                     {messages.length === 0 ? (
                       <div className="h-full flex items-center justify-center">
                         <div className="max-w-xl text-center space-y-4">
-                          <div className="text-2xl font-black tracking-tight">Codebase Assistant</div>
+                          <div className="text-2xl font-semibold tracking-tight">Codebase Assistant</div>
                           <p className={`text-sm leading-relaxed ${d ? "text-d-muted" : "text-ink-muted"}`}>
                             Ask precise questions about the current analysis and get answers grounded in the most relevant files, symbols, and snippets.
                           </p>
@@ -184,7 +184,7 @@ export default function QueryWidget({ analysis, theme, eli5 }) {
                       messages.map((msg, index) => (
                         <div key={index} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                           <div
-                            className={`max-w-[85%] px-4 py-3 text-[13px] leading-relaxed rounded-none ${
+                            className={`max-w-[85%] px-4 py-3 text-[13px] leading-relaxed rounded-[20px] ${
                               msg.role === "user"
                                 ? d
                                   ? "bg-lime text-ink"
@@ -211,7 +211,7 @@ export default function QueryWidget({ analysis, theme, eli5 }) {
                     <div ref={endRef} />
                   </div>
 
-                  <div className={`p-4 border-t ${d ? "border-d-border" : "border-ink/10"}`}>
+                  <div className={`p-4 md:p-5 border-t ${d ? "border-d-border" : "border-ink/10"}`}>
                     {rateMsg && <div className="text-[11px] font-mono text-yellow-400 mb-2">{rateMsg}</div>}
                     <div className="flex gap-2">
                       <input
@@ -221,12 +221,12 @@ export default function QueryWidget({ analysis, theme, eli5 }) {
                         onKeyDown={(event) => event.key === "Enter" && handleSend()}
                         placeholder="Ask about this codebase..."
                         disabled={loading}
-                        className={`flex-1 px-3 py-3 rounded-none text-[13px] font-mono border ${d ? "bg-d-bg border-d-border text-d-text placeholder:text-d-subtle" : "bg-cream border-ink/10 text-ink placeholder:text-ink-faint"}`}
+                        className={`workspace-input flex-1 px-4 py-3 text-[13px] font-mono ${d ? "text-d-text placeholder:text-d-subtle" : "text-ink placeholder:text-ink-faint"}`}
                       />
                       <button
                         onClick={() => handleSend()}
                         disabled={loading || !query.trim()}
-                        className={`w-12 h-12 btn-brutal rounded-none font-mono text-sm disabled:opacity-30 ${d ? "bg-purple text-ink" : "bg-lime text-ink"}`}
+                        className={`w-12 h-12 btn-brutal font-mono text-sm disabled:opacity-30 ${d ? "bg-purple text-ink" : "bg-lime text-ink"}`}
                       >
                         →
                       </button>
@@ -240,7 +240,7 @@ export default function QueryWidget({ analysis, theme, eli5 }) {
 
         <button
           onClick={() => setOpen((current) => !current)}
-          className={`w-14 h-14 btn-brutal rounded-none flex items-center justify-center ${d ? "bg-lime text-ink" : "bg-purple text-ink"}`}
+          className={`w-14 h-14 btn-brutal flex items-center justify-center ${d ? "bg-lime text-ink" : "bg-purple text-ink"}`}
           aria-label={open ? "Close assistant" : "Open assistant"}
           title={open ? "Close assistant" : "Open assistant"}
         >
