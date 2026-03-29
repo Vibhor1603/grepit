@@ -1,10 +1,6 @@
-import { IBM_Plex_Mono, Inter } from "next/font/google";
 import "../index.css";
 import Providers from "../components/Providers";
 import Script from "next/script";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const ibmMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-mono" });
 
 export const metadata = {
   title: "Vibo — Understand Any Codebase",
@@ -17,7 +13,13 @@ export default function RootLayout({ children }) {
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
       </head>
-      <body className={`${inter.variable} ${ibmMono.variable} font-sans`}>
+      <body
+        className="font-sans"
+        style={{
+          "--font-inter": '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
+          "--font-mono": '"IBM Plex Mono", "SFMono-Regular", "Menlo", monospace',
+        }}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

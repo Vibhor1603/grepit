@@ -1,3 +1,5 @@
+import { buildGroqStructuredRequest, getGroqApiUrl, getGroqDefaultHeaders } from "./groq";
+
 export async function analyzeCodebase(repoUrl, githubAccessToken = null) {
   console.log(`[AI Service] Starting analysis for ${repoUrl}`);
 
@@ -72,18 +74,49 @@ You must respond ONLY with a valid JSON object following exactly this schema:
 `;
 
     // 3. Send to Groq API
-    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const groqRes = await fetch(getGroqApiUrl(), {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama3-70b-8192", // Groq supported model
+      headers: getGroqDefaultHeaders(),
+      body: JSON.stringify(buildGroqStructuredRequest({
+        schemaName: "legacy_repo_analysis",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            healthScore: { type: "integer" },
+            directories: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  name: { type: "string" },
+                  description: { type: "string" },
+                },
+                required: ["name", "description"],
+              },
+            },
+            techStack: { type: "array", items: { type: "string" } },
+            endpoints: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  method: { type: "string" },
+                  path: { type: "string" },
+                  desc: { type: "string" },
+                  auth: { type: "boolean" },
+                },
+                required: ["method", "path", "desc", "auth"],
+              },
+            },
+          },
+          required: ["healthScore", "directories", "techStack", "endpoints"],
+        },
         messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        temperature: 0.1
-      })
+        temperature: 0.1,
+      }))
     });
 
     if (!groqRes.ok) {

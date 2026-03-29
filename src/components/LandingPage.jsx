@@ -1,19 +1,41 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession, signIn } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import { useTheme } from './ThemeProvider';
+
+const AUTH_ERROR_MESSAGES = {
+  AccessDenied: 'GitHub denied access to the app.',
+  Callback: 'GitHub sign-in could not be completed. Please try again.',
+  Configuration: 'Authentication is misconfigured. Recheck the GitHub OAuth app settings.',
+  Default: 'Sign-in did not complete. Please try again.',
+  OAuthAccountNotLinked: 'This email is already linked to a different sign-in method.',
+  OAuthCallback: 'GitHub returned an invalid callback response.',
+  OAuthCreateAccount: 'GitHub sign-in could not create a session.',
+  SessionRequired: 'Please sign in to continue.',
+};
 
 export default function LandingPage() {
   const [repoUrl, setRepoUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [authConfigured, setAuthConfigured] = useState(true);
   const [mode, setMode] = useState('url'); // 'url' | 'upload'
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
   const router = useRouter();
-  const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const { data: session, status: sessionStatus } = useSession();
   const { theme, toggle } = useTheme();
+
+  const startGitHubSignIn = () => {
+    if (!authConfigured) {
+      setError('GitHub OAuth is not configured yet. Add GITHUB_ID, GITHUB_SECRET, NEXTAUTH_URL, and NEXTAUTH_SECRET first.');
+      return;
+    }
+    const callbackUrl = `${window.location.origin}${window.location.pathname}`;
+    signIn('github', { callbackUrl });
+  };
 
   const handleAnalyze = async (url) => {
     const targetUrl = url || repoUrl.trim();
@@ -28,10 +50,14 @@ export default function LandingPage() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoUrl: targetUrl, repoName: targetUrl.split('/').pop(), accessToken: session?.accessToken })
+        body: JSON.stringify({ repoUrl: targetUrl, repoName: targetUrl.split('/').pop() })
       });
       const data = await res.json();
-      if (res.status === 403 && data.requiresAuth) { signIn('github', { callbackUrl: window.location.href }); return; }
+      if (res.status === 403 && data.requiresAuth) {
+        setLoading(false);
+        startGitHubSignIn();
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
       // Save to localStorage
       const saved = JSON.parse(localStorage.getItem('vibo-analyses') || '[]');
@@ -70,7 +96,24 @@ export default function LandingPage() {
 
   useEffect(() => {
     setRecentAnalyses(JSON.parse(localStorage.getItem('vibo-analyses') || '[]').slice(0, 5));
+    fetch('/api/auth/status')
+      .then((res) => res.json())
+      .then((data) => setAuthConfigured(Boolean(data.configured)))
+      .catch(() => setAuthConfigured(false));
   }, []);
+
+  useEffect(() => {
+    const authError = searchParams.get('error');
+    if (authError && !session) {
+      setError(AUTH_ERROR_MESSAGES[authError] || AUTH_ERROR_MESSAGES.Default);
+    }
+  }, [searchParams, session]);
+
+  useEffect(() => {
+    if (session && error === AUTH_ERROR_MESSAGES.OAuthCallback) {
+      setError('');
+    }
+  }, [session, error]);
   const features = [
     { icon: 'hub', title: 'Architecture Map', desc: 'Visual system topology with layers, modules, and dependency flows.' },
     { icon: 'terminal', title: 'AI Query Console', desc: 'Chat with your codebase. Ask anything about patterns, flows, or decisions.' },
@@ -104,9 +147,12 @@ export default function LandingPage() {
               <div className="flex items-center gap-2">
                 <img src={session.user?.image} alt="" className="w-7 h-7 rounded-none border-2 border-current" />
                 <span className="text-sm font-mono hidden md:block">{session.user?.name}</span>
+                <button onClick={() => signOut({ callbackUrl: '/' })} className={`text-xs font-mono underline ${theme === 'dark' ? 'text-d-muted' : 'text-ink-muted'}`}>
+                  sign out
+                </button>
               </div>
             ) : (
-              <button onClick={() => signIn('github')} className={`btn-brutal px-3 py-1.5 rounded-none text-sm font-mono font-medium ${theme === 'dark' ? 'bg-d-card text-d-text' : 'bg-white text-ink'}`}>
+              <button onClick={startGitHubSignIn} className={`btn-brutal px-3 py-1.5 rounded-none text-sm font-mono font-medium ${theme === 'dark' ? 'bg-d-card text-d-text' : 'bg-white text-ink'}`}>
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
                   Sign in
@@ -131,6 +177,14 @@ export default function LandingPage() {
           <p className={`text-lg max-w-xl mx-auto leading-relaxed mb-10 ${theme === 'dark' ? 'text-d-muted' : 'text-ink-muted'}`}>
             Paste a GitHub link or upload a ZIP. Get architecture maps, AI insights, security audits, and setup guides — in seconds.
           </p>
+          <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-none border text-xs font-mono mb-8 ${theme === 'dark' ? 'border-d-border bg-d-card text-d-muted' : 'border-ink/10 bg-white text-ink-muted'}`}>
+            <span className={`w-2 h-2 rounded-none ${session ? 'bg-lime' : sessionStatus === 'loading' ? 'bg-blue' : 'bg-red-500'}`}></span>
+            {session
+              ? `Signed in as ${session.user?.email || session.user?.name || 'GitHub user'}`
+              : sessionStatus === 'loading'
+                ? 'Checking sign-in status...'
+                : 'Not signed in'}
+          </div>
 
           {/* Input Area */}
           <div className="max-w-2xl mx-auto">

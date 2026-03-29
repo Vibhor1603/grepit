@@ -3,6 +3,9 @@ export default function FlowAnalysis({ analysis, theme }) {
   const d = theme === 'dark';
   const flows = analysis?.architecture?.flowPaths || analysis?.results?.flowPaths || [];
   const ml = analysis?.architecture?.mlInsights || analysis?.results?.mlInsights || {};
+  const stepTones = d
+    ? ['bg-blue/12 border-white', 'bg-purple/12 border-white', 'bg-lime/12 border-white', 'bg-peach/12 border-white']
+    : ['bg-cream border-ink/10', 'bg-white border-ink/10', 'bg-sand/70 border-ink/10', 'bg-cream border-ink/10'];
   return (
     <div className="space-y-6">
       <div>
@@ -10,18 +13,23 @@ export default function FlowAnalysis({ analysis, theme }) {
         <p className={`text-sm font-mono ${d ? 'text-d-muted' : 'text-ink-muted'}`}>Execution paths and data flow traces</p>
       </div>
       {flows.length > 0 ? flows.map((flow, i) => (
-        <div key={i} className={`card-brutal rounded-none p-5 ${d ? 'bg-d-card' : 'bg-white'}`}>
-          <h3 className="font-mono font-semibold text-sm mb-3">{flow.name}</h3>
-          <div className="space-y-2">
-            {(flow.steps || []).map((step, j) => (
-              <div key={j} className="flex items-start gap-3">
-                <div className="flex flex-col items-center">
-                  <div className={`w-6 h-6 rounded-none flex items-center justify-center text-[10px] font-mono font-bold ${d ? 'bg-purple/20 text-purple' : 'bg-purple/30 text-ink'}`}>{j + 1}</div>
-                  {j < flow.steps.length - 1 && <div className={`w-px h-4 ${d ? 'bg-d-border' : 'bg-ink/10'}`}></div>}
+        <div key={i} className={`card-brutal rounded-none p-5 ${d ? 'bg-purple/12' : 'bg-white'}`}>
+          <h3 className="font-mono font-semibold text-sm mb-4">{flow.name}</h3>
+          <div className="overflow-x-auto">
+            <div className="flex items-center gap-3 min-w-max pb-2">
+              {(flow.steps || []).map((step, j) => (
+                  <div key={j} className="flex items-center gap-3">
+                  <div className={`min-w-[220px] max-w-[220px] border-2 p-3 ${stepTones[j % stepTones.length]}`}>
+                    <div className={`text-[10px] uppercase tracking-[0.2em] font-mono mb-2 ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>Step {j + 1}</div>
+                    <div className={`text-[13px] leading-relaxed ${d ? 'text-d-muted' : 'text-ink-muted'}`}>{step}</div>
+                  </div>
+                  {j < flow.steps.length - 1 && <div className="text-xl font-black text-purple">→</div>}
                 </div>
-                <span className={`text-[13px] font-mono pt-0.5 ${d ? 'text-d-muted' : 'text-ink-muted'}`}>{step}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+          <div className={`mt-4 text-[11px] font-mono ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>
+            Tree/map mode highlights the order of execution and handoffs between each stage.
           </div>
         </div>
       )) : (

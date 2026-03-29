@@ -1,5 +1,5 @@
 "use client";
-export default function ApiExplorer({ analysis, theme }) {
+export default function ApiExplorer({ analysis, theme, onNavigate }) {
   const d = theme === 'dark';
   const endpoints = analysis?.architecture?.apiEndpoints || analysis?.results?.apiEndpoints || [];
   const methodColors = { GET: 'text-blue', POST: 'text-lime', PUT: 'text-purple', DELETE: 'text-red-400', PATCH: 'text-peach' };
@@ -17,7 +17,31 @@ export default function ApiExplorer({ analysis, theme }) {
               <div className="flex-1 min-w-0">
                 <div className="font-mono text-sm font-semibold truncate">{ep.path}</div>
                 <div className={`text-[12px] mt-0.5 ${d ? 'text-d-muted' : 'text-ink-muted'}`}>{ep.description}</div>
-                {ep.file && <div className={`text-[11px] font-mono mt-1 ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>{ep.file}</div>}
+                {ep.file && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate?.('files', { path: ep.file })}
+                    className={`block text-left text-[11px] font-mono mt-1 underline-offset-4 hover:underline ${d ? 'text-d-subtle' : 'text-ink-faint'}`}
+                  >
+                    {ep.file}
+                  </button>
+                )}
+                {(ep.requestSchema?.length > 0 || ep.responseSchema?.length > 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+                    <div className={`border-2 p-3 ${d ? 'border-d-border bg-d-bg' : 'border-ink/10 bg-cream'}`}>
+                      <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-2 ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>Request</div>
+                      {ep.requestSchema?.length > 0 ? ep.requestSchema.map((field, index) => (
+                        <div key={index} className="text-[12px] font-mono mb-1">{field}</div>
+                      )) : <div className={`text-[12px] ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>No shape inferred.</div>}
+                    </div>
+                    <div className={`border-2 p-3 ${d ? 'border-d-border bg-d-bg' : 'border-ink/10 bg-cream'}`}>
+                      <div className={`text-[10px] font-mono uppercase tracking-[0.2em] mb-2 ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>Response</div>
+                      {ep.responseSchema?.length > 0 ? ep.responseSchema.map((field, index) => (
+                        <div key={index} className="text-[12px] font-mono mb-1">{field}</div>
+                      )) : <div className={`text-[12px] ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>No shape inferred.</div>}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}

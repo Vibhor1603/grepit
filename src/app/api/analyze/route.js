@@ -1,123 +1,254 @@
-import { createServerSupabase } from '../../../lib/supabase';
-import { rateLimit } from '../../../lib/rateLimit';
-import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
+import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { rateLimit } from "../../../lib/rateLimit";
+import { buildRepositoryAnalysis, maybeEnhanceAnalysisWithGroq, mergeAnalysisDetails } from "../../../lib/analysis";
+import { createAnalysisRecord, deleteAnalysisRecord, findLatestAnalysisByRepo, getAnalysisRecord, listAnalysisRecords, serializeAnalysisRecord, updateAnalysisRecord } from "../../../lib/analysis-store";
+import { fetchGitHubFileText, normalizeGitHubRepoUrl } from "../../../lib/github";
+import { getCurrentSession, getGithubAccessToken, getSessionOwner } from "../../../lib/server-session";
+import { createGitHubSnapshot } from "../../../lib/repository-snapshot";
+import { buildCodeIntelligence } from "../../../lib/code-intel";
+
+function parsePropsFromSource(source, componentName) {
+  const props = new Set();
+  const matchers = [
+    new RegExp(`function\\s+${componentName}\\s*\\(\\s*\\{([^}]*)\\}`, "m"),
+    new RegExp(`const\\s+${componentName}\\s*=\\s*\\(\\s*\\{([^}]*)\\}`, "m"),
+    /export default function\s+\w+\s*\(\s*\{([^}]*)\}/m,
+  ];
+
+  for (const matcher of matchers) {
+    const match = source.match(matcher);
+    if (match?.[1]) {
+      match[1]
+        .split(",")
+        .map((item) => item.trim().replace(/[:?].*$/, "").replace(/=.*/, "").trim())
+        .filter(Boolean)
+        .forEach((prop) => props.add(prop));
+    }
+  }
+
+  for (const dynamicMatch of source.matchAll(/\bprops\.([A-Za-z0-9_]+)/g)) {
+    props.add(dynamicMatch[1]);
+  }
+
+  return [...props].slice(0, 12);
+}
+
+function parseChildComponents(source) {
+  const children = new Set();
+  for (const match of source.matchAll(/<([A-Z][A-Za-z0-9_]*)\b/g)) {
+    children.add(match[1]);
+  }
+  return [...children].slice(0, 10);
+}
+
+function buildComponentSummary(source, componentName, filePath) {
+  const exported = source.includes(`export default ${componentName}`) || source.includes(`export default function ${componentName}`);
+  const hasState = /\buseState\b|\buseReducer\b/.test(source);
+  const hasEffects = /\buseEffect\b|\buseLayoutEffect\b/.test(source);
+  const hints = [];
+
+  if (exported) hints.push("default export");
+  if (hasState) hints.push("local state");
+  if (hasEffects) hints.push("side effects");
+
+  return `${componentName} in ${filePath}${hints.length ? ` uses ${hints.join(" and ")}.` : "."}`;
+}
+
+async function enrichGitHubComponents(repository, repoPath, accessToken) {
+  const componentCandidates = repository.fileTree
+    .filter((entry) => entry.type === "blob" && /(src\/components\/|components\/).+\.(jsx|tsx)$/.test(entry.path))
+    .slice(0, 10);
+
+  const usageCandidates = repository.fileTree
+    .filter((entry) => entry.type === "blob" && /\.(jsx|tsx|js|ts)$/.test(entry.path))
+    .slice(0, 60);
+
+  const usageTexts = await Promise.all(
+    usageCandidates.map(async (entry) => ({
+      path: entry.path,
+      text: await fetchGitHubFileText(repoPath, repository.defaultBranch, entry.path, accessToken),
+    })),
+  );
+
+  const components = await Promise.all(
+    componentCandidates.map(async (entry) => {
+      const source = await fetchGitHubFileText(repoPath, repository.defaultBranch, entry.path, accessToken);
+      if (!source) {
+        return null;
+      }
+
+      const name = entry.path.split("/").pop().replace(/\.(jsx|tsx)$/, "");
+      const usedIn = usageTexts
+        .filter((candidate) => candidate.path !== entry.path && candidate.text && (candidate.text.includes(`<${name}`) || candidate.text.includes(`import ${name}`)))
+        .map((candidate) => candidate.path)
+        .slice(0, 8);
+
+      return {
+        name,
+        file: entry.path,
+        props: parsePropsFromSource(source, name),
+        children: parseChildComponents(source).filter((child) => child !== name),
+        usedIn,
+        summary: buildComponentSummary(source, name, entry.path),
+      };
+    }),
+  );
+
+  return components.filter(Boolean);
+}
+
+function buildFlowMap(baseFlows, components, endpoints) {
+  const enhanced = [...(baseFlows || [])];
+
+  if (components?.length) {
+    enhanced.push({
+      name: "Component interaction map",
+      steps: components.slice(0, 5).map((component) => {
+        const usage = component.usedIn?.[0] ? ` consumed by ${component.usedIn[0]}` : " awaiting usage inference";
+        return `${component.name} -> ${component.children?.[0] || "leaf UI node"}${usage}`;
+      }),
+    });
+  }
+
+  if (endpoints?.length) {
+    enhanced.push({
+      name: "API surface map",
+      steps: endpoints.slice(0, 5).map((endpoint) => `${endpoint.method} ${endpoint.path} -> ${endpoint.file}`),
+    });
+  }
+
+  return enhanced;
+}
+
+function mergeApiEndpoints(baseEndpoints = [], codeIntelFiles = []) {
+  const merged = [...baseEndpoints];
+  for (const file of codeIntelFiles) {
+    for (const endpoint of file.endpoints || []) {
+      merged.push({
+        ...endpoint,
+        requestSchema: file.schemas?.request || [],
+        responseSchema: file.schemas?.response || [],
+      });
+    }
+  }
+  return merged.slice(0, 100);
+}
+
+function ensureReadAccess(analysis, ownerEmail) {
+  if (analysis?.owner_email && analysis.owner_email !== ownerEmail) {
+    const error = new Error("You do not have access to this analysis.");
+    error.status = 403;
+    throw error;
+  }
+}
 
 export async function POST(request) {
-  const supabase = createServerSupabase();
   const headersList = await headers();
-  const ip = headersList.get('x-forwarded-for') || 'unknown';
+  const ip = headersList.get("x-forwarded-for") || "unknown";
   const limit = rateLimit(`analyze:${ip}`, 10, 60000);
-  if (!limit.success) return NextResponse.json({ error: 'Rate limit exceeded. Try again shortly.', resetIn: limit.resetIn }, { status: 429 });
+  if (!limit.success) {
+    return NextResponse.json({ error: "Rate limit exceeded. Try again shortly.", resetIn: limit.resetIn }, { status: 429 });
+  }
 
   try {
     const body = await request.json();
-    const { repoUrl, repoName, accessToken } = body;
-    if (!repoUrl) return NextResponse.json({ error: 'Repository URL is required' }, { status: 400 });
-    const repoMatch = repoUrl.match(/github\.com\/([\w.-]+)\/([\w.-]+)/);
-    if (!repoMatch) return NextResponse.json({ error: 'Invalid GitHub repository URL' }, { status: 400 });
-    const repoPath = `${repoMatch[1]}/${repoMatch[2]}`;
-
-    // Create analysis
-    const { data: analysis, error: insertError } = await supabase
-      .from('analyses').insert({ repo_url: repoUrl, repo_name: repoName || repoMatch[2], status: 'PROCESSING' }).select().single();
-    if (insertError) throw insertError;
-
-    const ghHeaders = { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Vibo-Analyzer' };
-    if (accessToken) ghHeaders['Authorization'] = `Bearer ${accessToken}`;
-
-    let repoData = {}, fileTree = [], languages = {};
-
-    // Fetch repo
-    const repoRes = await fetch(`https://api.github.com/repos/${repoPath}`, { headers: ghHeaders });
-    if (repoRes.status === 404 || repoRes.status === 403) {
-      if (!accessToken) { await supabase.from('analyses').delete().eq('id', analysis.id); return NextResponse.json({ error: 'Private repo — sign in with GitHub first.', requiresAuth: true }, { status: 403 }); }
-      throw new Error('Repository not found or access denied.');
+    const { repoUrl } = body;
+    if (!repoUrl) {
+      return NextResponse.json({ error: "Repository URL is required" }, { status: 400 });
     }
-    if (repoRes.ok) repoData = await repoRes.json();
 
-    // Fetch languages & tree
-    const [langRes, treeRes] = await Promise.all([
-      fetch(`https://api.github.com/repos/${repoPath}/languages`, { headers: ghHeaders }),
-      fetch(`https://api.github.com/repos/${repoPath}/git/trees/${repoData.default_branch || 'main'}?recursive=1`, { headers: ghHeaders })
-    ]);
-    if (langRes.ok) languages = await langRes.json();
-    if (treeRes.ok) { const d = await treeRes.json(); fileTree = (d.tree || []).map(f => ({ path: f.path, type: f.type, size: f.size || 0 })); }
+    const session = await getCurrentSession();
+    const ownerEmail = getSessionOwner(session);
+    const accessToken = getGithubAccessToken(session);
+    const normalized = normalizeGitHubRepoUrl(repoUrl);
+    const analysis = await createAnalysisRecord({
+      repo_url: normalized.repoUrl,
+      repo_name: body.repoName || normalized.repo,
+      status: "PROCESSING",
+      source: "github",
+      owner_email: ownerEmail,
+    });
 
-    const totalFiles = fileTree.filter(f => f.type === 'blob').length;
-    const totalSize = fileTree.reduce((s, f) => s + (f.size || 0), 0);
-
-    // Enhanced AI Analysis — single comprehensive prompt
-    let aiResult = {};
     try {
-      const filePaths = fileTree.slice(0, 200).map(f => f.path);
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: `You are a senior software architect and security expert. Analyze the repository and return comprehensive JSON with these fields:
-- summary: string (2-3 sentences about the project)
-- projectType: string (e.g., "Web Application", "CLI Tool", "Library")
-- techStack: string[] (frameworks, languages, tools detected)
-- patterns: string[] (design patterns found)
-- layers: {name: string, modules: string[]}[] (architecture layers)
-- dependencies: {from: string, to: string}[] (module dependencies)
-- suggestions: string[] (improvement suggestions)
-- apiEndpoints: {method: string, path: string, file: string, description: string}[] (detected API routes)
-- components: {name: string, file: string, props: string[], children: string[]}[] (UI components)
-- securityIssues: {severity: "high"|"medium"|"low", title: string, description: string, file: string}[] (security findings)
-- setupSteps: string[] (local development setup instructions)
-- codeSmells: {file: string, issue: string, suggestion: string}[] (code quality issues)
-- testGaps: string[] (files/modules lacking tests)
-- flowPaths: {name: string, steps: string[]}[] (key execution flows)
-- mlInsights: {models: string[], pipelines: string[], dataFiles: string[]} (ML/data related findings)
-Be concise and specific. Use actual file paths from the list.` },
-            { role: 'user', content: `Repo: ${repoPath}\nDescription: ${repoData.description || 'N/A'}\nStars: ${repoData.stargazers_count || 0}\nLanguages: ${JSON.stringify(languages)}\nFiles: ${JSON.stringify(filePaths)}` }
-          ],
-          temperature: 0.15, max_tokens: 3000, response_format: { type: 'json_object' }
-        })
+      const previous = await findLatestAnalysisByRepo(normalized.repoUrl, ownerEmail);
+      const snapshot = await createGitHubSnapshot(normalized.repoPath, accessToken);
+      let result = buildRepositoryAnalysis({
+        repoUrl: snapshot.repoUrl,
+        repoName: body.repoName || snapshot.repoName || normalized.repo,
+        fileTree: snapshot.fileTree.slice(0, 5000),
+        languages: snapshot.languages,
+        repoData: snapshot.repoData,
+        source: "github",
       });
-      if (groqRes.ok) {
-        const d = await groqRes.json();
-        aiResult = JSON.parse(d.choices?.[0]?.message?.content || '{}');
+      const detailedComponents = await enrichGitHubComponents(snapshot, normalized.repoPath, accessToken);
+      const codeIntel = buildCodeIntelligence(snapshot, previous);
+      const mergedEndpoints = mergeApiEndpoints(result.architecture.apiEndpoints, codeIntel.files);
+      result = mergeAnalysisDetails(result, {
+        components: detailedComponents.length ? detailedComponents : result.architecture.components,
+        flowPaths: buildFlowMap(result.architecture.flowPaths, detailedComponents, mergedEndpoints),
+        apiEndpoints: mergedEndpoints,
+        symbolIndex: codeIntel.symbolIndex,
+        files: codeIntel.files,
+        dependencyGraph: codeIntel.dependencyGraph,
+        callGraph: codeIntel.callGraph,
+        testing: codeIntel.testing,
+        reports: codeIntel.reports,
+        quality: codeIntel.quality,
+        security: codeIntel.security,
+        performance: codeIntel.performance,
+        incremental: codeIntel.incremental,
+      });
+      result = await maybeEnhanceAnalysisWithGroq(result, { snapshot, codeIntel });
+
+      const updated = await updateAnalysisRecord(analysis.id, {
+        status: "COMPLETED",
+        repo_url: result.repoUrl,
+        repo_name: result.repoName,
+        summary: result.summary,
+        total_files: result.totalFiles,
+        total_lines: result.totalLines,
+        languages: result.languages,
+        file_tree: result.fileTree,
+        architecture: result.architecture,
+        results: result.results,
+        is_private: result.isPrivate,
+        error_message: null,
+        updated_at: new Date().toISOString(),
+      });
+
+      return NextResponse.json(updated);
+    } catch (error) {
+      await deleteAnalysisRecord(analysis.id);
+      if (error.code === "AUTH_REQUIRED") {
+        return NextResponse.json(
+          { error: "Private repo detected. Sign in with GitHub to analyze it.", requiresAuth: true },
+          { status: 403 },
+        );
       }
-    } catch (err) { console.error('Groq error:', err.message); }
-
-    const { data: updated } = await supabase
-      .from('analyses').update({
-        status: 'COMPLETED',
-        file_tree: fileTree.slice(0, 5000),
-        architecture: aiResult,
-        summary: aiResult.summary || `${repoPath}: ${totalFiles} files, ${Object.keys(languages).length} languages.`,
-        total_files: totalFiles,
-        total_lines: Math.round(totalSize / 40),
-        languages,
-        results: { repoData: { description: repoData.description, stars: repoData.stargazers_count, forks: repoData.forks_count }, ...aiResult },
-        updated_at: new Date().toISOString()
-      }).eq('id', analysis.id).select().single();
-
-    return NextResponse.json(updated);
+      throw error;
+    }
   } catch (error) {
-    console.error('Analysis error:', error);
-    return NextResponse.json({ error: error.message || 'Analysis failed' }, { status: 500 });
+    console.error("Analysis error:", error);
+    return NextResponse.json({ error: error.message || "Analysis failed" }, { status: error.status || 500 });
   }
 }
 
 export async function GET(request) {
-  const supabase = createServerSupabase();
-  const id = new URL(request.url).searchParams.get('id');
+  const id = new URL(request.url).searchParams.get("id");
   try {
+    const session = await getCurrentSession();
+    const ownerEmail = getSessionOwner(session);
+
     if (id) {
-      const { data, error } = await supabase.from('analyses').select('*').eq('id', id).single();
-      if (error) throw error;
-      return NextResponse.json(data);
+      const record = await getAnalysisRecord(id);
+      ensureReadAccess(record, ownerEmail);
+      return NextResponse.json(record);
     }
-    const { data, error } = await supabase.from('analyses').select('*').order('created_at', { ascending: false }).limit(20);
-    if (error) throw error;
-    return NextResponse.json(data);
+
+    const records = await listAnalysisRecords(ownerEmail);
+    return NextResponse.json(records.map(serializeAnalysisRecord));
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: error.status || 500 });
   }
 }

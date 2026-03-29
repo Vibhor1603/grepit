@@ -1,6 +1,104 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 
+function renderInlineMarkdown(text) {
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g).filter(Boolean);
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <code key={index}>{part.slice(1, -1)}</code>;
+    }
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function MarkdownMessage({ content }) {
+  const lines = content.split('\n');
+  const elements = [];
+  let listBuffer = [];
+  let listType = null;
+  let codeBuffer = [];
+  let inCode = false;
+
+  const flushList = (key) => {
+    if (!listBuffer.length) return;
+    const Tag = listType === 'ol' ? 'ol' : 'ul';
+    elements.push(
+      <Tag key={key}>
+        {listBuffer.map((item, index) => <li key={index}>{renderInlineMarkdown(item)}</li>)}
+      </Tag>,
+    );
+    listBuffer = [];
+    listType = null;
+  };
+
+  const flushCode = (key) => {
+    if (!codeBuffer.length) return;
+    elements.push(<pre key={key}><code>{codeBuffer.join('\n')}</code></pre>);
+    codeBuffer = [];
+  };
+
+  lines.forEach((line, index) => {
+    if (line.trim().startsWith('```')) {
+      if (inCode) {
+        flushCode(`code-${index}`);
+      } else {
+        flushList(`list-before-code-${index}`);
+      }
+      inCode = !inCode;
+      return;
+    }
+
+    if (inCode) {
+      codeBuffer.push(line);
+      return;
+    }
+
+    const orderedMatch = line.match(/^\d+\.\s+(.*)$/);
+    const bulletMatch = line.match(/^[-*]\s+(.*)$/);
+    if (orderedMatch) {
+      if (listType && listType !== 'ol') flushList(`list-switch-${index}`);
+      listType = 'ol';
+      listBuffer.push(orderedMatch[1]);
+      return;
+    }
+    if (bulletMatch) {
+      if (listType && listType !== 'ul') flushList(`list-switch-${index}`);
+      listType = 'ul';
+      listBuffer.push(bulletMatch[1]);
+      return;
+    }
+
+    flushList(`list-${index}`);
+
+    if (!line.trim()) {
+      return;
+    }
+
+    if (line.startsWith('### ')) {
+      elements.push(<h3 key={index}>{renderInlineMarkdown(line.slice(4))}</h3>);
+      return;
+    }
+    if (line.startsWith('## ')) {
+      elements.push(<h2 key={index}>{renderInlineMarkdown(line.slice(3))}</h2>);
+      return;
+    }
+    if (line.startsWith('# ')) {
+      elements.push(<h1 key={index}>{renderInlineMarkdown(line.slice(2))}</h1>);
+      return;
+    }
+
+    elements.push(<p key={index}>{renderInlineMarkdown(line)}</p>);
+  });
+
+  flushList('list-end');
+  flushCode('code-end');
+
+  return <div className="markdown-brutal">{elements}</div>;
+}
+
 export default function QueryConsole({ analysis, theme, eli5 }) {
   const d = theme === 'dark';
   const [query, setQuery] = useState('');
@@ -90,7 +188,11 @@ export default function QueryConsole({ analysis, theme, eli5 }) {
                 msg.role === 'system' ? 'bg-red-500/10 text-red-400' :
                 (d ? 'text-d-muted' : 'text-ink-muted')
               }`}>
-                <pre className="whitespace-pre-wrap font-mono text-[13px]">{msg.content}</pre>
+                {msg.role === 'assistant' ? (
+                  <MarkdownMessage content={msg.content} />
+                ) : (
+                  <pre className="whitespace-pre-wrap font-mono text-[13px]">{msg.content}</pre>
+                )}
               </div>
             </div>
           ))}

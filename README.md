@@ -1,25 +1,59 @@
-# React + Vite
+# Vibo Code Analyst
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Next.js frontend and API routes for repository analysis, with:
 
-Currently, two official plugins are available:
+- GitHub OAuth via `next-auth`
+- Supabase for app data storage
+- Optional Groq enrichment for deeper summaries
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Local setup
 
-## React Compiler
+1. Install dependencies:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+```
 
-## Expanding the ESLint configuration
+2. Copy the env template and fill in real values:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+cp .env.example .env.local
+```
 
+3. In Supabase, open the SQL editor and run [`supabase/schema.sql`](/Users/vibhorsharma/Vibo/Vibo-code-analyst/supabase/schema.sql).
 
-ss- 
-<img width="1710" height="1107" alt="image" src="https://github.com/user-attachments/assets/0811309b-3c51-43fc-a697-c85d2419ebbf" />
-<img width="1710" height="1107" alt="image" src="https://github.com/user-attachments/assets/be1c5056-8f02-4427-a4a0-12a2e58d0f7b" />
-<img width="1710" height="1107" alt="image" src="https://github.com/user-attachments/assets/21039ab2-9b29-4c95-81c7-6e2542c8c9a1" />
-<img width="1710" height="1107" alt="image" src="https://github.com/user-attachments/assets/2782db63-cdd9-418d-88d4-99b439579c63" />
-<img width="1710" height="1107" alt="image" src="https://github.com/user-attachments/assets/96d94bdd-1dcd-4cf2-956b-791a5de41af6" />
-<img width="1710" height="1107" alt="image" src="https://github.com/user-attachments/assets/6b0fcdfd-562a-4917-a262-bd2999a98cfd" />
+4. Start the app:
+
+```bash
+npm run dev
+```
+
+The app runs on [http://localhost:3000](http://localhost:3000). This single Next.js server handles both the frontend and backend API routes.
+
+## Required environment variables
+
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `GITHUB_ID`
+- `GITHUB_SECRET`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+## GitHub OAuth app setup
+
+Create an OAuth App in GitHub:
+
+1. Go to GitHub Settings -> Developer settings -> OAuth Apps -> New OAuth App.
+2. Set `Homepage URL` to `http://localhost:3000`.
+3. Set `Authorization callback URL` to `http://localhost:3000/api/auth/callback/github`.
+4. Copy the client ID into `GITHUB_ID`.
+5. Copy the client secret into `GITHUB_SECRET`.
+6. Set `NEXTAUTH_URL=http://localhost:3000`.
+7. Generate a long random `NEXTAUTH_SECRET`.
+
+The app requests `read:user user:email repo` so private repository analysis works after sign-in.
+
+## Supabase notes
+
+Use the service role key only on the server. The app writes analyses and query history through API routes, not directly from the browser.
