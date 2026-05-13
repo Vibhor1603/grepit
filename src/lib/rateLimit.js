@@ -1,43 +1,55 @@
-// Simple in-memory rate limiter
-const rateLimitMap = new Map();
-
 /**
- * Token bucket rate limiter.
- * @param {string} key - Unique identifier (IP, session, etc.)
- * @param {number} maxTokens - Max requests in the window
- * @param {number} windowMs - Time window in milliseconds
- * @returns {{ success: boolean, remaining: number, resetIn: number }}
+ * Sliding-window rate limiter backed by a module-level Map.
+ *
+ * Keyed by a string you compose — typically `"endpoint:ip"` for anonymous
+ * callers or `"endpoint:email"` for authenticated ones so limits are
+ * per-user rather than per-IP when a session exists.
+ *
+ * Returns { success, remaining, resetIn } — same shape as before.
  */
-export function rateLimit(key, maxTokens = 5, windowMs = 60000) {
+
+const store = new Map();
+
+export function rateLimit(key, maxTokens = 10, windowMs = 60_000) {
   const now = Date.now();
 
-  if (!rateLimitMap.has(key)) {
-    rateLimitMap.set(key, { tokens: maxTokens - 1, lastRefill: now });
+  if (!store.has(key)) {
+    store.set(key, { tokens: maxTokens - 1, windowStart: now });
     return { success: true, remaining: maxTokens - 1, resetIn: windowMs };
   }
 
-  const bucket = rateLimitMap.get(key);
-  const elapsed = now - bucket.lastRefill;
-  const refill = Math.floor(elapsed / windowMs) * maxTokens;
+  const bucket = store.get(key);
+  const elapsed = now - bucket.windowStart;
 
-  if (refill > 0) {
-    bucket.tokens = Math.min(maxTokens, bucket.tokens + refill);
-    bucket.lastRefill = now;
+  // Full window elapsed — reset
+  if (elapsed >= windowMs) {
+    bucket.tokens = maxTokens - 1;
+    bucket.windowStart = now;
+    return { success: true, remaining: bucket.tokens, resetIn: windowMs };
   }
 
   if (bucket.tokens <= 0) {
-    const resetIn = windowMs - (now - bucket.lastRefill);
-    return { success: false, remaining: 0, resetIn };
+    return { success: false, remaining: 0, resetIn: windowMs - elapsed };
   }
 
   bucket.tokens -= 1;
-  return { success: true, remaining: bucket.tokens, resetIn: windowMs - (now - bucket.lastRefill) };
+  return { success: true, remaining: bucket.tokens, resetIn: windowMs - elapsed };
 }
 
-// Clean up old entries periodically
+/**
+ * Build a rate-limit key that prefers the authenticated user's email
+ * over the raw IP address. This prevents a single user from bypassing
+ * limits by rotating IPs, and gives authenticated users their own bucket.
+ */
+export function rateLimitKey(prefix, ip, ownerEmail) {
+  const identity = ownerEmail || ip || "unknown";
+  return `${prefix}:${identity}`;
+}
+
+// Prune stale entries every 2 minutes
 setInterval(() => {
-  const now = Date.now();
-  for (const [key, val] of rateLimitMap) {
-    if (now - val.lastRefill > 300000) rateLimitMap.delete(key);
+  const cutoff = Date.now() - 300_000;
+  for (const [key, val] of store) {
+    if (val.windowStart < cutoff) store.delete(key);
   }
-}, 60000);
+}, 120_000);

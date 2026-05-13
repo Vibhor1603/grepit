@@ -1,4 +1,12 @@
-import { createServerSupabase } from "./supabase";
+import { and, desc, eq, isNull } from "drizzle-orm";
+import { analyses, query_history } from "../db/schema";
+import { getDb } from "./db";
+
+function notFound(message) {
+  const error = new Error(message);
+  error.status = 404;
+  return error;
+}
 
 export function serializeAnalysisRecord(record) {
   if (!record) return null;
@@ -13,69 +21,80 @@ export function serializeAnalysisRecord(record) {
 }
 
 export async function createAnalysisRecord(payload) {
-  const supabase = createServerSupabase();
-  const { data, error } = await supabase.from("analyses").insert(payload).select().single();
-
-  if (error) throw error;
+  const db = getDb();
+  const [data] = await db.insert(analyses).values(payload).returning();
   return serializeAnalysisRecord(data);
 }
 
 export async function updateAnalysisRecord(id, payload) {
-  const supabase = createServerSupabase();
-  const { data, error } = await supabase.from("analyses").update(payload).eq("id", id).select().single();
+  const db = getDb();
+  const [data] = await db.update(analyses).set(payload).where(eq(analyses.id, id)).returning();
 
-  if (error) throw error;
+  if (!data) throw notFound("Analysis not found.");
   return serializeAnalysisRecord(data);
 }
 
 export async function getAnalysisRecord(id) {
-  const supabase = createServerSupabase();
-  const { data, error } = await supabase.from("analyses").select("*").eq("id", id).single();
+  const db = getDb();
+  const [data] = await db.select().from(analyses).where(eq(analyses.id, id)).limit(1);
 
-  if (error) throw error;
+  if (!data) throw notFound("Analysis not found.");
   return serializeAnalysisRecord(data);
 }
 
 export async function listAnalysisRecords(ownerEmail) {
-  const supabase = createServerSupabase();
-  let query = supabase.from("analyses").select("*").order("created_at", { ascending: false }).limit(20);
+  const db = getDb();
+  const rows = ownerEmail
+    ? await db.select().from(analyses).where(eq(analyses.owner_email, ownerEmail)).orderBy(desc(analyses.created_at)).limit(20)
+    : await db.select().from(analyses).where(isNull(analyses.owner_email)).orderBy(desc(analyses.created_at)).limit(20);
 
-  if (ownerEmail) {
-    query = query.eq("owner_email", ownerEmail);
-  } else {
-    query = query.is("owner_email", null);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data || []).map(serializeAnalysisRecord);
+  return rows.map(serializeAnalysisRecord);
 }
 
 export async function deleteAnalysisRecord(id) {
-  const supabase = createServerSupabase();
-  const { error } = await supabase.from("analyses").delete().eq("id", id);
-  if (error) throw error;
+  const db = getDb();
+  await db.delete(analyses).where(eq(analyses.id, id));
 }
 
 export async function createQueryHistory(payload) {
-  const supabase = createServerSupabase();
-  const { error } = await supabase.from("query_history").insert(payload);
-  if (error) throw error;
+  const db = getDb();
+  await db.insert(query_history).values(payload);
+}
+
+export async function getRecentQueries(analysisId, limit = 3) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      query: query_history.query,
+      response: query_history.response,
+    })
+    .from(query_history)
+    .where(eq(query_history.analysis_id, analysisId))
+    .orderBy(desc(query_history.created_at))
+    .limit(limit);
+
+  return rows.reverse();
+}
+
+export async function deleteQueryHistory(analysisId, queryText) {
+  const db = getDb();
+  const trimmed = queryText.trim();
+  await db.delete(query_history).where(
+    and(eq(query_history.analysis_id, analysisId), eq(query_history.query, trimmed))
+  );
 }
 
 export async function findLatestAnalysisByRepo(repoUrl, ownerEmail) {
-  const supabase = createServerSupabase();
-  let query = supabase
-    .from("analyses")
-    .select("*")
-    .eq("repo_url", repoUrl)
-    .order("updated_at", { ascending: false })
+  const db = getDb();
+  const conditions = [eq(analyses.repo_url, repoUrl)];
+  conditions.push(ownerEmail ? eq(analyses.owner_email, ownerEmail) : isNull(analyses.owner_email));
+
+  const [data] = await db
+    .select()
+    .from(analyses)
+    .where(and(...conditions))
+    .orderBy(desc(analyses.updated_at))
     .limit(1);
 
-  if (ownerEmail) query = query.eq("owner_email", ownerEmail);
-  else query = query.is("owner_email", null);
-
-  const { data, error } = await query.maybeSingle();
-  if (error) throw error;
   return serializeAnalysisRecord(data);
 }

@@ -3,7 +3,8 @@
 Next.js frontend and API routes for repository analysis, with:
 
 - GitHub OAuth via `next-auth`
-- Supabase for app data storage
+- PostgreSQL for app data storage
+- Drizzle for schema and query access
 - Optional Groq enrichment for deeper summaries
 
 ## Local setup
@@ -20,9 +21,16 @@ npm install
 cp .env.example .env.local
 ```
 
-3. In Supabase, open the SQL editor and run [`supabase/schema.sql`](/Users/vibhorsharma/Vibo/Vibo-code-analyst/supabase/schema.sql).
+3. Create a Neon Postgres database and put its pooled connection string in `DATABASE_URL`.
 
-4. Start the app:
+4. Generate and apply the Drizzle migration:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+5. Start the app:
 
 ```bash
 npm run dev
@@ -36,9 +44,7 @@ The app runs on [http://localhost:3000](http://localhost:3000). This single Next
 - `NEXTAUTH_SECRET`
 - `GITHUB_ID`
 - `GITHUB_SECRET`
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `DATABASE_URL`
 
 ## GitHub OAuth app setup
 
@@ -54,6 +60,8 @@ Create an OAuth App in GitHub:
 
 The app requests `read:user user:email repo` so private repository analysis works after sign-in.
 
-## Supabase notes
+## Database notes
 
-Use the service role key only on the server. The app writes analyses and query history through API routes, not directly from the browser.
+The app now talks to plain PostgreSQL through Drizzle. Neon is the recommended low-cost starting host, but any standard Postgres provider works as long as `DATABASE_URL` points to it.
+
+For the exact migration/setup flow and current tables, see [NEON_DRIZZLE_SETUP.md](/Users/vibhorsharma/Vibo/Vibo-code-analyst/NEON_DRIZZLE_SETUP.md).

@@ -2,6 +2,8 @@
 export default function Architecture({ analysis, theme, eli5, onNavigate }) {
   const d = theme === 'dark';
   const arch = analysis?.architecture || analysis?.results || {};
+  const queryEngine = analysis?.results?.queryArchitecture || arch.queryArchitecture || null;
+  const codebaseSummary = analysis?.results?.codebaseIndex?.summary || null;
   const layers = arch.layers || [];
   const deps = analysis?.results?.dependencyGraph || arch.dependencies || [];
   const callGraph = analysis?.results?.callGraph || [];
@@ -38,6 +40,42 @@ export default function Architecture({ analysis, theme, eli5, onNavigate }) {
                 ))}</div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {queryEngine && (
+        <div className={`card-brutal rounded-none p-5 ${d ? 'bg-d-card' : 'bg-white'}`}>
+          <h2 className={`text-[11px] font-mono uppercase tracking-wider mb-4 ${d ? 'text-d-subtle' : 'text-ink-faint'}`}>Query Engine</h2>
+          <div className="space-y-3">
+            <div className={`p-3 rounded-none border ${d ? 'border-d-border bg-d-bg' : 'border-ink/10 bg-cream'}`}>
+              <div className="font-mono font-semibold text-sm">{queryEngine.strategy}</div>
+              <p className={`mt-2 text-[12px] leading-relaxed font-mono ${d ? 'text-d-muted' : 'text-ink-muted'}`}>
+                {queryEngine.summary}
+              </p>
+            </div>
+            {codebaseSummary && (
+              <div className="grid grid-cols-2 xl:grid-cols-5 gap-2">
+                {[
+                  ['Files', codebaseSummary.fileCount],
+                  ['Dirs', codebaseSummary.directoryCount],
+                  ['Imports', codebaseSummary.dependencyEdges],
+                  ['Calls', codebaseSummary.callEdges],
+                  ['Unresolved', codebaseSummary.unresolvedImports],
+                ].map(([label, value]) => (
+                  <div key={label} className={`px-3 py-2 rounded-none border text-[12px] font-mono ${d ? 'border-d-border bg-d-bg text-d-muted' : 'border-ink/10 bg-cream text-ink-muted'}`}>
+                    <div className={`${d ? 'text-d-subtle' : 'text-ink-faint'}`}>{label}</div>
+                    <div className="mt-1 font-semibold text-sm">{value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+              {(queryEngine.phases || []).map((phase, i) => (
+                <div key={i} className={`px-3 py-2 rounded-none border text-[12px] font-mono ${d ? 'border-d-border bg-d-bg text-d-muted' : 'border-ink/10 bg-cream text-ink-muted'}`}>
+                  {phase}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

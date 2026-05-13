@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { rateLimit } from "../../../lib/rateLimit";
+import { rateLimit, rateLimitKey } from "../../../lib/rateLimit";
 import { buildRepositoryAnalysis, maybeEnhanceAnalysisWithGroq, mergeAnalysisDetails } from "../../../lib/analysis";
 import { createAnalysisRecord, deleteAnalysisRecord, findLatestAnalysisByRepo, getAnalysisRecord, listAnalysisRecords, serializeAnalysisRecord, updateAnalysisRecord } from "../../../lib/analysis-store";
 import { fetchGitHubFileText, normalizeGitHubRepoUrl } from "../../../lib/github";
 import { getCurrentSession, getGithubAccessToken, getSessionOwner } from "../../../lib/server-session";
 import { createGitHubSnapshot } from "../../../lib/repository-snapshot";
 import { buildCodeIntelligence } from "../../../lib/code-intel";
+import { buildCodebaseIndex, buildTraversalArchitecture } from "../../../lib/codebase-index";
 
 function parsePropsFromSource(source, componentName) {
   const props = new Set();
@@ -143,26 +144,67 @@ function ensureReadAccess(analysis, ownerEmail) {
   }
 }
 
-export async function POST(request) {
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for") || "unknown";
-  const limit = rateLimit(`analyze:${ip}`, 10, 60000);
-  if (!limit.success) {
-    return NextResponse.json({ error: "Rate limit exceeded. Try again shortly.", resetIn: limit.resetIn }, { status: 429 });
+function formatRouteError(error) {
+  const details = typeof error?.details === "string" ? error.details : "";
+  const raw = [error?.message, details].filter(Boolean).join("\n");
+
+  if (/getaddrinfo ENOTFOUND/i.test(raw)) {
+    const host = raw.match(/ENOTFOUND\s+([^\s)]+)/i)?.[1] || "your Postgres host";
+    return `Unable to reach the Postgres host (${host}). Check DATABASE_URL, DNS, or your network connection.`;
   }
 
-  try {
-    const body = await request.json();
-    const { repoUrl } = body;
-    if (!repoUrl) {
-      return NextResponse.json({ error: "Repository URL is required" }, { status: 400 });
-    }
+  return error?.message || "Analysis failed";
+}
 
-    const session = await getCurrentSession();
-    const ownerEmail = getSessionOwner(session);
-    const accessToken = getGithubAccessToken(session);
-    const normalized = normalizeGitHubRepoUrl(repoUrl);
-    const analysis = await createAnalysisRecord({
+export async function POST(request) {
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0].trim() || headersList.get("x-real-ip") || "unknown";
+
+  // Validate Content-Type before trying to parse JSON — this is the source of the TypeError
+  const contentType = headersList.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
+  }
+
+  // Session first so we can key rate limit by user when authed
+  const session = await getCurrentSession();
+  const ownerEmail = getSessionOwner(session);
+  const accessToken = getGithubAccessToken(session);
+
+  const rlKey = rateLimitKey("analyze", ip, ownerEmail);
+  const limit = rateLimit(rlKey, 10, 60_000);
+  if (!limit.success) {
+    return NextResponse.json(
+      { error: `Rate limit exceeded. Try again in ${Math.ceil(limit.resetIn / 1000)}s.`, resetIn: limit.resetIn },
+      { status: 429 },
+    );
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { repoUrl } = body;
+  if (!repoUrl || typeof repoUrl !== "string") {
+    return NextResponse.json({ error: "repoUrl is required and must be a string" }, { status: 400 });
+  }
+  if (repoUrl.length > 300) {
+    return NextResponse.json({ error: "repoUrl is too long" }, { status: 400 });
+  }
+
+  let normalized;
+  try {
+    normalized = normalizeGitHubRepoUrl(repoUrl);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
+
+  let analysis = null;
+  try {
+    analysis = await createAnalysisRecord({
       repo_url: normalized.repoUrl,
       repo_name: body.repoName || normalized.repo,
       status: "PROCESSING",
@@ -170,67 +212,81 @@ export async function POST(request) {
       owner_email: ownerEmail,
     });
 
-    try {
-      const previous = await findLatestAnalysisByRepo(normalized.repoUrl, ownerEmail);
-      const snapshot = await createGitHubSnapshot(normalized.repoPath, accessToken);
-      let result = buildRepositoryAnalysis({
-        repoUrl: snapshot.repoUrl,
-        repoName: body.repoName || snapshot.repoName || normalized.repo,
-        fileTree: snapshot.fileTree.slice(0, 5000),
-        languages: snapshot.languages,
-        repoData: snapshot.repoData,
-        source: "github",
-      });
-      const detailedComponents = await enrichGitHubComponents(snapshot, normalized.repoPath, accessToken);
-      const codeIntel = buildCodeIntelligence(snapshot, previous);
-      const mergedEndpoints = mergeApiEndpoints(result.architecture.apiEndpoints, codeIntel.files);
-      result = mergeAnalysisDetails(result, {
-        components: detailedComponents.length ? detailedComponents : result.architecture.components,
-        flowPaths: buildFlowMap(result.architecture.flowPaths, detailedComponents, mergedEndpoints),
-        apiEndpoints: mergedEndpoints,
-        symbolIndex: codeIntel.symbolIndex,
-        files: codeIntel.files,
-        dependencyGraph: codeIntel.dependencyGraph,
-        callGraph: codeIntel.callGraph,
-        testing: codeIntel.testing,
-        reports: codeIntel.reports,
-        quality: codeIntel.quality,
-        security: codeIntel.security,
-        performance: codeIntel.performance,
-        incremental: codeIntel.incremental,
-      });
-      result = await maybeEnhanceAnalysisWithGroq(result, { snapshot, codeIntel });
+    const previous = await findLatestAnalysisByRepo(normalized.repoUrl, ownerEmail);
+    const snapshot = await createGitHubSnapshot(normalized.repoPath, accessToken);
+    let result = buildRepositoryAnalysis({
+      repoUrl: snapshot.repoUrl,
+      repoName: body.repoName || snapshot.repoName || normalized.repo,
+      fileTree: snapshot.fileTree.slice(0, 5000),
+      languages: snapshot.languages,
+      repoData: snapshot.repoData,
+      source: "github",
+    });
+    const detailedComponents = await enrichGitHubComponents(snapshot, normalized.repoPath, accessToken);
+    const codeIntel = buildCodeIntelligence(snapshot, previous);
+    const codebaseIndex = buildCodebaseIndex({
+      fileTree: snapshot.fileTree.slice(0, 5000),
+      files: codeIntel.files,
+      symbolIndex: codeIntel.symbolIndex,
+      dependencyGraph: codeIntel.dependencyGraph,
+      callGraph: codeIntel.callGraph,
+    });
+    const persistedCodebaseIndex = { ...codebaseIndex };
+    delete persistedCodebaseIndex.__runtime;
+    const mergedEndpoints = mergeApiEndpoints(result.architecture.apiEndpoints, codeIntel.files);
+    result = mergeAnalysisDetails(result, {
+      components: detailedComponents.length ? detailedComponents : result.architecture.components,
+      flowPaths: buildFlowMap(result.architecture.flowPaths, detailedComponents, mergedEndpoints),
+      apiEndpoints: mergedEndpoints,
+      symbolIndex: codeIntel.symbolIndex,
+      files: codeIntel.files,
+      rawDependencyGraph: codeIntel.dependencyGraph,
+      dependencyGraph: codebaseIndex.dependencyGraph,
+      callGraph: codeIntel.callGraph,
+      fileCallGraph: codebaseIndex.fileCallGraph,
+      codebaseIndex: persistedCodebaseIndex,
+      queryArchitecture: buildTraversalArchitecture(persistedCodebaseIndex),
+      testing: codeIntel.testing,
+      reports: codeIntel.reports,
+      quality: codeIntel.quality,
+      security: codeIntel.security,
+      performance: codeIntel.performance,
+      incremental: codeIntel.incremental,
+    });
+    result = await maybeEnhanceAnalysisWithGroq(result, { snapshot, codeIntel });
 
-      const updated = await updateAnalysisRecord(analysis.id, {
-        status: "COMPLETED",
-        repo_url: result.repoUrl,
-        repo_name: result.repoName,
-        summary: result.summary,
-        total_files: result.totalFiles,
-        total_lines: result.totalLines,
-        languages: result.languages,
-        file_tree: result.fileTree,
-        architecture: result.architecture,
-        results: result.results,
-        is_private: result.isPrivate,
-        error_message: null,
-        updated_at: new Date().toISOString(),
-      });
+    const updated = await updateAnalysisRecord(analysis.id, {
+      status: "COMPLETED",
+      repo_url: result.repoUrl,
+      repo_name: result.repoName,
+      summary: result.summary,
+      total_files: result.totalFiles,
+      total_lines: result.totalLines,
+      languages: result.languages,
+      file_tree: result.fileTree,
+      architecture: result.architecture,
+      results: result.results,
+      is_private: result.isPrivate,
+      error_message: null,
+      updated_at: new Date().toISOString(),
+    });
 
-      return NextResponse.json(updated);
-    } catch (error) {
-      await deleteAnalysisRecord(analysis.id);
-      if (error.code === "AUTH_REQUIRED") {
-        return NextResponse.json(
-          { error: "Private repo detected. Sign in with GitHub to analyze it.", requiresAuth: true },
-          { status: 403 },
-        );
-      }
-      throw error;
-    }
+    return NextResponse.json(updated);
   } catch (error) {
-    console.error("Analysis error:", error);
-    return NextResponse.json({ error: error.message || "Analysis failed" }, { status: error.status || 500 });
+    if (analysis?.id) {
+      await deleteAnalysisRecord(analysis.id).catch(() => {});
+    }
+    if (error.code === "AUTH_REQUIRED") {
+      return NextResponse.json(
+        { error: "Private repo detected. Sign in with GitHub to analyze it.", requiresAuth: true },
+        { status: 403 },
+      );
+    }
+    console.error("[analyze] error:", error);
+    return NextResponse.json(
+      { error: formatRouteError(error) },
+      { status: error?.status || 500 },
+    );
   }
 }
 

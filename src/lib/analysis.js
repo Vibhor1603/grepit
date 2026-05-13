@@ -1,5 +1,5 @@
 import { isGroqConfigured } from "./env";
-import { buildGroqStructuredRequest, getGroqApiUrl, getGroqDefaultHeaders } from "./groq";
+import { buildGroqStructuredRequest, groqFetch } from "./groq";
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
@@ -534,91 +534,96 @@ export async function maybeEnhanceAnalysisWithGroq(baseAnalysis, context = {}) {
   try {
     const filePaths = (baseAnalysis.fileTree || []).slice(0, 200).map((entry) => entry.path);
     const representativeFiles = buildRepresentativeFiles(context.snapshot, context.codeIntel);
-    const response = await fetch(getGroqApiUrl(), {
-      method: "POST",
-      headers: getGroqDefaultHeaders(),
-      body: JSON.stringify(buildGroqStructuredRequest({
-        temperature: 0.15,
-        maxCompletionTokens: 3200,
-        schemaName: "analysis_enrichment",
-        schema: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            summary: { type: "string" },
-            userFacingPurpose: { type: "string" },
-            mainCapabilities: { type: "array", items: { type: "string" } },
-            projectType: { type: "string" },
-            techStack: { type: "array", items: { type: "string" } },
-            patterns: { type: "array", items: { type: "string" } },
-            suggestions: { type: "array", items: { type: "string" } },
-            securityIssues: {
-              type: "array",
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  severity: { type: "string" },
-                  title: { type: "string" },
-                  description: { type: "string" },
-                  file: { type: "string" },
-                },
-                required: ["severity", "title", "description", "file"],
-              },
-            },
-            setupSteps: { type: "array", items: { type: "string" } },
-            testGaps: { type: "array", items: { type: "string" } },
-            flowPaths: {
-              type: "array",
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  name: { type: "string" },
-                  steps: { type: "array", items: { type: "string" } },
-                },
-                required: ["name", "steps"],
-              },
-            },
-          },
-          required: ["summary", "userFacingPurpose", "mainCapabilities", "projectType", "techStack", "patterns", "suggestions", "securityIssues", "setupSteps", "testGaps", "flowPaths"],
-        },
-        messages: [
-          {
-            role: "system",
-            content:
-              "You analyze software repositories for developers. Base every claim on the provided evidence. Prefer concrete product behavior over abstract file statistics. If the evidence is incomplete, say the repository 'appears to' do something instead of overstating it. `summary` should be a concise high-level repo description. `userFacingPurpose` should explain what the product or system does in plain English. `mainCapabilities` should be a short list of real end-user or developer-facing capabilities grounded in the files, endpoints, and code samples provided.",
-          },
-          {
-            role: "user",
-            content: JSON.stringify({
-              repoUrl: baseAnalysis.repoUrl,
-              repoName: baseAnalysis.repoName,
-              languages: baseAnalysis.languages,
-              repoDescription: baseAnalysis.results?.repoData?.description || "",
-              files: filePaths,
-              entryPoints: baseAnalysis.architecture?.entryPoints || [],
-              keyFolders: baseAnalysis.architecture?.keyFolders || [],
-              importantFiles: baseAnalysis.architecture?.importantFiles || [],
-              endpoints: (baseAnalysis.results?.apiEndpoints || []).slice(0, 12),
-              components: (baseAnalysis.results?.components || []).slice(0, 12).map((component) => ({
-                name: component.name,
-                file: component.file,
-                summary: component.summary,
-              })),
-              fileIntel: (context.codeIntel?.files || []).slice(0, 20).map((file) => ({
-                path: file.path,
-                language: file.language,
-                fileKind: file.fileKind,
-                summary: file.summary,
-                why: file.why,
-              })),
-              representativeFiles,
-            }),
-          },
-        ],
+
+    // Build the user payload and cap it at ~48,000 chars to avoid token overflow
+    const rawPayload = JSON.stringify({
+      repoUrl: baseAnalysis.repoUrl,
+      repoName: baseAnalysis.repoName,
+      languages: baseAnalysis.languages,
+      repoDescription: baseAnalysis.results?.repoData?.description || "",
+      files: filePaths,
+      entryPoints: baseAnalysis.architecture?.entryPoints || [],
+      keyFolders: baseAnalysis.architecture?.keyFolders || [],
+      importantFiles: baseAnalysis.architecture?.importantFiles || [],
+      endpoints: (baseAnalysis.results?.apiEndpoints || []).slice(0, 12),
+      components: (baseAnalysis.results?.components || []).slice(0, 12).map((component) => ({
+        name: component.name,
+        file: component.file,
+        summary: component.summary,
       })),
+      fileIntel: (context.codeIntel?.files || []).slice(0, 20).map((file) => ({
+        path: file.path,
+        language: file.language,
+        fileKind: file.fileKind,
+        summary: file.summary,
+        why: file.why,
+      })),
+      representativeFiles,
     });
+
+    // Hard cap at ~48,000 chars (~12,000 tokens) before sending
+    const cappedPayload = rawPayload.length > 48_000
+      ? rawPayload.slice(0, 48_000) + "...}"
+      : rawPayload;
+
+    const response = await groqFetch(buildGroqStructuredRequest({
+      temperature: 0.15,
+      maxCompletionTokens: 3200,
+      schemaName: "analysis_enrichment",
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          summary: { type: "string" },
+          userFacingPurpose: { type: "string" },
+          mainCapabilities: { type: "array", items: { type: "string" } },
+          projectType: { type: "string" },
+          techStack: { type: "array", items: { type: "string" } },
+          patterns: { type: "array", items: { type: "string" } },
+          suggestions: { type: "array", items: { type: "string" } },
+          securityIssues: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                severity: { type: "string" },
+                title: { type: "string" },
+                description: { type: "string" },
+                file: { type: "string" },
+              },
+              required: ["severity", "title", "description", "file"],
+            },
+          },
+          setupSteps: { type: "array", items: { type: "string" } },
+          testGaps: { type: "array", items: { type: "string" } },
+          flowPaths: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                name: { type: "string" },
+                steps: { type: "array", items: { type: "string" } },
+              },
+              required: ["name", "steps"],
+            },
+          },
+        },
+        required: ["summary", "userFacingPurpose", "mainCapabilities", "projectType", "techStack", "patterns", "suggestions", "securityIssues", "setupSteps", "testGaps", "flowPaths"],
+      },
+      messages: [
+        {
+          role: "system",
+          content:
+            "You analyze software repositories for developers. Base every claim on the provided evidence. Prefer concrete product behavior over abstract file statistics. If the evidence is incomplete, say the repository 'appears to' do something instead of overstating it. `summary` should be a concise high-level repo description. `userFacingPurpose` should explain what the product or system does in plain English. `mainCapabilities` should be a short list of real end-user or developer-facing capabilities grounded in the files, endpoints, and code samples provided.",
+        },
+        {
+          role: "user",
+          content: cappedPayload,
+        },
+      ],
+    }));
 
     if (!response.ok) {
       return baseAnalysis;
@@ -727,6 +732,17 @@ export function buildQueryResponse(analysis, question) {
     return folders.length
       ? folders.map((folder) => `- ${folder.name}: ${folder.purpose}`).join("\n")
       : "No key folder breakdown is available.";
+  }
+
+  if (lower.includes("query") || lower.includes("search") || lower.includes("travers")) {
+    const queryArchitecture = analysis?.results?.queryArchitecture || architecture.queryArchitecture;
+    if (queryArchitecture) {
+      return [
+        `Strategy: ${queryArchitecture.strategy}`,
+        queryArchitecture.summary,
+        ...(queryArchitecture.phases || []).map((phase) => `- ${phase}`),
+      ].join("\n");
+    }
   }
 
   return [
