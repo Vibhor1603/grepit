@@ -41,3 +41,53 @@
     transform: translateY(0);
   }
 }
+
+@keyframes scoreArc {
+  from { stroke-dasharray: 0 251; }
+}
+
+/* Mermaid diagram text visibility overrides */
+.vb-diagram svg text,
+.vb-diagram svg tspan {
+  fill: #eaeaec !important;
+}
+.vb-diagram svg .nodeLabel,
+.vb-diagram svg .edgeLabel,
+.vb-diagram svg .label,
+.vb-diagram svg .cluster-label,
+.vb-diagram svg .labelText,
+.vb-diagram svg foreignObject div,
+.vb-diagram svg foreignObject span,
+.vb-diagram svg foreignObject p {
+  color: #eaeaec !important;
+  fill: #eaeaec !important;
+}
+.vb-diagram svg .edgeLabel rect,
+.vb-diagram svg .labelBkg {
+  fill: #16161a !important;
+  opacity: 0.9;
+}
+.vb-diagram svg .node rect,
+.vb-diagram svg .node polygon,
+.vb-diagram svg .node circle,
+.vb-diagram svg .node .label-container {
+  stroke: #E0FC10 !important;
+  stroke-width: 1.5px;
+  fill: #1e1e24 !important;
+}
+.vb-diagram svg .edgePath path {
+  stroke: #5c5c66 !important;
+}
+.vb-diagram svg marker path {
+  fill: #5c5c66 !important;
+}
+.vb-diagram svg .flowchart-link {
+  stroke: #5c5c66 !important;
+}
+.vb-diagram svg .subgraph rect {
+  fill: #111113 !important;
+  stroke: #3a3a42 !important;
+}
+.vb-diagram svg .label-container {
+  fill: #1e1e24 !important;
+}

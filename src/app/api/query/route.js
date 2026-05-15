@@ -3,8 +3,8 @@ import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../lib/rateLimit";
 import { buildQueryResponse } from "../../../lib/analysis";
 import { createQueryHistory, getAnalysisRecord, getRecentQueries, deleteQueryHistory } from "../../../lib/analysis-store";
-import { isGroqConfigured } from "../../../lib/env";
-import { buildGroqReasoningRequest, getGroqModel, groqFetch } from "../../../lib/groq";
+import { isAIConfigured } from "../../../lib/env";
+import { buildReasoningRequest, getAIModel, aiFetch } from "../../../lib/ai";
 import { getCurrentSession, getSessionOwner } from "../../../lib/server-session";
 import { queryCodebase } from "../../../lib/codebase-index";
 // ── Context builder ────────────────────────────────────────────────────────
@@ -147,7 +147,7 @@ export async function POST(request) {
   try {
     let response = buildQueryResponse(analysis, query);
 
-    if (isGroqConfigured()) {
+    if (isAIConfigured()) {
       const queryResult = queryCodebase(analysis, query, { maxFiles: 6, maxSymbols: 10, maxGraphDepth: 2 });
 
       // Build context from query results
@@ -178,10 +178,10 @@ export async function POST(request) {
         { role: "assistant", content: (h.response || "").slice(0, 500) },
       ]);
 
-      console.log("[query] Sending to Groq, context length:", context.length, "chars");
+      console.log("[query] Sending to AI, context length:", context.length, "chars");
 
-      const groqRes = await groqFetch(buildGroqReasoningRequest({
-        maxCompletionTokens: 1800,
+      const aiRes = await aiFetch(buildReasoningRequest({
+        maxCompletionTokens: 3000,
         temperature: 0.25,
         messages: [
           {
@@ -206,6 +206,11 @@ RESPONSE GUIDELINES:
 - If a visual would help (architecture, flow, relationships), include a mermaid code block.
 - Be specific to THIS codebase — reference actual files, functions, and patterns found in the context.
 
+ONBOARDING GUIDE:
+- If the user asks for an "onboarding guide", "where do I start", "where to start", "guide me through this codebase", "how to get started", or similar — respond with something like: "I'll create a personalized onboarding guide so you don't waste time reading irrelevant code. To tailor it to you, give me a brief summary of what you're building or working on — a feature, a bug fix, a service, anything. The more specific, the better the guide."
+- Once the user tells you what they're working on, generate a VISUAL reading path using a mermaid flowchart. CRITICAL MERMAID RULES: Use simple node IDs (A, B, C...) with short labels in square brackets like A["filename.js"]. Do NOT use slashes, parentheses, or special chars in labels. Use --> for arrows with short labels in pipes like A -->|"data flow"| B. Keep labels under 4 words. After the diagram, list each file with its full path in backticks and ONE short sentence about what it does. Keep it to 5-7 files max. Do NOT use tables.
+- After the list, add 2 sentences explaining the reading order logic.
+
 FORMATTING:
 - Tables for: comparisons, file-to-purpose mappings, endpoint lists, config options
 - Code blocks for: showing actual implementation code from the codebase
@@ -215,9 +220,7 @@ FORMATTING:
 Always end with:
 
 ## Follow-up questions
-- [specific relevant question about this codebase]
-- [specific relevant question about this codebase]
-- [specific relevant question about this codebase]
+Write 3 questions the USER would naturally ask next, from their perspective (e.g. "How does X work?" or "Where is Y defined?").
 
 Codebase Context:
 ${context}`,
@@ -227,9 +230,9 @@ ${context}`,
         ],
       }));
 
-      if (groqRes.ok) {
-        const groqData = await groqRes.json();
-        let aiContent = groqData.choices?.[0]?.message?.content;
+      if (aiRes.ok) {
+        const aiData = await aiRes.json();
+        let aiContent = aiData.choices?.[0]?.message?.content;
         if (aiContent) {
           // Strip internal thinking/reasoning that some models leak
           aiContent = aiContent
@@ -240,13 +243,13 @@ ${context}`,
             .replace(/^\[?(Internal|Thinking|Reasoning)\]?:.*$/gim, '')
             .trim();
           response = aiContent;
-          console.log("[query] Groq responded, length:", aiContent.length, "chars");
+          console.log("[query] AI responded, length:", aiContent.length, "chars");
         } else {
-          console.warn("[query] Groq returned empty content:", JSON.stringify(groqData).slice(0, 200));
+          console.warn("[query] AI returned empty content:", JSON.stringify(aiData).slice(0, 200));
         }
       } else {
-        const errBody = await groqRes.text().catch(() => '');
-        console.error("[query] Groq error:", groqRes.status, errBody.slice(0, 300));
+        const errBody = await aiRes.text().catch(() => '');
+        console.error("[query] AI error:", aiRes.status, errBody.slice(0, 300));
       }
     }
 
@@ -286,16 +289,31 @@ export async function DELETE(request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { analysisId, query } = body;
-  if (!analysisId || !query) {
-    return NextResponse.json({ error: "analysisId and query required" }, { status: 400 });
+  const { analysisId, query, deleteAll } = body;
+  if (!analysisId) {
+    return NextResponse.json({ error: "analysisId required" }, { status: 400 });
   }
 
   try {
+    if (deleteAll) {
+      // Delete ALL history for this analysis
+      const { getDb } = await import("../../../lib/db");
+      const { query_history } = await import("../../../db/schema");
+      const { eq } = await import("drizzle-orm");
+      const db = getDb();
+      await db.delete(query_history).where(eq(query_history.analysis_id, analysisId));
+      return NextResponse.json({ success: true, deleted: 'all' });
+    }
+
+    if (!query) {
+      return NextResponse.json({ error: "query required" }, { status: 400 });
+    }
+
+    console.log("[query DELETE] analysisId:", analysisId, "query (first 50):", query.slice(0, 50));
     await deleteQueryHistory(analysisId, query);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[query DELETE] error:", error.message);
+    console.error("[query DELETE] error:", error.message, error.stack);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -2,8 +2,35 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { MessageSquare, Grid3X3, Terminal, FileText, Folder, ChevronRight, Code2, Shield, Server, Cpu, Layers, Send, Plus, Clock, X, Square, Copy, Check, Trash2 } from 'lucide-react';
+import { useAnalysis, useChatHistory, useDeleteChatHistory, useFileContent } from '../hooks/useApi';
+import { useQueryClient } from '@tanstack/react-query';
+import { useResizable, useResizableRight } from '../hooks/useResizable';
+import { LOADING_MESSAGES, getRandomMessage, getRateLimitMessage, ERROR_MESSAGES, EMPTY_STATES } from '../lib/personality';
+import { MessageSquare, LayoutGrid, Terminal, FileText, Folder, ChevronRight, Code2, Shield, Server, Cpu, Layers, Send, Plus, Clock, X, Square, Copy, Check, Trash2, Search, ZoomIn, ZoomOut, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import ChatInputComponent from './ChatInput';
+import SystemTabComponent from './SystemTab';
+import SymbolInspector from './SymbolInspector';
+import { Highlight, themes } from 'prism-react-renderer';
+
+const viboCodeTheme = {
+  ...themes.vsDark,
+  plain: { color: '#b0b0b8', backgroundColor: 'transparent' },
+  styles: [
+    { types: ['keyword', 'builtin'], style: { color: '#E0FC10' } },
+    { types: ['function', 'method'], style: { color: '#7ca8e8' } },
+    { types: ['string', 'char'], style: { color: '#7dd3a8' } },
+    { types: ['number', 'boolean'], style: { color: '#e4c06c' } },
+    { types: ['comment'], style: { color: '#4a4a54', fontStyle: 'italic' } },
+    { types: ['class-name', 'type'], style: { color: '#b4a0d4' } },
+    { types: ['operator', 'punctuation'], style: { color: '#787884' } },
+    { types: ['variable', 'constant'], style: { color: '#eaeaec' } },
+    { types: ['property'], style: { color: '#7cc8d4' } },
+    { types: ['tag'], style: { color: '#e87c7c' } },
+    { types: ['attr-name'], style: { color: '#e4c06c' } },
+    { types: ['attr-value'], style: { color: '#7dd3a8' } },
+  ],
+};
 
 const CodeViewerLazy = dynamic(() => import('./CodeViewer'), {
   ssr: false,
@@ -90,27 +117,37 @@ function MarkdownMessage({ content, onNavigateToFile }) {
     let rem = text;
     let k = 0;
     while (rem.length > 0) {
+      // Match backtick-wrapped content
       const cm = rem.match(/^`([^`]+)`/);
       if (cm) {
-        const ref = cm[1];
+        const ref = cm[1].replace(/^['''"]+|['''"]+$/g, '').trim();
         if (isFilePath(ref) || isCodeSymbol(ref)) {
-          // Navigable — underlined, clickable
           result.push(
             <button key={k++} onClick={() => onNavigateToFile?.(ref)} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
               {ref}
             </button>
           );
         } else {
-          // Regular inline code — no underline, subtle background
-          result.push(<code key={k++} className="px-1.5 py-0.5 bg-white/[0.04] rounded text-[12px] font-mono text-vb-ink">{ref}</code>);
+          result.push(<code key={k++} className="px-1.5 py-0.5 bg-white/[0.04] rounded text-[12px] font-mono text-vb-ink">{cm[1]}</code>);
         }
         rem = rem.slice(cm[0].length); continue;
+      }
+      // Match any quote-wrapped file path (single, smart, or double quotes)
+      const sq = rem.match(/^[''"\u2018\u2019\u201C\u201D]([^\s''"\u2018\u2019\u201C\u201D]+\.\w{1,4})[''"\u2018\u2019\u201C\u201D]/);
+      if (sq && isFilePath(sq[1])) {
+        result.push(
+          <button key={k++} onClick={() => onNavigateToFile?.(sq[1])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+            {sq[1]}
+          </button>
+        );
+        rem = rem.slice(sq[0].length); continue;
       }
       const bm = rem.match(/^\*\*(.+?)\*\*/);
       if (bm) { result.push(<strong key={k++} className="font-semibold text-vb-ink">{bm[1]}</strong>); rem = rem.slice(bm[0].length); continue; }
       const im = rem.match(/^\*(.+?)\*/);
       if (im) { result.push(<em key={k++} className="italic text-vb-ink">{im[1]}</em>); rem = rem.slice(im[0].length); continue; }
-      const nx = rem.search(/[`*]/);
+      // Find next special character
+      const nx = rem.search(/[`*''\u2018\u2019\u201C\u201D"]/);
       if (nx <= 0) { result.push(<span key={k++}>{nx === 0 ? rem[0] : rem}</span>); if (nx === 0) rem = rem.slice(1); else break; }
       else { result.push(<span key={k++}>{rem.slice(0, nx)}</span>); rem = rem.slice(nx); }
     }
@@ -141,9 +178,26 @@ function MarkdownMessage({ content, onNavigateToFile }) {
       elements.push(<InlineDiagramRender key={key} mermaidCode={codeLines.join('\n')} />);
     } else {
       elements.push(
-        <div key={key} className="mb-4 rounded-lg border border-white/[0.06] overflow-hidden">
-          {codeLang && <div className="px-3 py-1.5 border-b border-white/[0.04] bg-white/[0.02] text-[10px] text-vb-ink4 font-mono uppercase tracking-wide">{codeLang}</div>}
-          <pre className="p-4 overflow-x-auto bg-[#0c0c0e]"><code className="text-[11px] font-mono text-vb-ink2 leading-[1.6] whitespace-pre">{codeLines.join('\n')}</code></pre>
+        <div key={key} className="mb-4 min-w-[60%] max-w-full rounded-xl border border-white/[0.08] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] bg-white/[0.03]">
+            <div className="flex items-center gap-[5px]">
+              <span className="w-[8px] h-[8px] rounded-full bg-[#ff5f57]" />
+              <span className="w-[8px] h-[8px] rounded-full bg-[#febc2e]" />
+              <span className="w-[8px] h-[8px] rounded-full bg-[#28c840]" />
+            </div>
+            {codeLang && <span className="text-[10px] text-vb-ink4 font-mono ml-2">{codeLang}</span>}
+          </div>
+          <Highlight theme={viboCodeTheme} code={codeLines.join('\n')} language={codeLang || 'javascript'}>
+            {({ tokens: codeTokens, getLineProps: glp, getTokenProps: gtp }) => (
+              <pre className="px-4 py-3 overflow-x-auto bg-[#0a0a0c] m-0 text-[12px]">
+                {codeTokens.map((line, li) => (
+                  <div key={li} {...glp({ line })} className="leading-[1.6]">
+                    {line.map((token, ti) => <span key={ti} {...gtp({ token })} />)}
+                  </div>
+                ))}
+              </pre>
+            )}
+          </Highlight>
         </div>
       );
     }
@@ -161,18 +215,40 @@ function MarkdownMessage({ content, onNavigateToFile }) {
     flushList(`l-${i}`);
     if (!line.trim()) return;
     if (/^-{3,}$/.test(line.trim()) || /^={3,}$/.test(line.trim())) return;
+    if (/^#{1,6}\s*$/.test(line.trim())) return; // Skip empty headings (lone # or ##)
     if (/^#{3}\s*(.+)/.test(line)) { elements.push(<h3 key={i} className="text-[14px] font-semibold text-vb-ink mt-4 mb-2">{renderInline(line.replace(/^#{3}\s*/, '').replace(/\*\*/g, ''))}</h3>); return; }
     if (/^#{2}\s*(.+)/.test(line)) { elements.push(<h2 key={i} className="text-[15px] font-semibold text-vb-ink mt-4 mb-2">{renderInline(line.replace(/^#{2}\s*/, '').replace(/\*\*/g, ''))}</h2>); return; }
     if (/^#{1}\s*(.+)/.test(line)) { elements.push(<h1 key={i} className="text-[16px] font-semibold text-vb-ink mt-4 mb-2">{renderInline(line.replace(/^#{1}\s*/, '').replace(/\*\*/g, ''))}</h1>); return; }
     elements.push(<p key={i} className="text-[13px] text-vb-ink2 leading-[1.7] mb-2">{renderInline(line)}</p>);
   });
-  flushList('end'); flushTable('te'); flushCode('ce');
+  flushList('end'); flushTable('te');
+  // Only flush code block if it was properly closed (codeBlock === false)
+  // This prevents rendering incomplete/partial code blocks during streaming
+  if (!codeBlock) flushCode('ce');
+  else if (codeLines.length > 0) {
+    // Show streaming code as a placeholder while incomplete
+    elements.push(
+      <div key="streaming-code" className="mb-4 min-w-[60%] max-w-full rounded-xl border border-white/[0.08] overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] bg-white/[0.03]">
+          <div className="flex items-center gap-[5px]">
+            <span className="w-[8px] h-[8px] rounded-full bg-[#ff5f57]" />
+            <span className="w-[8px] h-[8px] rounded-full bg-[#febc2e]" />
+            <span className="w-[8px] h-[8px] rounded-full bg-[#28c840]" />
+          </div>
+          {codeLang && <span className="text-[10px] text-vb-ink4 font-mono ml-2">{codeLang}</span>}
+          <span className="text-[10px] text-vb-ink4 ml-auto">streaming...</span>
+        </div>
+        <pre className="px-4 py-3 overflow-x-auto bg-[#0a0a0c] m-0 text-[12px] text-vb-ink2 font-mono whitespace-pre">{codeLines.join('\n')}</pre>
+      </div>
+    );
+  }
   return <div>{elements}</div>;
 }
 
 /* ── File Tree Sidebar ── */
-function FileTreeSidebar({ analysis, selectedFile, onSelectFile, score }) {
+function FileTreeSidebar({ analysis, selectedFile, onSelectFile, score, onCollapse }) {
   const [expanded, setExpanded] = useState({});
+  const [fileSearch, setFileSearch] = useState('');
   const fileTree = analysis?.file_tree || [];
 
   // Build proper nested tree from file_tree (includes both blob and tree entries)
@@ -198,8 +274,11 @@ function FileTreeSidebar({ analysis, selectedFile, onSelectFile, score }) {
     return root;
   }, [fileTree]);
 
-  // Auto-expand first two levels on mount
+  // Auto-expand first two levels on mount (only once)
+  const hasAutoExpanded = useRef(false);
   useEffect(() => {
+    if (hasAutoExpanded.current || Object.keys(tree).length === 0) return;
+    hasAutoExpanded.current = true;
     const auto = {};
     Object.keys(tree).forEach(k => {
       if (!tree[k].__file) {
@@ -258,10 +337,42 @@ function FileTreeSidebar({ analysis, selectedFile, onSelectFile, score }) {
           <span className="w-[10px] h-[10px] rounded-full bg-[#28c840]" />
         </div>
         <span className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider">Filesystem</span>
+        <button onClick={onCollapse} className="ml-auto p-1 rounded-md text-vb-ink4 hover:text-vb-ink3 hover:bg-white/[0.04] transition-colors" title="Collapse">
+          <PanelLeftClose size={13} />
+        </button>
       </div>
+      {/* File search */}
+      <div className="px-2 py-2 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2 px-2 py-1.5 bg-white/[0.03] border border-white/[0.06] rounded-md">
+          <Search size={12} className="text-vb-ink4 flex-shrink-0" />
+          <input
+            value={fileSearch}
+            onChange={(e) => setFileSearch(e.target.value)}
+            placeholder="Search files..."
+            className="flex-1 bg-transparent text-[11px] text-vb-ink placeholder:text-vb-ink4 outline-none caret-vb-accent"
+          />
+          {fileSearch && <button onClick={() => setFileSearch('')} className="text-vb-ink4 hover:text-vb-ink3"><X size={10} /></button>}
+        </div>
+      </div>
+      {/* File search results */}
+      {fileSearch.trim() ? (
+        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+          {fileTree.filter(f => f.type === 'blob' && f.path.toLowerCase().includes(fileSearch.toLowerCase())).slice(0, 30).map(f => (
+            <button key={f.path} onClick={() => { onSelectFile(f.path); setFileSearch(''); }}
+              className={`w-full flex items-center gap-2 px-2 py-[5px] rounded-md text-[11px] transition-colors duration-150 ${selectedFile === f.path ? 'bg-vb-accent/10 text-vb-accent' : 'text-vb-ink2 hover:text-vb-ink hover:bg-white/[0.04]'}`}>
+              <FileText size={11} className="flex-shrink-0 opacity-50" />
+              <span className="truncate">{f.path}</span>
+            </button>
+          ))}
+          {fileTree.filter(f => f.type === 'blob' && f.path.toLowerCase().includes(fileSearch.toLowerCase())).length === 0 && (
+            <p className="text-[11px] text-vb-ink4 px-2 py-3 text-center">No files found</p>
+          )}
+        </div>
+      ) : (
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
         {renderNode(tree)}
       </div>
+      )}
       <div className="mx-2 mb-3 p-3 border border-white/[0.06] rounded-lg">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-medium text-vb-ink3">Health Index</span>
@@ -276,38 +387,69 @@ function FileTreeSidebar({ analysis, selectedFile, onSelectFile, score }) {
 }
 
 /* ── Right Panel ── */
-function RightPanel({ analysis }) {
+function RightPanel({ analysis, selectedFile, activeTab }) {
+  const fileIntel = useMemo(() => {
+    if (!selectedFile || !analysis?.results?.files) return null;
+    return analysis.results.files.find(f => f.path === selectedFile) || null;
+  }, [selectedFile, analysis]);
+
+  const fileName = selectedFile ? selectedFile.split('/').pop() : '';
+  const showSymbols = selectedFile && fileIntel;
+
   const profile = getIdentityProfile(analysis);
   const highTraffic = getHighTrafficFiles(analysis);
   const displayFiles = highTraffic || ['Dashboard.tsx', 'useAnalysis.ts', 'App.tsx'];
+
   return (
     <div className="h-full flex flex-col overflow-y-auto">
-      <div className="px-4 py-5 border-b border-white/[0.06]">
-        <h3 className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider mb-4">Identity Profile</h3>
-        <div className="space-y-4">
-          {[{ label: 'Tech Stack', value: profile.techStack, Icon: Code2 }, { label: 'Storage', value: profile.storage, Icon: Server }, { label: 'Runtime', value: profile.runtime, Icon: Cpu }].map(({ label, value, Icon }, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-md bg-vb-accent/[0.06] border border-vb-accent/[0.1] flex items-center justify-center flex-shrink-0 text-vb-accent"><Icon size={13} /></div>
-              <div><div className="text-[10px] text-vb-ink3 uppercase tracking-wide">{label}</div><div className="text-[13px] text-vb-ink font-medium mt-0.5">{value}</div></div>
+      {showSymbols ? (
+        <>
+          {/* File header — minimal, just context */}
+          <div className="px-3 py-2.5 border-b border-white/[0.06] flex items-center gap-2 min-w-0">
+            <span className="text-[12px] font-mono text-vb-ink font-medium truncate">{fileName}</span>
+            <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+              {fileIntel.language && (
+                <span className="px-1.5 py-[1px] rounded bg-white/[0.04] text-[9px] font-mono text-vb-ink4 uppercase">{fileIntel.language}</span>
+              )}
+              {fileIntel.lineCount > 0 && (
+                <span className="text-[9px] text-vb-ink4 font-mono">{fileIntel.lineCount}L</span>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
-      <div className="px-4 py-5 border-b border-white/[0.06]">
-        <h3 className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider mb-3">High-Traffic Files</h3>
-        <div className="space-y-2">{displayFiles.map((file, i) => (
-          <div key={i} className="flex items-center justify-between px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg">
-            <span className="text-[13px] text-vb-ink2 truncate">{file}</span>
-            <X size={12} className="text-vb-ink4 cursor-pointer hover:text-vb-ink3 transition-colors flex-shrink-0" />
           </div>
-        ))}</div>
-      </div>
-      <div className="px-4 py-5 mt-auto">
-        <div className="p-4 rounded-lg bg-vb-accent/[0.04] border border-vb-accent/[0.1]">
-          <div className="flex items-center gap-2 mb-1.5"><Shield size={14} className="text-vb-accent" /><span className="text-[13px] font-semibold text-vb-accent">Pro Guard</span></div>
-          <p className="text-[12px] text-vb-ink3 leading-relaxed">Continuous analysis is active. Your codebase is safe.</p>
-        </div>
-      </div>
+          {/* Symbol inspector */}
+          <div className="flex-1 overflow-y-auto">
+            <SymbolInspector fileIntel={fileIntel} fileName={fileName} />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="px-4 py-5 border-b border-white/[0.06]">
+            <h3 className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider mb-4">Identity Profile</h3>
+            <div className="space-y-4">
+              {[{ label: 'Tech Stack', value: profile.techStack, Icon: Code2 }, { label: 'Storage', value: profile.storage, Icon: Server }, { label: 'Runtime', value: profile.runtime, Icon: Cpu }].map(({ label, value, Icon }, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-md bg-vb-accent/[0.06] border border-vb-accent/[0.1] flex items-center justify-center flex-shrink-0 text-vb-accent"><Icon size={13} /></div>
+                  <div><div className="text-[10px] text-vb-ink3 uppercase tracking-wide">{label}</div><div className="text-[13px] text-vb-ink font-medium mt-0.5">{value}</div></div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="px-4 py-5 border-b border-white/[0.06]">
+            <h3 className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider mb-3">High-Traffic Files</h3>
+            <div className="space-y-2">{displayFiles.map((file, i) => (
+              <div key={i} className="flex items-center justify-between px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg">
+                <span className="text-[13px] text-vb-ink2 truncate">{file}</span>
+              </div>
+            ))}</div>
+          </div>
+          <div className="px-4 py-5 mt-auto">
+            <div className="p-4 rounded-lg bg-vb-accent/[0.04] border border-vb-accent/[0.1]">
+              <div className="flex items-center gap-2 mb-1.5"><Shield size={14} className="text-vb-accent" /><span className="text-[13px] font-semibold text-vb-accent">Pro Guard</span></div>
+              <p className="text-[12px] text-vb-ink3 leading-relaxed">Continuous analysis is active. Your codebase is safe.</p>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -315,8 +457,8 @@ function RightPanel({ analysis }) {
 /* ── Confirmation Modal ── */
 function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-vb-bg/80 backdrop-blur-sm">
-      <div className="bg-vb-bg2 border border-white/[0.08] rounded-lg p-5 max-w-sm w-full mx-4 shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-vb-bg/80 backdrop-blur-sm" onClick={onCancel}>
+      <div className="bg-vb-bg2 border border-white/[0.08] rounded-lg p-5 max-w-sm w-full mx-4 shadow-[0_16px_48px_rgba(0,0,0,0.5)]" onClick={(e) => e.stopPropagation()}>
         <p className="text-[13px] text-vb-ink2 leading-relaxed mb-5">{message}</p>
         <div className="flex justify-end gap-2">
           <button onClick={onCancel} className="px-4 py-2 rounded-lg text-[12px] text-vb-ink2 bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors">Cancel</button>
@@ -328,8 +470,8 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 }
 
 /* ── Chat History Sidebar ── */
-function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename }) {
-  const [confirmIdx, setConfirmIdx] = useState(null);
+function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename, onCollapse, activeChatId }) {
+  const [confirmItem, setConfirmItem] = useState(null);
   const [renamingIdx, setRenamingIdx] = useState(null);
   const [renameValue, setRenameValue] = useState('');
 
@@ -344,18 +486,23 @@ function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename }
   };
 
   return (
-    <div className="w-[200px] min-w-[200px] border-r border-white/[0.06] flex flex-col h-full bg-vb-bg1">
+    <div className="w-[200px] min-w-[200px] border-r border-white/[0.06] flex flex-col h-full bg-vb-bg1 hidden md:flex">
       <div className="px-3 py-3 border-b border-white/[0.06] flex items-center justify-between">
         <span className="text-[12px] font-medium text-vb-ink2">Chat History</span>
-        <button onClick={onNewChat} className="p-1 rounded-md hover:bg-white/[0.04] text-vb-ink3 hover:text-vb-ink transition-colors" title="New chat">
-          <Plus size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={onNewChat} className="p-1 rounded-md hover:bg-white/[0.04] text-vb-ink3 hover:text-vb-ink transition-colors" title="New chat">
+            <Plus size={14} />
+          </button>
+          <button onClick={onCollapse} className="p-1 rounded-md hover:bg-white/[0.04] text-vb-ink4 hover:text-vb-ink3 transition-colors" title="Collapse">
+            <PanelLeftClose size={13} />
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
         {history.length === 0 ? (
-          <p className="text-[12px] text-vb-ink4 px-2 py-4 text-center">No previous chats</p>
+          <p className="text-[11px] text-vb-ink4 px-2 py-6 text-center leading-relaxed">{EMPTY_STATES.noHistory}</p>
         ) : history.map((item, i) => (
-          <div key={i} className="group flex items-center gap-0.5 rounded-md hover:bg-white/[0.03] transition-colors">
+          <div key={i} className={`group flex items-center gap-0.5 rounded-md transition-colors ${item.id === activeChatId ? 'bg-vb-accent/[0.06] border border-vb-accent/15' : 'hover:bg-white/[0.03]'}`}>
             {renamingIdx === i ? (
               <input
                 autoFocus
@@ -368,23 +515,23 @@ function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename }
             ) : (
               <button onClick={() => onSelect(item)}
                 onDoubleClick={() => startRename(item, i)}
-                className="flex-1 text-left px-3 py-2 text-[12px] text-vb-ink2 hover:text-vb-ink transition-colors truncate flex items-center gap-2 min-w-0">
-                <Clock size={11} className="flex-shrink-0 text-vb-ink4" />
+                className={`flex-1 text-left px-3 py-2 text-[12px] transition-colors truncate flex items-center gap-2 min-w-0 ${item.id === activeChatId ? 'text-vb-ink' : 'text-vb-ink2 hover:text-vb-ink'}`}>
+                <Clock size={11} className={`flex-shrink-0 ${item.id === activeChatId ? 'text-vb-accent' : 'text-vb-ink4'}`} />
                 <span className="truncate">{item.displayName || item.query}</span>
               </button>
             )}
-            <button onClick={() => setConfirmIdx(i)} className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-vb-ink4 hover:text-vb-red transition-all" title="Delete">
+            <button onClick={() => setConfirmItem(item)} className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-vb-ink4 hover:text-vb-red transition-all" title="Delete">
               <Trash2 size={12} />
             </button>
           </div>
         ))}
       </div>
 
-      {confirmIdx !== null && (
+      {confirmItem && (
         <ConfirmModal
           message="This chat will be permanently deleted. You won't be able to recover it."
-          onConfirm={() => { onDelete(history[confirmIdx], confirmIdx); setConfirmIdx(null); }}
-          onCancel={() => setConfirmIdx(null)}
+          onConfirm={() => { onDelete(confirmItem); setConfirmItem(null); }}
+          onCancel={() => setConfirmItem(null)}
         />
       )}
     </div>
@@ -411,21 +558,54 @@ function InlineDiagramRender({ mermaidCode }) {
           securityLevel: 'loose',
           theme: 'dark',
           themeVariables: {
-            primaryColor: '#1a1a2e',
+            primaryColor: '#1e1e24',
             primaryTextColor: '#eaeaec',
             primaryBorderColor: '#E0FC10',
             lineColor: '#5c5c66',
             secondaryColor: '#16161a',
             tertiaryColor: '#1c1c20',
             background: '#0a0a0c',
-            mainBkg: '#1a1a2e',
+            mainBkg: '#1e1e24',
             nodeBorder: '#E0FC10',
+            nodeTextColor: '#eaeaec',
             clusterBkg: '#111113',
             clusterBorder: '#3a3a42',
             titleColor: '#eaeaec',
-            edgeLabelBackground: '#111113',
+            edgeLabelBackground: '#16161a',
+            labelTextColor: '#eaeaec',
+            textColor: '#eaeaec',
+            actorTextColor: '#eaeaec',
+            signalTextColor: '#eaeaec',
+            labelColor: '#eaeaec',
+            loopTextColor: '#eaeaec',
+            noteBkgColor: '#1e1e24',
+            noteTextColor: '#eaeaec',
+            activationBorderColor: '#E0FC10',
+            sequenceNumberColor: '#0a0a0c',
+            sectionBkgColor: '#1e1e24',
+            altSectionBkgColor: '#16161a',
+            sectionBkgColor2: '#111113',
+            taskTextColor: '#eaeaec',
+            taskTextDarkColor: '#eaeaec',
+            taskBorderColor: '#E0FC10',
+            taskBkgColor: '#1e1e24',
+            activeTaskBorderColor: '#E0FC10',
+            activeTaskBkgColor: '#2a2a30',
+            gridColor: '#3a3a42',
+            doneTaskBkgColor: '#1a2e1a',
+            doneTaskBorderColor: '#28c840',
+            critBorderColor: '#ef4444',
+            critBkgColor: '#2e1a1a',
+            todayLineColor: '#E0FC10',
             fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-            fontSize: '13px',
+            fontSize: '14px',
+          },
+          flowchart: {
+            htmlLabels: false,
+            curve: 'basis',
+            nodeSpacing: 30,
+            rankSpacing: 50,
+            padding: 15,
           },
         });
 
@@ -454,6 +634,25 @@ function InlineDiagramRender({ mermaidCode }) {
         const sanitized = [...otherLines, ...classLines].join('\n')
           .replace(/\|>/g, '|')
           .replace(/[""]/g, '"')
+          // Fix node labels: ["text"] — remove dots, slashes, special chars from inside brackets
+          .replace(/\["([^"]*?)"\]/g, (_, label) => {
+            const clean = label.replace(/[./\\<>(){}]/g, ' ').replace(/\s+/g, ' ').trim();
+            return `["${clean}"]`;
+          })
+          // Fix edge labels: -->|"text"| — remove slashes and special chars
+          .replace(/\|"([^"]*?)"\|/g, (_, label) => {
+            const clean = label.replace(/[/\\<>(){}]/g, ' ').replace(/\s+/g, ' ').trim();
+            return `|"${clean}"|`;
+          })
+          // Fix unquoted edge labels: -->|text| — wrap in quotes if they contain special chars
+          .replace(/-->\|([^"|][^|]*)\|/g, (match, label) => {
+            if (/[/\\.<>(){}]/.test(label)) {
+              const clean = label.replace(/[/\\<>(){}]/g, ' ').replace(/\s+/g, ' ').trim();
+              return `-->|"${clean}"|`;
+            }
+            return match;
+          })
+          // Fix parenthesized labels with special chars
           .replace(/\([^)]*\/[^)]*\)/g, (m) => '[' + m.slice(1, -1).replace(/[\/\\<>]/g, ' ') + ']');
 
         const { svg: rendered } = await mermaid.render(id, sanitized, tempDiv);
@@ -461,7 +660,19 @@ function InlineDiagramRender({ mermaidCode }) {
         // Clean up temp container
         tempDiv.remove();
 
-        if (!cancelled && rendered) setSvg(rendered);
+        if (!cancelled && rendered) {
+          // Mermaid output is generated client-side (not user input) so XSS risk is minimal.
+          // We inject a style block to ensure text visibility on dark backgrounds.
+          let fixedSvg = rendered.replace(/<svg([^>]*)>/, `<svg$1><style>
+            text, tspan { fill: #eaeaec !important; }
+            .nodeLabel, .edgeLabel, .label, .labelText { color: #eaeaec !important; fill: #eaeaec !important; }
+            foreignObject div, foreignObject span, foreignObject p { color: #eaeaec !important; }
+            .node rect, .node polygon, .node circle { fill: #1e1e24 !important; stroke: #E0FC10 !important; }
+            .edgePath path, .flowchart-link { stroke: #5c5c66 !important; }
+            .edgeLabel rect { fill: #16161a !important; }
+          </style>`);
+          setSvg(fixedSvg);
+        }
         else if (!cancelled) setFailed(true);
       } catch (e) {
         console.warn('[mermaid] render failed:', e?.message || e);
@@ -489,7 +700,7 @@ function InlineDiagramRender({ mermaidCode }) {
   );
 
   const diagramContent = (
-    <div ref={containerRef} className="[&_svg]:max-w-full [&_svg]:h-auto [&_svg]:mx-auto" dangerouslySetInnerHTML={{ __html: svg }} />
+    <div ref={containerRef} className="vb-diagram [&_svg]:max-w-full [&_svg]:h-auto [&_svg]:mx-auto" dangerouslySetInnerHTML={{ __html: svg }} />
   );
 
   if (fullscreen) {
@@ -497,9 +708,12 @@ function InlineDiagramRender({ mermaidCode }) {
       <div className="fixed inset-0 z-[250] bg-vb-bg/95 backdrop-blur-sm flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
           <span className="text-[13px] text-vb-ink2">Diagram View</span>
-          <button onClick={() => setFullscreen(false)} className="px-3 py-1.5 rounded-lg text-[12px] text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
-            Exit Fullscreen
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setFullscreen(false)} className="p-1.5 rounded-md text-vb-ink2 hover:text-vb-ink hover:bg-white/[0.06] transition-colors" title="Exit fullscreen">
+              <Minimize2 size={15} />
+            </button>
+            <button onClick={() => setFullscreen(false)} className="group/close w-[14px] h-[14px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center" title="Close"><X size={8} className="text-[#4a0000] opacity-0 group-hover/close:opacity-100 transition-opacity" /></button>
+          </div>
         </div>
         <div className="flex-1 overflow-auto p-8 flex items-center justify-center">
           {diagramContent}
@@ -510,9 +724,9 @@ function InlineDiagramRender({ mermaidCode }) {
 
   return (
     <div className="my-3 rounded-lg border border-vb-accent/15 bg-[#0e0e10] overflow-hidden">
-      <div className="flex items-center justify-end px-3 py-2 border-b border-white/[0.04]">
-        <button onClick={() => setFullscreen(true)} className="text-[11px] text-vb-ink3 hover:text-vb-ink2 px-2 py-1 rounded border border-white/[0.06] hover:border-white/[0.1] transition-colors">
-          Fullscreen
+      <div className="flex items-center justify-end px-3 py-2 border-b border-white/[0.04] gap-2">
+        <button onClick={() => setFullscreen(true)} className="p-1.5 rounded-md text-vb-ink2 hover:text-vb-ink hover:bg-white/[0.06] transition-colors" title="Fullscreen">
+          <Maximize2 size={14} />
         </button>
       </div>
       <div className="p-4 overflow-x-auto">
@@ -523,8 +737,7 @@ function InlineDiagramRender({ mermaidCode }) {
 }
 
 /* ── Chat View ── */
-function ChatView({ analysis, messages, loading, query, setQuery, handleSend, suggestions, chatHistory, onSelectHistory, onNewChat, onDeleteHistory, onStopGeneration, onRenameHistory, historyLoaded, setHistoryLoaded, onNavigateToFile }) {
-  const [inputFocused, setInputFocused] = useState(false);
+function ChatView({ analysis, messages, loading, query, setQuery, handleSend, suggestions, chatHistory, onSelectHistory, onNewChat, onDeleteHistory, onStopGeneration, onRenameHistory, historyLoaded, setHistoryLoaded, onNavigateToFile, activeChatId }) {
   const scrollRef = useRef(null);
 
   // Scroll to bottom when user sends or when history is loaded
@@ -543,20 +756,29 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
     lastUserMsgCount.current = userMsgs;
   }, [messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
+
   return (
     <div className="flex-1 flex min-h-0">
-      <ChatHistorySidebar history={chatHistory} onSelect={onSelectHistory} onNewChat={onNewChat} onDelete={onDeleteHistory} onRename={onRenameHistory} />
+      {!historyCollapsed && (
+        <ChatHistorySidebar history={chatHistory} onSelect={onSelectHistory} onNewChat={onNewChat} onDelete={onDeleteHistory} onRename={onRenameHistory} onCollapse={() => setHistoryCollapsed(true)} activeChatId={activeChatId} />
+      )}
 
-      <div className="flex-1 flex flex-col min-h-0 bg-vb-chat">
+      <div className="flex-1 flex flex-col min-h-0 bg-vb-chat relative">
+        {historyCollapsed && (
+          <button onClick={() => setHistoryCollapsed(false)} className="absolute top-2 left-2 z-10 p-1.5 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors" title="Show chat history">
+            <PanelLeftOpen size={14} />
+          </button>
+        )}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center">
-              <div className="flex flex-wrap items-center justify-center gap-3 max-w-lg">
+              <p className="text-[14px] text-vb-ink3 mb-6">What's confusing you today?</p>
+              <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-lg">
                 {suggestions.map((s, i) => (
                   <button key={i} onClick={() => handleSend(s)}
-                    className="group/chip relative inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[13px] text-vb-ink2 transition-all duration-200 ease-out overflow-hidden hover:text-vb-ink hover:border-white/[0.1]">
+                    className="group/chip relative inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-vb-ink2 transition-all duration-200 ease-out overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.14] hover:text-vb-ink">
                     <span className="absolute bottom-0 left-1/2 h-[1px] w-0 bg-vb-accent/40 transition-all duration-300 ease-out group-hover/chip:w-3/4 group-hover/chip:left-[12.5%] rounded-full" />
-                    {[<Layers size={13} key="l" />, <Code2 size={13} key="c" />, <Shield size={13} key="s" />, <Grid3X3 size={13} key="g" />][i]}
                     {s}
                   </button>
                 ))}
@@ -572,6 +794,22 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                     {msg.role === 'user' ? (
                       <div className="flex justify-end">
                         <div className="max-w-[70%]">
+                          {msg._files?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-1.5 justify-end">
+                              {msg._files.map(f => (
+                                <span key={f} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-vb-accent/[0.08] border border-vb-accent/20 text-vb-accent">
+                                  <FileText size={9} />{f.split('/').pop()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {msg._context && (
+                            <div className="flex justify-end mb-1.5">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-vb-accent/[0.06] border border-vb-accent/15 text-vb-accent">
+                                <Shield size={9} />Context attached
+                              </span>
+                            </div>
+                          )}
                           <div className="px-4 py-2.5 rounded-xl bg-vb-accent/10 border border-vb-accent/15 text-vb-ink">
                             <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                           </div>
@@ -600,7 +838,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                       <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-white/[0.04]">
                         {followUps.map((q, j) => (
                           <button key={j} onClick={() => handleSend(q)}
-                            className="text-[12px] text-vb-accent px-3 py-1.5 rounded-md border border-vb-accent/15 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] hover:border-vb-accent/25 transition-colors duration-150 cursor-pointer">
+                            className="text-[12px] text-vb-accent-dim px-3 py-1.5 rounded-md border border-vb-accent/10 bg-vb-accent/[0.02] hover:bg-vb-accent/[0.06] hover:border-vb-accent/20 hover:text-vb-accent transition-colors duration-150 cursor-pointer">
                             {q}
                           </button>
                         ))}
@@ -622,30 +860,8 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
           )}
         </div>
 
-        {/* Chat bar */}
-        <div className="flex-shrink-0 px-6 pb-8 pt-4">
-          <div className={`mx-auto transition-all duration-300 ease-out ${inputFocused ? 'max-w-3xl' : 'max-w-2xl'}`}>
-            <div className={`flex items-center border rounded-xl px-5 py-3.5 transition-all duration-300 ${inputFocused ? 'border-vb-accent/30 bg-vb-bg3 shadow-[0_0_24px_rgba(224,252,16,0.06)]' : 'border-white/[0.14] bg-vb-bg2 shadow-[0_-2px_12px_rgba(0,0,0,0.2)] hover:border-white/[0.2] hover:shadow-[0_-2px_16px_rgba(0,0,0,0.3)]'}`}>
-              <Send size={15} className={`mr-3 flex-shrink-0 transition-colors duration-200 ${inputFocused ? 'text-vb-accent' : 'text-vb-ink4'}`} />
-              <input type="text" value={query || ''} onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
-                placeholder="Ask a question about the codebase..."
-                disabled={loading}
-                className="flex-1 bg-transparent text-[14px] text-vb-ink placeholder:text-vb-ink4 outline-none caret-vb-accent" />
-              <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
-                {loading ? (
-                  <button onClick={onStopGeneration} className="w-6 h-6 rounded-full border border-white/[0.12] flex items-center justify-center text-vb-ink3 hover:text-vb-ink2 hover:border-white/[0.2] transition-colors" title="Stop generating">
-                    <Square size={8} fill="currentColor" />
-                  </button>
-                ) : (
-                  <kbd className="text-[9px] text-vb-ink4 bg-white/[0.03] border border-white/[0.06] rounded px-1.5 py-0.5 font-mono">⌘K</kbd>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Chat bar with @ mention support */}
+        <ChatInputComponent query={query} setQuery={setQuery} onSend={handleSend} loading={loading} onStop={onStopGeneration} fileTree={analysis?.file_tree || []} />
       </div>
     </div>
   );
@@ -653,31 +869,65 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
 
 /* ── Explore & System Views ── */
 function ExploreView({ analysis, selectedFile, onContinueInChat }) {
-  const [code, setCode] = useState('');
-  const [loadingCode, setLoadingCode] = useState(false);
+  const [fontSize, setFontSize] = useState(12);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    if (!selectedFile || !analysis?.id) return;
-    let c = false; setLoadingCode(true);
-    fetch(`/api/file?id=${encodeURIComponent(analysis.id)}&path=${encodeURIComponent(selectedFile)}`).then(r => r.json()).then(d => { if (!c) setCode(d.code || '// No content'); }).catch(() => { if (!c) setCode('// Failed to load'); }).finally(() => { if (!c) setLoadingCode(false); });
-    return () => { c = true; };
-  }, [selectedFile, analysis?.id]);
+  // React Query cached file fetch
+  const { data: code = '', isLoading: loadingCode } = useFileContent(analysis?.id, selectedFile);
 
   const pathParts = selectedFile ? selectedFile.split('/') : [];
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {selectedFile ? (<>
-        {/* Breadcrumb path */}
-        <div className="flex items-center gap-1.5 px-6 py-3 border-b border-white/[0.06] flex-shrink-0 overflow-x-auto">
-          <Code2 size={14} className="text-vb-accent-dim flex-shrink-0" />
-          {pathParts.map((part, i) => (
-            <span key={i} className="flex items-center gap-1.5 flex-shrink-0">
-              {i > 0 && <span className="text-vb-ink4 text-[11px]">/</span>}
-              <span className={`text-[13px] ${i === pathParts.length - 1 ? 'text-vb-ink font-medium' : 'text-vb-ink3'}`}>{part}</span>
-            </span>
-          ))}
+        {/* Breadcrumb + toolbar */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] flex-shrink-0">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 overflow-x-auto min-w-0">
+            <Code2 size={13} className="text-vb-accent-dim flex-shrink-0" />
+            {pathParts.map((part, i) => (
+              <span key={i} className="flex items-center gap-1 flex-shrink-0">
+                {i > 0 && <span className="text-vb-ink4 text-[10px]">/</span>}
+                <span className={`text-[12px] ${i === pathParts.length - 1 ? 'text-vb-ink font-medium' : 'text-vb-ink3'}`}>{part}</span>
+              </span>
+            ))}
+          </div>
+
+          {/* Toolbar */}
+          <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+            {/* Search toggle */}
+            <button onClick={() => setSearchOpen(!searchOpen)} className={`p-1.5 rounded-md transition-colors ${searchOpen ? 'bg-vb-accent/10 text-vb-accent' : 'text-vb-ink2 hover:text-vb-ink hover:bg-white/[0.06]'}`} title="Search (⌘F)">
+              <Search size={15} />
+            </button>
+            {/* Zoom out */}
+            <button onClick={() => setFontSize(s => Math.max(9, s - 1))} className="p-1.5 rounded-md text-vb-ink2 hover:text-vb-ink hover:bg-white/[0.06] transition-colors" title="Decrease font size">
+              <ZoomOut size={15} />
+            </button>
+            <span className="text-[11px] text-vb-ink2 min-w-[22px] text-center font-mono">{fontSize}</span>
+            {/* Zoom in */}
+            <button onClick={() => setFontSize(s => Math.min(18, s + 1))} className="p-1.5 rounded-md text-vb-ink2 hover:text-vb-ink hover:bg-white/[0.06] transition-colors" title="Increase font size">
+              <ZoomIn size={15} />
+            </button>
+          </div>
         </div>
+
+        {/* Search bar */}
+        {searchOpen && (
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.06] bg-white/[0.01]">
+            <Search size={12} className="text-vb-ink4 flex-shrink-0" />
+            <input
+              autoFocus
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); } }}
+              placeholder="Search in file..."
+              className="flex-1 bg-transparent text-[12px] text-vb-ink placeholder:text-vb-ink4 outline-none caret-vb-accent"
+            />
+            {searchQuery && <span className="text-[10px] text-vb-ink4">{(code.match(new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length} matches</span>}
+            <button onClick={() => { setSearchOpen(false); setSearchQuery(''); }} className="group/close w-[12px] h-[12px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center flex-shrink-0" title="Close"><X size={7} className="text-[#4a0000] opacity-0 group-hover/close:opacity-100 transition-opacity" /></button>
+          </div>
+        )}
 
         {/* Code viewer */}
         <div className="flex-1 min-h-0 bg-vb-chat">
@@ -686,12 +936,12 @@ function ExploreView({ analysis, selectedFile, onContinueInChat }) {
               <svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             </div>
           ) : (
-            <CodeViewerLazy code={code} filePath={selectedFile} analysisId={analysis?.id} onContinueInChat={onContinueInChat} />
+            <CodeViewerLazy code={code} filePath={selectedFile} analysisId={analysis?.id} onContinueInChat={onContinueInChat} fontSize={fontSize} searchQuery={searchQuery} />
           )}
         </div>
       </>) : (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-[14px] text-vb-ink3">Select a file from the sidebar to view its contents</p>
+          <p className="text-[14px] text-vb-ink3">Select a file from the sidebar to explore</p>
         </div>
       )}
     </div>
@@ -725,53 +975,74 @@ function SystemView({ analysis }) {
 /* ── MAIN LAYOUT ── */
 export default function DashboardLayout() {
   const [activeTab, setActiveTab] = useState('chat');
-  const [analysis, setAnalysis] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState('');
   const [messages, setMessages] = useState([]);
   const [query, setQuery] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [activeChatId, setActiveChatId] = useState(null);
+  const leftPanel = useResizable({ defaultWidth: 240, minWidth: 180, maxWidth: 400, storageKey: 'vibo-left-panel' });
+  const rightPanel = useResizableRight({ defaultWidth: 240, minWidth: 180, maxWidth: 360, storageKey: 'vibo-right-panel' });
   const abortRef = useRef(null);
   const { toast, show: showToast, dismiss: dismissToast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const analysisId = searchParams.get('id');
   const { data: session } = useSession();
-  const suggestions = ['Explain Architecture', 'Map API Routes', 'Security Drilldown', 'Show Architecture Diagram'];
+  // React Query hooks
+  const { data: analysis, isLoading: loading, error: analysisError } = useAnalysis(analysisId);
+  const { data: chatHistory = [] } = useChatHistory(analysisId);
+  const deleteChatMutation = useDeleteChatHistory();
+  const queryClient = useQueryClient();
+  const error = analysisError?.message || '';
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const url = analysisId ? `/api/analyze?id=${analysisId}` : '/api/analyze';
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Failed to load analysis');
-        const data = await res.json();
-        setAnalysis(Array.isArray(data) ? data[0] : data);
-      } catch (err) { setError(err.message); showToast(err.message, 'error'); }
-      finally { setLoading(false); }
-    })();
-  }, [analysisId]);
+  // Dynamic suggestions based on the analyzed codebase
+  const suggestions = useMemo(() => {
+    if (!analysis) return ['Where do I start?', 'Explain Architecture', 'Map API Routes', 'Show Architecture Diagram'];
+    const arch = analysis.architecture || analysis.results || {};
+    const techStack = (arch.techStack || []).slice(0, 2).join(' & ');
+    const hasApi = (arch.apiEndpoints || []).length > 0;
+    const hasAuth = (analysis.file_tree || []).some(f => /auth|login|session/i.test(f.path));
+    const hasDb = (analysis.file_tree || []).some(f => /database|schema|model|migration/i.test(f.path));
+    const items = [];
+    items.push('Where do I start?');
+    items.push(`How is ${analysis.repo_name} structured?`);
+    if (hasApi) items.push('Walk me through the API routes');
+    if (hasAuth) items.push('Explain the auth flow');
+    if (hasDb) items.push('How does the database layer work?');
+    if (techStack) items.push(`Why was ${techStack} chosen?`);
+    if (items.length < 5) items.push('Find potential security issues');
+    return items.slice(0, 4);
+  }, [analysis]);
 
-  // Fetch chat history
-  useEffect(() => {
-    if (!analysisId) return;
-    fetch(`/api/query?analysisId=${analysisId}`).then(r => r.json()).then(d => setChatHistory(d.history || [])).catch(() => {});
-  }, [analysisId]);
-
-  const handleSend = async (text) => {
+  const handleSend = async (text, attachedFiles = [], hiddenContext = '') => {
     const q = (text || query).trim();
     if (!q || chatLoading || !analysis?.id) return;
-    setMessages(prev => [...prev, { role: 'user', content: q }]);
+
+    // Build display message (what user sees — no hidden context, but show badge)
+    const displayMsg = attachedFiles.length > 0
+      ? { role: 'user', content: q, _files: attachedFiles }
+      : hiddenContext
+        ? { role: 'user', content: q, _context: true }
+        : { role: 'user', content: q };
+    setMessages(prev => [...prev, displayMsg]);
+
+    // Build actual query with file context + hidden context for the AI
+    let actualQuery = q;
+    if (attachedFiles.length > 0) {
+      actualQuery = q; // files handled by backend
+    }
+    if (hiddenContext) {
+      actualQuery = `${q}\n\n${hiddenContext}`;
+    }
+    let forcedFiles = attachedFiles;
     setQuery(''); setChatLoading(true);
 
     // Detect diagram requests
     const isDiagramRequest = /\b(diagram|visuali[sz]e|draw|graph|flow\s*chart|architecture\s*(diagram|visual|graph))\b/i.test(q);
     if (isDiagramRequest) {
       try {
-        const res = await fetch('/api/diagram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ analysisId: analysis.id, mode: q }) });
+        const res = await fetch('/api/diagram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ analysisId: analysis.id, mode: actualQuery }) });
         const data = await res.json();
         if (res.ok && data.mermaid) {
           setMessages(prev => [...prev, { role: 'assistant', content: '__DIAGRAM__', _mermaid: data.mermaid }]);
@@ -793,14 +1064,14 @@ export default function DashboardLayout() {
       const res = await fetch('/api/query/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q, analysisId: analysis.id }),
+        body: JSON.stringify({ query: actualQuery, analysisId: analysis.id, files: forcedFiles }),
         signal: abortRef.current.signal,
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: 'system', content: data.error || 'Error' }; return copy; });
-        if (res.status === 429) showToast('Rate limit reached', 'error');
+        if (res.status === 429) showToast(getRateLimitMessage(30), 'error');
         setChatLoading(false);
         return;
       }
@@ -843,6 +1114,8 @@ export default function DashboardLayout() {
       }
     }
     setChatLoading(false);
+    // Refresh chat history cache so new chat appears in sidebar
+    setTimeout(() => queryClient.invalidateQueries({ queryKey: ['chatHistory', analysisId] }), 500);
   };
 
   const handleStopGeneration = () => {
@@ -851,12 +1124,11 @@ export default function DashboardLayout() {
   };
 
   const handleDeleteHistory = async (item, idx) => {
-    setChatHistory(prev => prev.filter((_, i) => i !== idx));
-    // If the deleted chat is currently open, clear the view
+    if (!item) return;
     if (messages.length > 0 && messages[0]?.content === item.query) {
       setMessages([]);
     }
-    try { await fetch('/api/query', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ analysisId: analysis?.id, query: item.query }) }); } catch { /* silent */ }
+    deleteChatMutation.mutate({ analysisId: analysis?.id, query: item.query });
   };
 
   const handleRenameHistory = (item, idx, newName) => {
@@ -887,71 +1159,101 @@ export default function DashboardLayout() {
 
   const handleSelectHistory = (item) => {
     setMessages([{ role: 'user', content: item.query }, { role: 'assistant', content: item.response }]);
-    // Mark as loaded (not new) so streaming doesn't trigger
+    setActiveChatId(item.id || null);
     setHistoryLoaded(true);
   };
-  const handleNewChat = () => { setMessages([]); setHistoryLoaded(false); };
+  const handleNewChat = () => { setMessages([]); setQuery(''); setChatLoading(false); setHistoryLoaded(false); setActiveChatId(null); };
 
   const score = analysis ? healthScore(analysis) : 0;
 
-  if (loading) return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>;
-  if (error) return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><div className="text-center space-y-3"><p className="text-vb-red text-[14px]">{error}</p><a href="/" className="text-[13px] text-vb-ink3 underline hover:text-vb-ink transition-colors">← Go back</a></div></div>;
+  if (loading) {
+    return <div className="min-h-screen bg-vb-bg flex flex-col items-center justify-center gap-3"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg><p className="text-[13px] text-vb-ink3">{LOADING_MESSAGES[Math.floor(Date.now() / 3000) % LOADING_MESSAGES.length]}</p></div>;
+  }
+  if (error) return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><div className="text-center space-y-3"><p className="text-vb-red text-[14px]">{getRandomMessage(ERROR_MESSAGES)}</p><p className="text-[12px] text-vb-ink4 font-mono">{error}</p><a href="/" className="inline-block mt-2 text-[13px] text-vb-ink3 underline hover:text-vb-ink transition-colors">← Go back</a></div></div>;
 
   return (
     <div className="flex h-screen overflow-hidden bg-vb-bg text-vb-ink">
-      {/* Left sidebar — wider */}
-      <aside className="w-[240px] min-w-[240px] bg-vb-bg1 border-r border-white/[0.06] flex-col hidden md:flex">
-        <FileTreeSidebar analysis={analysis} selectedFile={selectedFile} onSelectFile={(p) => { setSelectedFile(p); setActiveTab('explore'); }} score={score} />
-      </aside>
+      {/* Left sidebar — hidden on small screens */}
+      {!leftPanel.collapsed && (
+        <>
+          <aside style={{ width: `${leftPanel.width}px` }} className="flex-shrink-0 bg-vb-bg1 flex-col overflow-hidden hidden md:flex">
+            <FileTreeSidebar analysis={analysis} selectedFile={selectedFile} onSelectFile={(p) => { setSelectedFile(p); setActiveTab('explore'); }} score={score} onCollapse={() => leftPanel.setCollapsed(true)} />
+          </aside>
+          <div onMouseDown={leftPanel.onMouseDown} className="w-[3px] flex-shrink-0 cursor-col-resize bg-white/[0.04] hover:bg-vb-accent/30 active:bg-vb-accent/50 transition-colors hidden md:block" />
+        </>
+      )}
 
       {/* Center */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar — more vertical breathing room */}
-        <div className="h-[64px] border-b border-white/[0.06] flex items-center px-6 flex-shrink-0 relative">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Top bar */}
+        <div className="h-[64px] border-b border-white/[0.06] flex items-center px-4 flex-shrink-0">
           <div className="flex items-center gap-2 text-[13px]">
+            {leftPanel.collapsed && (
+              <button onClick={() => leftPanel.setCollapsed(false)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors mr-1" title="Show file explorer">
+                <PanelLeftOpen size={15} />
+              </button>
+            )}
             <span className="text-vb-ink2">{session?.user?.name || 'vibo'}</span>
             <span className="text-vb-ink4">›</span>
             <span className="text-vb-ink font-medium">{analysis?.repo_name || '...'}</span>
           </div>
 
-          {/* Center tabs */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-white/[0.03] border border-white/[0.06] rounded-xl p-1.5">
-            {[
-              { id: 'chat', Icon: MessageSquare, label: 'Chat' },
-              { id: 'explore', Icon: Grid3X3, label: 'Explore' },
-              { id: 'system', Icon: Terminal, label: 'System' },
-            ].map(({ id, Icon, label }) => (
-              <button key={id} onClick={() => setActiveTab(id)}
-                className={`group/tab relative flex items-center gap-2 px-5 py-2 rounded-lg text-[13px] font-medium transition-colors duration-150 overflow-hidden ${
-                  activeTab === id ? 'bg-white/[0.08] text-vb-ink' : 'text-vb-ink3 hover:text-vb-ink2'
-                }`}>
-                {activeTab !== id && <span className="absolute bottom-0 left-1/2 h-[1px] w-0 bg-vb-accent/40 transition-all duration-300 ease-out group-hover/tab:w-3/4 group-hover/tab:left-[12.5%] rounded-full" />}
-                <Icon size={14} className={activeTab === id ? 'text-vb-ink' : 'text-vb-ink4'} />
-                {label}
-              </button>
-            ))}
+          {/* Tabs — use flex-1 + justify-center so they center within the available space */}
+          <div className="flex-1 flex justify-center">
+            <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-1 py-1">
+              {[
+                { id: 'explore', Icon: LayoutGrid, label: 'Explore' },
+                { id: 'chat', Icon: MessageSquare, label: 'Chat' },
+                { id: 'system', Icon: Terminal, label: 'System' },
+              ].map(({ id, Icon, label }) => (
+                <button key={id} onClick={() => setActiveTab(id)}
+                  className={`group/tab relative flex items-center gap-2 px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 overflow-hidden ${
+                    activeTab === id ? 'bg-vb-accent/[0.05] text-vb-ink' : 'text-vb-ink3 hover:text-vb-ink2'
+                  }`}>
+                  {activeTab !== id && <span className="absolute bottom-0 left-1/2 h-[1px] w-0 bg-vb-accent/40 transition-all duration-300 ease-out group-hover/tab:w-3/4 group-hover/tab:left-[12.5%] rounded-full" />}
+                  <Icon size={15} className={activeTab === id ? 'text-vb-accent-dim' : 'text-vb-ink4'} strokeWidth={activeTab === id ? 2.2 : 1.8} />
+                  <span className="hidden sm:inline">{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-vb-green/10 text-vb-green border border-vb-green/15">
-              <span className="w-1.5 h-1.5 rounded-full bg-vb-green animate-pulse-dot" />
-              Analysis Complete
-            </span>
-            <button onClick={() => router.push('/')} className="px-3 py-1.5 rounded-md text-[12px] text-vb-ink2 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:text-vb-ink transition-colors duration-150">New Repo</button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="Analyze a new repository">
+              <Plus size={13} />
+              <span className="hidden sm:inline">New</span>
+            </button>
+            {rightPanel.collapsed && (
+              <button onClick={() => rightPanel.setCollapsed(false)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors" title="Show inspector panel">
+                <PanelRightOpen size={15} />
+              </button>
+            )}
           </div>
         </div>
 
-        {activeTab === 'chat' && <ChatView analysis={analysis} messages={messages} loading={chatLoading} query={query} setQuery={setQuery} handleSend={handleSend} suggestions={suggestions} chatHistory={chatHistory} onSelectHistory={handleSelectHistory} onNewChat={handleNewChat} onDeleteHistory={handleDeleteHistory} onStopGeneration={handleStopGeneration} onRenameHistory={handleRenameHistory} historyLoaded={historyLoaded} setHistoryLoaded={setHistoryLoaded} onNavigateToFile={handleNavigateToFile} />}
-        {activeTab === 'explore' && <ExploreView analysis={analysis} selectedFile={selectedFile} onContinueInChat={(userQuery, hiddenContext) => { setMessages(prev => [...prev, { role: 'user', content: userQuery }]); setActiveTab('chat'); handleSend(hiddenContext ? `${userQuery}\n\n${hiddenContext}` : userQuery); }} />}
-        {activeTab === 'system' && <SystemView analysis={analysis} />}
+        {activeTab === 'chat' && <ChatView analysis={analysis} messages={messages} loading={chatLoading} query={query} setQuery={setQuery} handleSend={handleSend} suggestions={suggestions} chatHistory={chatHistory} onSelectHistory={handleSelectHistory} onNewChat={handleNewChat} onDeleteHistory={handleDeleteHistory} onStopGeneration={handleStopGeneration} onRenameHistory={handleRenameHistory} historyLoaded={historyLoaded} setHistoryLoaded={setHistoryLoaded} onNavigateToFile={handleNavigateToFile} activeChatId={activeChatId} />}
+        {activeTab === 'explore' && <ExploreView analysis={analysis} selectedFile={selectedFile} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
+        {activeTab === 'system' && <SystemTabComponent analysisId={analysisId} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
       </main>
 
-      {/* Right sidebar */}
-      <aside className="w-[240px] min-w-[240px] bg-vb-bg1 border-l border-white/[0.06] hidden lg:flex flex-col">
-        <RightPanel analysis={analysis} />
-      </aside>
+      {/* Right sidebar — hidden on small screens */}
+      {!rightPanel.collapsed && (
+        <>
+          <div onMouseDown={rightPanel.onMouseDown} className="w-[3px] flex-shrink-0 cursor-col-resize bg-white/[0.04] hover:bg-vb-accent/30 active:bg-vb-accent/50 transition-colors hidden lg:block" />
+          <aside style={{ width: `${rightPanel.width}px` }} className="flex-shrink-0 bg-vb-bg1 flex-col overflow-hidden hidden lg:flex">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+              <span className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider">{selectedFile ? 'Symbol Inspector' : 'Identity Profile'}</span>
+              <button onClick={() => rightPanel.setCollapsed(true)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors" title="Hide panel">
+                <PanelRightClose size={13} />
+              </button>
+            </div>
+            <RightPanel analysis={analysis} selectedFile={selectedFile} activeTab={activeTab} />
+          </aside>
+        </>
+      )}
 
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={dismissToast} />}
     </div>
   );
 }
+

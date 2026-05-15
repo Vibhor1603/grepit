@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import { X } from 'lucide-react';
+import { useExplainCode } from '../hooks/useApi';
 
 /* ── Language detection from file extension ── */
 const EXT_TO_LANG = {
@@ -63,19 +64,28 @@ function getBlockName(line) {
   return null;
 }
 
-/* ── Explanation content renderer (handles inline markdown) ── */
+/* ── Explanation content renderer (handles markdown) ── */
 function ExplanationContent({ text }) {
-  // Simple inline markdown: **bold**, `code`, *italic*
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g).filter(Boolean);
+  const renderInline = (line) => {
+    const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g).filter(Boolean);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) return <strong key={i} className="font-semibold text-vb-ink">{part.slice(2, -2)}</strong>;
+      if (part.startsWith('`') && part.endsWith('`')) return <code key={i} className="px-1 py-0.5 bg-white/[0.04] rounded text-[10px] font-mono text-vb-ink">{part.slice(1, -1)}</code>;
+      if (part.startsWith('*') && part.endsWith('*')) return <em key={i} className="italic">{part.slice(1, -1)}</em>;
+      return <span key={i}>{part}</span>;
+    });
+  };
+
+  const lines = text.split('\n');
   return (
-    <p className="text-[12px] text-vb-ink2 leading-[1.7]">
-      {parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) return <strong key={i} className="font-semibold text-vb-ink">{part.slice(2, -2)}</strong>;
-        if (part.startsWith('`') && part.endsWith('`')) return <code key={i} className="px-1 py-0.5 bg-white/[0.04] rounded text-[11px] font-mono text-vb-ink">{part.slice(1, -1)}</code>;
-        if (part.startsWith('*') && part.endsWith('*')) return <em key={i} className="italic">{part.slice(1, -1)}</em>;
-        return <span key={i}>{part}</span>;
+    <div className="text-[12px] text-vb-ink2 leading-[1.7] space-y-1.5">
+      {lines.map((line, i) => {
+        if (!line.trim()) return null;
+        if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) return <div key={i} className="flex gap-1.5 pl-2"><span className="text-vb-ink4">•</span><span>{renderInline(line.replace(/^\s*[-*]\s/, ''))}</span></div>;
+        if (/^#{1,3}\s/.test(line)) return <div key={i} className="font-semibold text-vb-ink text-[12px] mt-1">{renderInline(line.replace(/^#{1,3}\s/, ''))}</div>;
+        return <div key={i}>{renderInline(line)}</div>;
       })}
-    </p>
+    </div>
   );
 }
 
@@ -101,15 +111,12 @@ const viboTheme = {
 };
 
 /* ── Main CodeViewer Component ── */
-export default function CodeViewer({ code, filePath, analysisId, onContinueInChat }) {
+export default function CodeViewer({ code, filePath, analysisId, onContinueInChat, fontSize = 12, searchQuery = '' }) {
   const [hoveredBlock, setHoveredBlock] = useState(null);
   const [explanation, setExplanation] = useState('');
-  const [explaining, setExplaining] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [matchLines, setMatchLines] = useState([]);
-  const [currentMatch, setCurrentMatch] = useState(0);
   const [chatInput, setChatInput] = useState('');
+  const explainMutation = useExplainCode();
+  const explaining = explainMutation.isPending;
 
   const language = detectLanguage(filePath);
   const lines = useMemo(() => code.split('\n'), [code]);
@@ -120,7 +127,9 @@ export default function CodeViewer({ code, filePath, analysisId, onContinueInCha
     return map;
   }, [lines]);
 
-  // Search logic
+  const [matchLines, setMatchLines] = useState([]);
+  const [currentMatch, setCurrentMatch] = useState(0);
+
   useEffect(() => {
     if (!searchQuery.trim()) { setMatchLines([]); return; }
     const q = searchQuery.toLowerCase();
@@ -130,47 +139,20 @@ export default function CodeViewer({ code, filePath, analysisId, onContinueInCha
     setCurrentMatch(0);
   }, [searchQuery, lines]);
 
-  // Keyboard shortcut: Cmd+F to open search
-  useEffect(() => {
-    const handler = (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'f') { e.preventDefault(); setSearchOpen(true); } if (e.key === 'Escape') setSearchOpen(false); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, []);
-
-  const handleExplain = async (lineIdx) => {
+  const handleExplain = (lineIdx) => {
     const name = blockStarts[lineIdx];
     if (!name || !analysisId) return;
-    setExplaining(true); setExplanation('');
     let endLine = lineIdx + 1;
     while (endLine < lines.length && endLine < lineIdx + 25) { if (endLine > lineIdx && blockStarts[endLine]) break; endLine++; }
     const blockCode = lines.slice(lineIdx, endLine).join('\n');
-    try {
-      const res = await fetch('/api/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: `Briefly explain what "${name}" does in 2-3 sentences. Be specific.\n\nCode:\n${blockCode}`, analysisId }) });
-      const data = await res.json();
-      if (res.ok && data.response) { setExplanation(data.response.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/## Follow-up[\s\S]*/i, '').trim()); }
-      else { setExplanation('Could not generate explanation.'); }
-    } catch { setExplanation('Failed to connect.'); }
-    setExplaining(false);
+    explainMutation.mutate({ analysisId, name, code: blockCode }, {
+      onSuccess: (result) => setExplanation(result),
+      onError: () => setExplanation('Could not generate explanation.'),
+    });
   };
 
   return (
-    <div className="relative h-full flex flex-col text-[12px]">
-      {/* Search bar */}
-      {searchOpen && (
-        <div className="absolute top-2 right-4 z-30 flex items-center gap-2 bg-vb-bg2 border border-white/[0.1] rounded-lg px-3 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
-          <input
-            autoFocus
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') setCurrentMatch(prev => (prev + 1) % Math.max(matchLines.length, 1)); if (e.key === 'Escape') setSearchOpen(false); }}
-            placeholder="Search..."
-            className="bg-transparent text-[12px] text-vb-ink placeholder:text-vb-ink4 outline-none w-40 caret-vb-accent"
-          />
-          {matchLines.length > 0 && <span className="text-[10px] text-vb-ink3">{currentMatch + 1}/{matchLines.length}</span>}
-          <button onClick={() => setSearchOpen(false)} className="text-vb-ink4 hover:text-vb-ink3"><X size={12} /></button>
-        </div>
-      )}
-
+    <div className="relative h-full flex flex-col" style={{ fontSize: `${fontSize}px` }}>
       <Highlight theme={viboTheme} code={code} language={language}>
         {({ tokens, getLineProps, getTokenProps }) => (
           <div className="flex-1 overflow-auto">
@@ -178,11 +160,11 @@ export default function CodeViewer({ code, filePath, analysisId, onContinueInCha
               {/* Line numbers */}
               <div className="flex-shrink-0 py-3 pl-3 pr-1 select-none border-r border-white/[0.04] sticky left-0 bg-vb-chat z-[1]">
                 {tokens.map((_, i) => (
-                  <div key={i} className="text-[11px] font-mono text-vb-ink4 leading-[1.6] text-right pr-2 min-w-[3ch]">{i + 1}</div>
+                  <div key={i} className="font-mono text-vb-ink4 leading-[1.6] text-right pr-2 min-w-[3ch]" style={{ fontSize: `${Math.max(fontSize - 2, 9)}px` }}>{i + 1}</div>
                 ))}
               </div>
               {/* Code */}
-              <pre className="flex-1 py-3 px-3 overflow-x-auto m-0 text-[12px]">
+              <pre className="flex-1 py-3 px-3 overflow-x-auto m-0" style={{ fontSize: `${fontSize}px` }}>
                 {tokens.map((line, i) => {
                   const isBlockStart = blockStarts[i];
                   const isMatch = matchLines.includes(i);
@@ -199,9 +181,9 @@ export default function CodeViewer({ code, filePath, analysisId, onContinueInCha
                       {line.map((token, j) => <span key={j} {...getTokenProps({ token })} />)}
                       {isBlockStart && hoveredBlock?.line === i && (
                         <button onClick={(e) => { e.stopPropagation(); handleExplain(i); }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] text-vb-accent bg-vb-bg2 border border-vb-accent/20 hover:bg-vb-accent/10 transition-all z-10 shadow-sm"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] text-vb-accent border border-vb-accent/25 bg-vb-accent/[0.08] hover:bg-vb-accent/[0.14] transition-all z-10"
                           title="Explain this block">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0018 8 6 6 0 006 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 019 14"/></svg>
                           Explain
                         </button>
                       )}
@@ -219,7 +201,7 @@ export default function CodeViewer({ code, filePath, analysisId, onContinueInCha
         <div className="absolute top-4 right-4 w-[300px] max-h-[60%] bg-vb-bg2 border border-white/[0.08] rounded-lg overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-20 flex flex-col">
           <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06] bg-white/[0.02] flex-shrink-0">
             <span className="text-[11px] text-vb-ink font-medium truncate">{hoveredBlock?.name || 'Explanation'}</span>
-            <button onClick={() => { setExplanation(''); setHoveredBlock(null); setChatInput(''); }} className="text-vb-ink4 hover:text-vb-ink3 transition-colors flex-shrink-0"><X size={12} /></button>
+            <button onClick={() => { setExplanation(''); setHoveredBlock(null); setChatInput(''); }} className="group/close w-[14px] h-[14px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center flex-shrink-0" title="Close"><X size={9} strokeWidth={3} className="text-[#4a0000] opacity-0 group-hover/close:opacity-100 transition-opacity" /></button>
           </div>
           <div className="overflow-y-auto px-3 py-3 flex-shrink">
             {explaining ? (

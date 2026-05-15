@@ -3,8 +3,8 @@ import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../lib/rateLimit";
 import { getAnalysisRecord } from "../../../lib/analysis-store";
 import { fetchGitHubFileText, normalizeGitHubRepoUrl } from "../../../lib/github";
-import { isGroqConfigured } from "../../../lib/env";
-import { buildGroqReasoningRequest, getGroqModel, groqFetch } from "../../../lib/groq";
+import { isAIConfigured } from "../../../lib/env";
+import { buildReasoningRequest, getAIModel, aiFetch } from "../../../lib/ai";
 import { getCurrentSession, getGithubAccessToken, getSessionOwner } from "../../../lib/server-session";
 
 function ensureReadAccess(analysis, ownerEmail) {
@@ -121,14 +121,14 @@ export async function POST(request) {
     const resolved = await resolveFileCode({ analysis, indexedFile, filePath, accessToken });
     let response = buildLocalFileInsight(indexedFile);
 
-    if (isGroqConfigured()) {
-      const groqRes = await groqFetch(buildGroqReasoningRequest({
+    if (isAIConfigured()) {
+      const aiRes = await aiFetch(buildReasoningRequest({
           maxCompletionTokens: 1400,
           temperature: 0.2,
           messages: [
             {
               role: "system",
-              content: `You are analyzing a single file. Stay grounded in the file content and metadata only. Use markdown with short headings and bullet points. Tailor the explanation to the file type. Model: ${getGroqModel()}`,
+              content: `You are analyzing a single file. Stay grounded in the file content and metadata only. Use markdown with short headings and bullet points. Tailor the explanation to the file type. Model: ${getAIModel()}`,
             },
             {
               role: "user",
@@ -158,9 +158,9 @@ export async function POST(request) {
         }),
       );
 
-      if (groqRes.ok) {
-        const groqData = await groqRes.json();
-        response = groqData.choices?.[0]?.message?.content || response;
+      if (aiRes.ok) {
+        const aiData = await aiRes.json();
+        response = aiData.choices?.[0]?.message?.content || response;
       }
     }
 

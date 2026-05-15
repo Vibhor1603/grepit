@@ -2,18 +2,16 @@ import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../../lib/rateLimit";
 import { getAnalysisRecord, createQueryHistory, getRecentQueries } from "../../../../lib/analysis-store";
 import { buildQueryResponse } from "../../../../lib/analysis";
-import { isGroqConfigured } from "../../../../lib/env";
-import { getGroqDefaultHeaders, getGroqApiUrl } from "../../../../lib/groq";
-
-// Model fallback chain (same as groq.js)
-const STREAM_MODELS = [
-  "llama-3.3-70b-versatile",
-  "openai/gpt-oss-20b",
-  "llama-3.1-8b-instant",
-  "qwen/qwen3-32b",
-];
+import { isAIConfigured } from "../../../../lib/env";
+import { getAIHeaders, getAIApiUrl, getAIModel } from "../../../../lib/ai";
 import { getCurrentSession, getSessionOwner } from "../../../../lib/server-session";
 import { queryCodebase } from "../../../../lib/codebase-index";
+
+// Fallback models for Groq (only used if OpenRouter fails)
+const GROQ_FALLBACK_MODELS = [
+  "llama-3.1-8b-instant",
+  "llama-3.3-70b-versatile",
+];
 
 // Streaming query endpoint — returns SSE
 export async function POST(request) {
@@ -29,7 +27,7 @@ export async function POST(request) {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
 
-  const { query, analysisId } = body;
+  const { query, analysisId, files: forcedFilePaths } = body;
   if (!query || typeof query !== "string" || !query.trim()) {
     return new Response(JSON.stringify({ error: "query is required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
@@ -53,106 +51,149 @@ export async function POST(request) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { 'Content-Type': 'application/json' } });
   }
 
-  if (!isGroqConfigured()) {
+  if (!isAIConfigured()) {
     const fallback = buildQueryResponse(analysis, query);
     return new Response(JSON.stringify({ error: "AI not configured", fallback }), { status: 503, headers: { 'Content-Type': 'application/json' } });
   }
 
-  // Build context
-  const queryResult = queryCodebase(analysis, query, { maxFiles: 4, maxSymbols: 8, maxGraphDepth: 2 });
+  // Build context — with configured chat model (1M context) we can be generous
+  const queryResult = queryCodebase(analysis, query, { maxFiles: 10, maxSymbols: 15, maxGraphDepth: 3 });
   const files = analysis?.results?.files || [];
   const fileByPath = new Map(files.map(f => [f.path, f]));
   const relevantFiles = queryResult.fileMatches.map(m => fileByPath.get(m.path)).filter(Boolean);
 
+  // Force-include user-tagged files
+  const forcedFiles = (forcedFilePaths || [])
+    .map(p => fileByPath.get(p) || files.find(f => f.path.endsWith(p)))
+    .filter(Boolean);
+
+  const forcedPaths = new Set(forcedFiles.map(f => f.path));
+  const otherFiles = relevantFiles.filter(f => !forcedPaths.has(f.path)).slice(0, 8);
+
+  // Build context
   const contextParts = [
     `Repository: ${analysis.repo_name}`,
     `Summary: ${analysis.summary}`,
     `Languages: ${JSON.stringify(analysis.languages)}`,
-    `File tree (first 50): ${JSON.stringify((analysis.file_tree || []).slice(0, 50).map(f => f.path))}`,
-    `Relevant files: ${JSON.stringify(relevantFiles.slice(0, 4).map(file => ({
-      path: file.path, summary: file.summary,
-      functions: (file.functions || []).map(i => i.name).slice(0, 6),
-      classes: (file.classes || []).map(i => i.name).slice(0, 4),
-      imports: (file.imports || []).slice(0, 6),
-      code: (file.code || "").slice(0, 1500),
-    })))}`,
-    `Relevant symbols: ${JSON.stringify((queryResult.symbolMatches || []).slice(0, 8))}`,
+    `File tree (${(analysis.file_tree || []).length} files): ${JSON.stringify((analysis.file_tree || []).slice(0, 150).map(f => f.path))}`,
   ];
-  let context = contextParts.join("\n");
-  if (context.length > 24000) context = context.slice(0, 24000);
 
-  const history = await getRecentQueries(analysisId, 2).catch(() => []);
+  // Tagged files get generous code space
+  if (forcedFiles.length > 0) {
+    contextParts.push(`User-specified files (BASE YOUR ANSWER ON THESE):\n${JSON.stringify(forcedFiles.map(file => ({
+      path: file.path, summary: file.summary,
+      functions: (file.functions || []).map(i => i.name),
+      classes: (file.classes || []).map(i => i.name),
+      imports: file.imports || [],
+      code: (file.code || "").slice(0, 6000),
+    })))}`);
+  }
+
+  // Other relevant files
+  const codePerFile = forcedFiles.length > 0 ? 2500 : 4000;
+  contextParts.push(`Relevant files:\n${JSON.stringify(otherFiles.map(file => ({
+    path: file.path, summary: file.summary,
+    functions: (file.functions || []).map(i => i.name),
+    classes: (file.classes || []).map(i => i.name),
+    code: (file.code || "").slice(0, codePerFile),
+  })))}`);
+
+  contextParts.push(`Symbols: ${JSON.stringify((queryResult.symbolMatches || []).slice(0, 15))}`);
+
+  let context = contextParts.join("\n");
+  // Cap at 60K chars — still well within 1M context budget
+  if (context.length > 60000) context = context.slice(0, 60000);
+
+  console.log(`[stream] Context: ${context.length} chars, query: ${query.length} chars`);
+
+  // Fetch conversation history — full context, no trimming needed with 1M window
+  const history = await getRecentQueries(analysisId, 5).catch(() => []);
   const historyMessages = history.flatMap(h => [
     { role: "user", content: h.query },
-    { role: "assistant", content: (h.response || "").slice(0, 500) },
+    { role: "assistant", content: h.response || "" },
   ]);
 
-  const systemPrompt = `You are an expert code analyst helping a developer understand a codebase. 
+  const systemPrompt = `You are an expert code analyst for this codebase. Answer ONLY about this codebase.
 
-SCOPE:
-- You can ONLY answer questions about THIS specific codebase.
-- If the user asks about something not in the context, say so clearly.
+RULES:
+- ALWAYS wrap file paths in backticks like \`path/to/file.js\`. Never use single quotes for file paths.
+- Show real code from context only.
+- Use **bold**, ## headings, bullet lists, tables, mermaid diagrams as needed.
+- When user attaches a file, base answer on that file's code.
 
-RESPONSE GUIDELINES:
-- Give thorough answers. ALWAYS include file paths in backticks.
-- Include code snippets in fenced blocks when explaining functionality.
-- Use **bold** for key terms, ## headings for sections, bullet lists for steps.
-- Use markdown tables when comparing items.
-- If a visual helps, include a mermaid code block.
+ONBOARDING: If user asks "where do I start" / "onboarding guide" / "guide me" — ask what they're building so you can create a personalized guide. Once they answer, respond with a mermaid TD flowchart showing reading order. CRITICAL MERMAID RULES: Use simple node IDs (A, B, C...) with short labels in square brackets like A["filename.js"]. Do NOT use slashes, parentheses, or special chars in labels. Use --> for arrows with short labels in pipes like A -->|"data flow"| B. Keep labels under 4 words. After the diagram, provide a numbered list of full file paths in backticks with one-line descriptions (5-7 files max), then 2 sentences on reading order logic. ALWAYS include the Follow-up questions section at the end.
 
-Always end with:
+End every response with:
 ## Follow-up questions
-- [relevant question 1]
-- [relevant question 2]
-- [relevant question 3]
+3 questions from the user's POV (e.g. "How does X work?").
 
-Codebase Context:
+Context:
 ${context}`;
 
-  // Stream from Groq
+  // ── Build messages array ──
+  const allMessages = [
+    { role: "system", content: systemPrompt },
+    ...historyMessages,
+    { role: "user", content: query },
+  ];
+
+  const totalChars = allMessages.reduce((sum, m) => sum + m.content.length, 0);
+  console.log(`[stream] Final payload: ${totalChars} chars, ${allMessages.length} messages`);
+
+  // Stream from AI provider
   const encoder = new TextEncoder();
   let fullResponse = '';
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        let groqRes = null;
+        let aiRes = null;
+        const primaryModel = getAIModel();
 
-        // Try models in order until one works
-        for (const model of STREAM_MODELS) {
-          const requestBody = {
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              ...historyMessages,
-              { role: "user", content: query },
-            ],
-            temperature: 0.25,
-            max_tokens: 1800,
-            stream: true,
-          };
+        // Try primary provider (OpenRouter / configured chat model)
+        const requestBody = {
+          model: primaryModel,
+          messages: allMessages,
+          temperature: 0.25,
+          max_tokens: 4000,
+          stream: true,
+        };
 
-          groqRes = await fetch(getGroqApiUrl(), {
-            method: "POST",
-            headers: getGroqDefaultHeaders(),
-            body: JSON.stringify(requestBody),
-          });
+        aiRes = await fetch(getAIApiUrl(), {
+          method: "POST",
+          headers: getAIHeaders(),
+          body: JSON.stringify(requestBody),
+        });
 
-          if (groqRes.status === 429 || groqRes.status === 413) {
-            console.log(`[stream] Model ${model} rate-limited/too-large, trying next...`);
-            continue;
+        // If primary fails, try Groq fallback models
+        if (!aiRes.ok && process.env.GROQ_API_KEY) {
+          console.log(`[stream] Primary (${primaryModel}) failed with ${aiRes.status}, trying Groq fallback...`);
+          for (const model of GROQ_FALLBACK_MODELS) {
+            const fallbackBody = { ...requestBody, model, max_tokens: 2000 };
+            aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(fallbackBody),
+            });
+            if (aiRes.ok) {
+              console.log(`[stream] Groq fallback ${model} succeeded`);
+              break;
+            }
+            console.log(`[stream] Groq fallback ${model} failed (${aiRes.status})`);
           }
-          break; // Got a non-429 response
         }
 
-        if (!groqRes || !groqRes.ok) {
-          const err = await groqRes.text().catch(() => 'Unknown error');
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Groq error: ${groqRes.status}` })}\n\n`));
+        if (!aiRes || !aiRes.ok) {
+          const err = await aiRes?.text().catch(() => 'Unknown error');
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `AI error: ${aiRes?.status || 'no response'}` })}\n\n`));
           controller.close();
           return;
         }
 
-        const reader = groqRes.body.getReader();
+        const reader = aiRes.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
 

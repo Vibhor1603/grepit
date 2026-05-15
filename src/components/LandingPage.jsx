@@ -79,6 +79,7 @@ function useReveal() {
 export default function LandingPage() {
   const [repoUrl, setRepoUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('');
   const [error, setError] = useState('');
   const [authConfigured, setAuthConfigured] = useState(true);
   const [mode, setMode] = useState('url');
@@ -90,6 +91,28 @@ export default function LandingPage() {
   const { data: session } = useSession();
 
   useReveal();
+
+  // Progress messages while analyzing
+  useEffect(() => {
+    if (!loading) { setLoadingMsg(''); return; }
+    const stages = [
+      'Connecting to GitHub...',
+      'Fetching repository tree...',
+      'Indexing files...',
+      'Building code intelligence...',
+      'Mapping architecture...',
+      'Running security scan...',
+      'Enhancing with AI...',
+      'Almost there...',
+    ];
+    let idx = 0;
+    setLoadingMsg(stages[0]);
+    const interval = setInterval(() => {
+      idx = Math.min(idx + 1, stages.length - 1);
+      setLoadingMsg(stages[idx]);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   useEffect(() => {
     setRecentAnalyses(JSON.parse(localStorage.getItem('vibo-analyses') || '[]').slice(0, 5));
@@ -121,9 +144,13 @@ export default function LandingPage() {
     try {
       let res, data;
       try {
-        res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repoUrl: target, repoName: target.split('/').pop() }) });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+        res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repoUrl: target, repoName: target.split('/').pop() }), signal: controller.signal });
+        clearTimeout(timeout);
         data = await parseJsonResponse(res);
       } catch (networkErr) {
+        if (networkErr?.name === 'AbortError') throw new Error('Analysis timed out. This repo might be too large. Try a smaller repository or a specific branch.');
         if (networkErr instanceof Error && !/Failed to fetch|Load failed|NetworkError|invalid response/i.test(networkErr.message)) throw networkErr;
         throw new Error('Could not reach the server. Check that the app is running and try again.');
       }
@@ -230,7 +257,7 @@ export default function LandingPage() {
                       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/>
                       <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
-                    analyzing...
+                    {loadingMsg || 'analyzing...'}
                   </span>
                 ) : 'analyze →'}
               </button>

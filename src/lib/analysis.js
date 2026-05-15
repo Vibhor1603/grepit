@@ -1,5 +1,5 @@
-import { isGroqConfigured } from "./env";
-import { buildGroqStructuredRequest, groqFetch } from "./groq";
+import { isAIConfigured } from "./env";
+import { buildStructuredRequest, aiFetch } from "./ai";
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
@@ -527,7 +527,7 @@ export function buildRepositoryAnalysis({
 }
 
 export async function maybeEnhanceAnalysisWithGroq(baseAnalysis, context = {}) {
-  if (!isGroqConfigured()) {
+  if (!isAIConfigured()) {
     return baseAnalysis;
   }
 
@@ -566,7 +566,7 @@ export async function maybeEnhanceAnalysisWithGroq(baseAnalysis, context = {}) {
       ? rawPayload.slice(0, 48_000) + "...}"
       : rawPayload;
 
-    const response = await groqFetch(buildGroqStructuredRequest({
+    const response = await aiFetch(buildStructuredRequest({
       temperature: 0.15,
       maxCompletionTokens: 3200,
       schemaName: "analysis_enrichment",

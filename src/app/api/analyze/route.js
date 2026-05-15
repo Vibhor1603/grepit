@@ -212,8 +212,14 @@ export async function POST(request) {
       owner_email: ownerEmail,
     });
 
+    console.log(`[analyze] Starting analysis for ${normalized.repoPath} (id: ${analysis.id})`);
+
     const previous = await findLatestAnalysisByRepo(normalized.repoUrl, ownerEmail);
+
+    console.log(`[analyze] Fetching repository snapshot...`);
     const snapshot = await createGitHubSnapshot(normalized.repoPath, accessToken);
+    console.log(`[analyze] Snapshot complete: ${snapshot.fileTree.length} files`);
+
     let result = buildRepositoryAnalysis({
       repoUrl: snapshot.repoUrl,
       repoName: body.repoName || snapshot.repoName || normalized.repo,
@@ -222,8 +228,21 @@ export async function POST(request) {
       repoData: snapshot.repoData,
       source: "github",
     });
-    const detailedComponents = await enrichGitHubComponents(snapshot, normalized.repoPath, accessToken);
+
+    // For large repos (>500 files), skip component enrichment to avoid timeout
+    let detailedComponents = [];
+    if (snapshot.fileTree.length <= 500) {
+      console.log(`[analyze] Enriching components...`);
+      detailedComponents = await enrichGitHubComponents(snapshot, normalized.repoPath, accessToken);
+    } else {
+      console.log(`[analyze] Skipping component enrichment for large repo (${snapshot.fileTree.length} files)`);
+    }
+
+    console.log(`[analyze] Building code intelligence...`);
     const codeIntel = buildCodeIntelligence(snapshot, previous);
+    console.log(`[analyze] Code intel complete: ${codeIntel.files.length} files indexed`);
+
+    console.log(`[analyze] Building codebase index...`);
     const codebaseIndex = buildCodebaseIndex({
       fileTree: snapshot.fileTree.slice(0, 5000),
       files: codeIntel.files,
@@ -253,8 +272,22 @@ export async function POST(request) {
       performance: codeIntel.performance,
       incremental: codeIntel.incremental,
     });
-    result = await maybeEnhanceAnalysisWithGroq(result, { snapshot, codeIntel });
+    console.log(`[analyze] Enhancing with AI...`);
+    result = await Promise.race([
+      maybeEnhanceAnalysisWithGroq(result, { snapshot, codeIntel }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), 30000)),
+    ]).catch((err) => {
+      if (err.message === 'AI_TIMEOUT') {
+        console.log(`[analyze] AI enhancement timed out, continuing without it`);
+      } else {
+        console.warn(`[analyze] AI enhancement failed:`, err.message);
+      }
+      return result; // Return un-enhanced result
+    });
 
+    console.log(`[analyze] Saving results...`);
+
+    console.log(`[analyze] Saving results...`);
     const updated = await updateAnalysisRecord(analysis.id, {
       status: "COMPLETED",
       repo_url: result.repoUrl,

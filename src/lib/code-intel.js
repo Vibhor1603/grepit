@@ -88,7 +88,8 @@ function parseJavascript(content, path) {
     ...extractMatches(/import\s+.+?\s+from\s+["']([^"']+)["']/g, content, (m) => m[1]),
     ...extractMatches(/require\(["']([^"']+)["']\)/g, content, (m) => m[1]),
   ];
-  const methods = dedupeNamedItems(extractMatches(/^\s{2,}([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*\{/gm, content, (m) => ({ name: m[1], kind: "method", args: m[2] })));
+  const methods = dedupeNamedItems(extractMatches(/^\s{2,}([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*\{/gm, content, (m) => ({ name: m[1], kind: "method", args: m[2] }))
+    .filter(m => !/^(if|else|for|while|do|switch|catch|finally|try|return|throw|new|delete|typeof|void|with|yield|await|async|class|function|const|let|var|import|export|default|break|continue|debugger|in|of|instanceof|super|this|case)$/.test(m.name)));
   return { functions, classes, imports, methods };
 }
 
@@ -155,7 +156,9 @@ function parseYaml(content) {
 
 function parseGeneric(content) {
   return {
-    functions: extractMatches(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*\{/g, content, (m) => ({ name: m[1], kind: "function", args: m[2] })).slice(0, 15),
+    functions: extractMatches(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*\{/g, content, (m) => ({ name: m[1], kind: "function", args: m[2] }))
+      .filter(m => !/^(if|else|for|while|do|switch|catch|finally|try|return|throw|new|delete|typeof|void|with|yield|await|async|class|function|const|let|var|import|export|default|break|continue|debugger|in|of|instanceof|super|this|case)$/.test(m.name))
+      .slice(0, 15),
     classes: extractMatches(/\bclass\s+([A-Za-z0-9_]+)/g, content, (m) => ({ name: m[1], kind: "class" })).slice(0, 10),
     imports: [],
     methods: [],

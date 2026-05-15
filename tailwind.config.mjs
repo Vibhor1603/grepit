@@ -26,7 +26,7 @@ export default {
         "vb-violet":  "#b4a0d4",
         "vb-cyan":    "#7cc8d4",
         "vb-amber":   "#e4c06c",
-        "vb-red":     "#e87c7c",
+        "vb-red":     "#ef4444",
         "vb-blue":    "#7ca8e8",
         "vb-pink":    "#d4a0b4",
         "vb-ink":     "#eaeaec",

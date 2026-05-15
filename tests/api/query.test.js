@@ -18,6 +18,7 @@ vi.mock('../../../src/lib/analysis-store', () => ({
 }));
 
 vi.mock('../../../src/lib/env', () => ({
+  isAIConfigured: () => false,
   isGroqConfigured: () => false,
 }));
 

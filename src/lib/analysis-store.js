@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, like } from "drizzle-orm";
 import { analyses, query_history } from "../db/schema";
 import { getDb } from "./db";
 
@@ -65,8 +65,10 @@ export async function getRecentQueries(analysisId, limit = 3) {
   const db = getDb();
   const rows = await db
     .select({
+      id: query_history.id,
       query: query_history.query,
       response: query_history.response,
+      created_at: query_history.created_at,
     })
     .from(query_history)
     .where(eq(query_history.analysis_id, analysisId))
@@ -79,9 +81,10 @@ export async function getRecentQueries(analysisId, limit = 3) {
 export async function deleteQueryHistory(analysisId, queryText) {
   const db = getDb();
   const trimmed = queryText.trim();
+  // Delete matching rows — if none match, that's fine (already deleted)
   await db.delete(query_history).where(
     and(eq(query_history.analysis_id, analysisId), eq(query_history.query, trimmed))
-  );
+  ).catch(() => {}); // Silently handle if row doesn't exist
 }
 
 export async function findLatestAnalysisByRepo(repoUrl, ownerEmail) {

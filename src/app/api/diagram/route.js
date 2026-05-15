@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../lib/rateLimit";
 import { getAnalysisRecord } from "../../../lib/analysis-store";
-import { isGroqConfigured } from "../../../lib/env";
-import { groqFetch, getGroqModel } from "../../../lib/groq";
+import { isAIConfigured } from "../../../lib/env";
+import { aiFetch, getAIModel } from "../../../lib/ai";
 import { getCurrentSession, getSessionOwner } from "../../../lib/server-session";
 
 export async function POST(request) {
@@ -25,7 +25,7 @@ export async function POST(request) {
   const limit = rateLimit(rlKey, 5, 60_000);
   if (!limit.success) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
-  if (!isGroqConfigured()) return NextResponse.json({ error: "AI not configured" }, { status: 503 });
+  if (!isAIConfigured()) return NextResponse.json({ error: "AI not configured" }, { status: 503 });
 
   try {
     const analysis = await getAnalysisRecord(analysisId);
@@ -42,8 +42,8 @@ export async function POST(request) {
 
     const prompt = mode || 'Show the high-level architecture';
 
-    const res = await groqFetch({
-      model: getGroqModel(),
+    const res = await aiFetch({
+      model: getAIModel(),
         messages: [
           {
             role: "system",

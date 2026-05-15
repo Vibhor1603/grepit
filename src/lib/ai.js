@@ -1,146 +1,182 @@
-import { buildGroqStructuredRequest, getGroqApiUrl, getGroqDefaultHeaders } from "./groq";
+// ── AI Provider abstraction ──
+// Primary: OpenRouter (configured chat model) — 1M context, cheap, fast
+// Fallback: Groq (llama-3.1-8b-instant) — free tier
 
-export async function analyzeCodebase(repoUrl, githubAccessToken = null) {
-  console.log(`[AI Service] Starting analysis for ${repoUrl}`);
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
+const GROQ_BASE_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-  try {
-    const startTime = Date.now();
-    let owner, repo;
+// Primary model via OpenRouter
+const OPENROUTER_MODEL = "REDACTED_CHAT_MODEL";
 
-    try {
-      const url = new URL(repoUrl);
-      const parts = url.pathname.split('/').filter(Boolean);
-      owner = parts[0];
-      repo = parts[1];
-    } catch (e) {
-      throw new Error("Invalid GitHub URL");
-    }
+// Fallback models via Groq (if OpenRouter fails)
+const GROQ_FALLBACK_MODELS = [
+  "llama-3.1-8b-instant",
+  "llama-3.3-70b-versatile",
+];
 
-    if (!owner || !repo) {
-      throw new Error("Could not parse owner/repo from URL");
-    }
-
-    // 1. Fetch Repository Structure using GitHub API
-    const headers = { 'User-Agent': 'CodeLens-App' };
-    if (githubAccessToken) {
-      headers['Authorization'] = `token ${githubAccessToken}`;
-    }
-
-    // Try to get default branch first
-    let defaultBranch = 'main';
-    try {
-      const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
-      if (repoRes.ok) {
-        const repoData = await repoRes.json();
-        defaultBranch = repoData.default_branch || 'main';
-      }
-    } catch(e) { console.error("Error fetching repo info", e); }
-
-    const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`, { headers });
-    
-    if (!treeRes.ok) {
-        const errorText = await treeRes.text();
-        throw new Error(`GitHub API Error: ${treeRes.status} ${errorText}`);
-    }
-
-    const treeData = await treeRes.json();
-    const tree = treeData.tree || [];
-
-    const files = tree.filter(t => t.type === 'blob').map(t => t.path);
-    const totalFiles = files.length;
-    
-    // truncate files if too large for context
-    const popularFiles = files.slice(0, 1000).join('\\n');
-
-    // 2. Prepare Prompt for Groq
-    const prompt = `
-You are a senior software architect analyzing a codebase.
-Here is the file structure (up to 1000 files) of a GitHub repository:
-${popularFiles}
-
-Based on this file structure, analyze the repository architecture and infer the tech stack, major directories, and likely endpoints if it's an API/web app.
-
-You must respond ONLY with a valid JSON object following exactly this schema:
-{
-  "healthScore": <integer out of 100 based on structure cleanliness>,
-  "directories": [
-    { "name": "<folder path>", "description": "<what this folder likely does>" }
-  ],
-  "techStack": ["<tech1>", "<tech2>"],
-  "endpoints": [
-    { "method": "GET|POST|PUT|DELETE", "path": "<likely endpoint path>", "desc": "<description>", "auth": <boolean> }
-  ]
+export function getAIApiUrl() {
+  if (process.env.OPENROUTER_API_KEY) return OPENROUTER_BASE_URL;
+  return GROQ_BASE_URL;
 }
-`;
 
-    // 3. Send to Groq API
-    const groqRes = await fetch(getGroqApiUrl(), {
-      method: "POST",
-      headers: getGroqDefaultHeaders(),
-      body: JSON.stringify(buildGroqStructuredRequest({
-        schemaName: "legacy_repo_analysis",
-        schema: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            healthScore: { type: "integer" },
-            directories: {
-              type: "array",
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  name: { type: "string" },
-                  description: { type: "string" },
-                },
-                required: ["name", "description"],
-              },
-            },
-            techStack: { type: "array", items: { type: "string" } },
-            endpoints: {
-              type: "array",
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  method: { type: "string" },
-                  path: { type: "string" },
-                  desc: { type: "string" },
-                  auth: { type: "boolean" },
-                },
-                required: ["method", "path", "desc", "auth"],
-              },
-            },
-          },
-          required: ["healthScore", "directories", "techStack", "endpoints"],
-        },
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.1,
-      }))
-    });
-
-    if (!groqRes.ok) {
-       const err = await groqRes.text();
-       throw new Error(`Groq API Error: ${groqRes.status} ${err}`);
-    }
-
-    const groqData = await groqRes.json();
-    const resultJsonStr = groqData.choices[0]?.message?.content || "{}";
-    const result = JSON.parse(resultJsonStr);
-
-    const timing = ((Date.now() - startTime) / 1000).toFixed(1);
-
+export function getAIHeaders() {
+  if (process.env.OPENROUTER_API_KEY) {
     return {
-      healthScore: result.healthScore || 85,
-      totalFiles: totalFiles,
-      analysisTimeLabel: `${timing}s`,
-      directories: result.directories || [],
-      techStack: result.techStack || [],
-      endpoints: result.endpoints || []
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+      "X-Title": "Vibo Code Analyst",
     };
-
-  } catch (error) {
-    console.error("[AI Service Error]", error);
-    throw error;
   }
+  return {
+    Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    "Content-Type": "application/json",
+  };
 }
+
+export function getAIModel() {
+  if (process.env.OPENROUTER_API_KEY) return OPENROUTER_MODEL;
+  return GROQ_FALLBACK_MODELS[0];
+}
+
+// ── Fetch with provider fallback ─────────────────────────────────────
+export async function aiFetch(body, maxAttempts = 2) {
+  let lastError;
+
+  // Try OpenRouter first (if configured)
+  if (process.env.OPENROUTER_API_KEY) {
+    const requestBody = { ...body, model: OPENROUTER_MODEL };
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 45000);
+        const res = await fetch(OPENROUTER_BASE_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+            "X-Title": "Vibo Code Analyst",
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (res.status === 429 && attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+
+        if (res.ok || res.status === 429) return res;
+
+        // Non-retryable error from OpenRouter — fall through to Groq
+        console.log(`[ai] OpenRouter error ${res.status}, falling back to Groq...`);
+        break;
+      } catch (err) {
+        lastError = err;
+        if (err.name === 'AbortError') {
+          console.error(`[ai] OpenRouter timed out, falling back to Groq...`);
+          break;
+        }
+        if (attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
+    }
+  }
+
+  // Fallback: Groq
+  if (!process.env.GROQ_API_KEY) {
+    throw lastError || new Error("No AI provider configured");
+  }
+
+  for (const model of GROQ_FALLBACK_MODELS) {
+    const requestBody = { ...body, model };
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+        const res = await fetch(GROQ_BASE_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (res.status === 429 || res.status === 413) {
+          console.log(`[ai] Groq model ${model} rate-limited (${res.status}), trying next...`);
+          break;
+        }
+
+        if (res.status === 503 && attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, 1000));
+          continue;
+        }
+
+        return res;
+      } catch (err) {
+        lastError = err;
+        if (err.name === 'AbortError') {
+          console.error(`[ai] Groq model ${model} timed out, trying next...`);
+          break;
+        }
+        if (attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
+    }
+  }
+  throw lastError || new Error("All AI providers failed");
+}
+
+// ── Request builders ───────────────────────────────────────────────────────
+
+export function buildReasoningRequest({
+  messages,
+  maxCompletionTokens = 3000,
+  temperature = 0.2,
+}) {
+  return {
+    model: getAIModel(),
+    messages,
+    temperature,
+    top_p: 1,
+    max_tokens: maxCompletionTokens,
+    stream: false,
+  };
+}
+
+export function buildStructuredRequest({
+  messages,
+  schemaName,
+  schema,
+  maxCompletionTokens = 2500,
+  temperature = 0.1,
+}) {
+  return {
+    model: getAIModel(),
+    messages,
+    temperature,
+    top_p: 1,
+    max_tokens: maxCompletionTokens,
+    stream: false,
+    response_format: {
+      type: "json_object",
+    },
+  };
+}
+
+// ── Legacy aliases (backward compat during migration) ──
+export const groqFetch = aiFetch;
+export const getGroqModel = getAIModel;
+export const getGroqDefaultHeaders = getAIHeaders;
+export const getGroqApiUrl = getAIApiUrl;
+export const buildGroqReasoningRequest = buildReasoningRequest;
+export const buildGroqStructuredRequest = buildStructuredRequest;
