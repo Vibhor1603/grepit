@@ -124,8 +124,11 @@ export default function LandingPage() {
     if (e && !session) setError(AUTH_ERRORS[e] || AUTH_ERRORS.Default);
   }, [searchParams, session]);
 
+  const [signingIn, setSigningIn] = useState(false);
+
   const startSignIn = () => {
     if (!authConfigured) { setError('GitHub OAuth not configured. Add GITHUB_ID, GITHUB_SECRET, NEXTAUTH_URL, NEXTAUTH_SECRET.'); return; }
+    setSigningIn(true);
     signIn('github', { callbackUrl: `${window.location.origin}${window.location.pathname}` });
   };
 
@@ -199,8 +202,12 @@ export default function LandingPage() {
             </div>
           ) : (
             <>
-              <button onClick={startSignIn} className="text-[13px] text-vb-ink3 hover:text-vb-ink px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-200">Sign in</button>
-              <button onClick={startSignIn} className="text-[13px] font-medium text-vb-bg bg-vb-accent px-4 py-1.5 rounded-lg hover:bg-vb-accent-bright transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(224,252,16,0.2)]">Try free →</button>
+              <button onClick={startSignIn} disabled={signingIn} className="text-[13px] text-vb-ink3 hover:text-vb-ink px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-200 disabled:opacity-50">
+                {signingIn ? 'Connecting...' : 'Sign in'}
+              </button>
+              <button onClick={startSignIn} disabled={signingIn} className="text-[13px] font-medium text-vb-bg bg-vb-accent px-4 py-1.5 rounded-lg hover:bg-vb-accent-bright transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(224,252,16,0.2)] disabled:opacity-50 disabled:hover:translate-y-0">
+                {signingIn ? 'Connecting...' : 'Try free →'}
+              </button>
             </>
           )}
         </div>

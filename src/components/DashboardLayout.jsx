@@ -67,6 +67,10 @@ function useToast() {
 }
 
 /* ── Helpers ── */
+function generateId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); });
+}
 function healthScore(a) { const arch = a?.architecture || {}; return Math.max(10, 100 - ((arch.securityIssues || []).length + (a?.results?.security?.hardcodedSecrets || []).length) * 8); }
 function getIdentityProfile(a) { const arch = a?.architecture || a?.results || {}; return { techStack: (arch.techStack || []).slice(0, 3).join(' + ') || 'Unknown', storage: arch.storage || arch.database || 'Not detected', runtime: arch.runtime || 'Not detected' }; }
 function getHighTrafficFiles(a) { const f = (a?.results?.files || []).filter(f => f.complexity > 5 || f.lineCount > 100).sort((a, b) => (b.complexity || 0) - (a.complexity || 0)).slice(0, 3).map(f => f.path.split('/').pop()); return f.length > 0 ? f : null; }
@@ -782,6 +786,27 @@ function InlineDiagramRender({ mermaidCode }) {
       <div className="p-4 overflow-x-auto">
         {diagramContent}
       </div>
+    </div>
+  );
+}
+
+/* ── Chat Loading Indicator ── */
+function ChatLoadingIndicator() {
+  const [msg, setMsg] = useState(() => LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMsg(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <div className="flex items-center gap-3 py-4 px-1">
+      <div className="flex gap-1.5">
+        <div className="w-1.5 h-1.5 rounded-full bg-vb-accent animate-[bounce_0.6s_ease-in-out_infinite]" style={{ animationDelay: '0ms' }} />
+        <div className="w-1.5 h-1.5 rounded-full bg-vb-accent animate-[bounce_0.6s_ease-in-out_infinite]" style={{ animationDelay: '120ms' }} />
+        <div className="w-1.5 h-1.5 rounded-full bg-vb-accent animate-[bounce_0.6s_ease-in-out_infinite]" style={{ animationDelay: '240ms' }} />
+      </div>
+      <span className="text-[12px] text-vb-ink4 italic transition-opacity duration-300">{msg}</span>
     </div>
   );
 }
