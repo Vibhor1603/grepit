@@ -154,7 +154,7 @@ export default function LandingPage() {
         if (networkErr instanceof Error && !/Failed to fetch|Load failed|NetworkError|invalid response/i.test(networkErr.message)) throw networkErr;
         throw new Error('Could not reach the server. Check that the app is running and try again.');
       }
-      if (res.status === 403 && data.requiresAuth) { setLoading(false); startSignIn(); return; }
+      if (res.status === 403 && data.requiresAuth) { setLoading(false); setError('This is a private repository. Signing you in with GitHub to access it...'); setTimeout(() => startSignIn(), 1500); return; }
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
       saveAndRedirect(data);
     } catch (err) { setError(err.message); setLoading(false); }
