@@ -173,10 +173,5 @@ export function buildStructuredRequest({
   };
 }
 
-// ── Legacy aliases (backward compat during migration) ──
-export const groqFetch = aiFetch;
-export const getGroqModel = getAIModel;
-export const getGroqDefaultHeaders = getAIHeaders;
-export const getGroqApiUrl = getAIApiUrl;
-export const buildGroqReasoningRequest = buildReasoningRequest;
-export const buildGroqStructuredRequest = buildStructuredRequest;
+// Exported for streaming route fallback
+export { GROQ_BASE_URL, GROQ_FALLBACK_MODELS };

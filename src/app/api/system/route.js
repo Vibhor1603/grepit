@@ -265,23 +265,36 @@ function buildSecurityReport(analysis, arch, files) {
     ...(analysis.results?.security?.unsafePatterns || []).map(i => ({ severity: 'medium', title: 'Unsafe Pattern', description: i.issue, file: i.file })),
   ];
 
+  // ── Code Quality Issues ──
+  const qualityIssues = analyzeCodeQuality(files, analysis.file_tree || []);
+  issues.push(...qualityIssues);
+
   const quality = analysis.results?.quality || {};
   const testing = analysis.results?.testing || {};
   const performance = analysis.results?.performance || {};
 
-  // Health score calculation
-  const issueCount = issues.length;
+  // Health score calculation — balanced across categories
   const highCount = issues.filter(i => i.severity === 'high').length;
+  const mediumCount = issues.filter(i => i.severity === 'medium').length;
+  const lowCount = issues.filter(i => i.severity === 'low').length;
   const hasTests = (testing.testFiles || []).length > 0;
   const hasCoverage = testing.coverageDetected;
 
   let score = 100;
-  score -= highCount * 12;
-  score -= (issueCount - highCount) * 5;
-  if (!hasTests) score -= 15;
-  if (!hasCoverage) score -= 5;
-  if ((quality.duplicateGroups || []).length > 0) score -= 8;
-  score = Math.max(5, Math.min(100, score));
+  // Security (max -40): high issues are critical
+  score -= Math.min(40, highCount * 10);
+  // Architecture/quality (max -25): medium issues indicate structural problems
+  score -= Math.min(25, mediumCount * 5);
+  // Style/conventions (max -15): low issues are nice-to-fix
+  score -= Math.min(15, lowCount * 2);
+  // Testing (max -15)
+  if (!hasTests) score -= 12;
+  else if (!hasCoverage) score -= 5;
+  // Code duplication (max -5)
+  if ((quality.duplicateGroups || []).length > 3) score -= 5;
+  else if ((quality.duplicateGroups || []).length > 0) score -= 3;
+
+  score = Math.max(5, Math.min(100, Math.round(score)));
 
   return {
     score,
@@ -308,6 +321,159 @@ function buildSecurityReport(analysis, arch, files) {
     totalLines: analysis.total_lines,
     languages: analysis.languages,
   };
+}
+
+// ── Code Quality Analysis ──
+function analyzeCodeQuality(files, fileTree) {
+  const issues = [];
+  const filePaths = fileTree.filter(f => f.type === 'blob').map(f => f.path);
+
+  // 1. Business logic in route/controller files (fat routes)
+  const routeFiles = files.filter(f =>
+    /route\.(js|ts|jsx|tsx)$|routes?\//i.test(f.path) ||
+    /pages\/api\//i.test(f.path) ||
+    /app\/api\//i.test(f.path)
+  );
+  routeFiles.forEach(f => {
+    const funcCount = (f.functions || []).length;
+    const lineCount = f.lineCount || 0;
+    if (funcCount > 5 || lineCount > 200) {
+      issues.push({
+        severity: 'medium',
+        title: 'Fat Route File',
+        description: `Route file has ${funcCount} functions and ${lineCount} lines. Extract business logic into service/controller files.`,
+        file: f.path,
+      });
+    }
+  });
+
+  // 2. Types/interfaces/enums co-located with components (TS/TSX files)
+  const componentFiles = files.filter(f => /\.(tsx|jsx)$/.test(f.path) && /component|page/i.test(f.path));
+  componentFiles.forEach(f => {
+    if (!f.code) return;
+    const typeDecls = (f.code.match(/^(export\s+)?(interface|type|enum)\s+\w+/gm) || []).length;
+    if (typeDecls >= 3) {
+      issues.push({
+        severity: 'low',
+        title: 'Types Mixed with Components',
+        description: `${typeDecls} type/interface/enum declarations in a component file. Consider a separate types file.`,
+        file: f.path,
+      });
+    }
+  });
+
+  // 3. Poor file naming conventions
+  const namingIssues = [];
+  filePaths.forEach(p => {
+    const filename = p.split('/').pop();
+    if (!filename) return;
+    // Check for inconsistent casing in same directory
+    if (/^[A-Z]/.test(filename) && /\.(js|ts)$/.test(filename) && !/\.(test|spec|stories)\./.test(filename) && !/component|page|layout/i.test(p)) {
+      // PascalCase .js/.ts files that aren't components — likely should be camelCase
+      if (!/^[A-Z][a-z]+[A-Z]/.test(filename.replace(/\.\w+$/, ''))) return; // Skip single-word PascalCase
+    }
+    // Files with spaces or special chars
+    if (/[\s\(\)\[\]!@#$%^&]/.test(filename)) {
+      namingIssues.push(p);
+    }
+    // Very long filenames (>50 chars)
+    if (filename.length > 50) {
+      namingIssues.push(p);
+    }
+  });
+  if (namingIssues.length > 0) {
+    issues.push({
+      severity: 'low',
+      title: 'File Naming Issues',
+      description: `${namingIssues.length} files have problematic names (spaces, special chars, or excessive length).`,
+      file: namingIssues[0],
+    });
+  }
+
+  // 4. God files (too many exports/functions/classes)
+  files.forEach(f => {
+    const funcCount = (f.functions || []).length;
+    const classCount = (f.classes || []).length;
+    const exportCount = (f.exports || []).length;
+    if (funcCount > 15 || classCount > 3 || exportCount > 20) {
+      issues.push({
+        severity: 'medium',
+        title: 'God File',
+        description: `File has ${funcCount} functions, ${classCount} classes, ${exportCount} exports. Split into smaller, focused modules.`,
+        file: f.path,
+      });
+    }
+  });
+
+  // 5. Missing separation of concerns — utils/helpers that are too large
+  const utilFiles = files.filter(f => /utils?|helpers?|common/i.test(f.path));
+  utilFiles.forEach(f => {
+    if ((f.lineCount || 0) > 400) {
+      issues.push({
+        severity: 'low',
+        title: 'Oversized Utility File',
+        description: `Utility file has ${f.lineCount} lines. Break into domain-specific utility modules.`,
+        file: f.path,
+      });
+    }
+  });
+
+  // 6. No index/barrel files in directories with many exports (JS/TS)
+  const dirs = new Map();
+  filePaths.forEach(p => {
+    const dir = p.split('/').slice(0, -1).join('/');
+    if (!dirs.has(dir)) dirs.set(dir, []);
+    dirs.get(dir).push(p);
+  });
+  dirs.forEach((dirFiles, dir) => {
+    if (dirFiles.length >= 5 && !dirFiles.some(f => /index\.(js|ts|jsx|tsx)$/.test(f))) {
+      const isCodeDir = dirFiles.some(f => /\.(js|ts|jsx|tsx)$/.test(f));
+      if (isCodeDir && /components|hooks|utils|services|lib/i.test(dir)) {
+        issues.push({
+          severity: 'low',
+          title: 'Missing Barrel Export',
+          description: `Directory has ${dirFiles.length} files but no index file for clean imports.`,
+          file: dir,
+        });
+      }
+    }
+  });
+
+  // 7. Deeply nested directory structure
+  const deepFiles = filePaths.filter(p => p.split('/').length > 7);
+  if (deepFiles.length > 5) {
+    issues.push({
+      severity: 'low',
+      title: 'Deep Nesting',
+      description: `${deepFiles.length} files are nested 7+ levels deep. Consider flattening the directory structure.`,
+      file: deepFiles[0],
+    });
+  }
+
+  // 8. Mixed concerns — API calls in component files
+  componentFiles.forEach(f => {
+    if (!f.code) return;
+    const hasFetch = /\bfetch\s*\(|axios\.|\.get\(|\.post\(/m.test(f.code);
+    const hasDbImport = /import.*from.*(['"])(prisma|drizzle|mongoose|sequelize|typeorm)/m.test(f.code);
+    if (hasFetch && (f.lineCount || 0) > 100) {
+      issues.push({
+        severity: 'low',
+        title: 'API Calls in Component',
+        description: 'Component file contains direct API/fetch calls. Extract to a custom hook or service layer.',
+        file: f.path,
+      });
+    }
+    if (hasDbImport) {
+      issues.push({
+        severity: 'medium',
+        title: 'Database in Component',
+        description: 'Component file imports database ORM directly. Use a service/API layer instead.',
+        file: f.path,
+      });
+    }
+  });
+
+  return issues;
 }
 
 // ── Database Analysis ──

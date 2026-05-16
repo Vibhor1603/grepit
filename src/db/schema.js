@@ -32,6 +32,7 @@ export const query_history = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     analysis_id: uuid("analysis_id").references(() => analyses.id, { onDelete: "cascade" }),
+    conversation_id: uuid("conversation_id").notNull(),
     owner_email: text("owner_email"),
     query: text("query").notNull(),
     response: text("response").notNull(),
@@ -40,5 +41,6 @@ export const query_history = pgTable(
   (table) => [
     index("query_history_analysis_id_idx").on(table.analysis_id),
     index("query_history_owner_email_idx").on(table.owner_email),
+    index("query_history_conversation_id_idx").on(table.conversation_id),
   ],
 );

@@ -1,20 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 
-// Mock the dynamic import for CodeViewer
-vi.mock('next/dynamic', () => ({
-  default: (fn) => {
-    const Component = ({ code, filePath }) => <pre data-testid="code-viewer">{code}</pre>;
-    Component.displayName = 'MockCodeViewer';
-    return Component;
-  },
-}));
-
-// We need to test the helper functions directly
 describe('DashboardLayout helpers', () => {
-  it('parseFollowUps extracts follow-up questions', async () => {
-    // Import the module to test internal functions
-    // Since they're not exported, we test the behavior through the component
+  it('parseFollowUps extracts follow-up questions from ## heading', () => {
     const content = `Here is the answer.
 
 ## Follow-up questions
@@ -22,12 +9,11 @@ describe('DashboardLayout helpers', () => {
 - How does the database connect?
 - Where are the API routes?`;
 
-    // Test the pattern matching
-    const patterns = [/## Follow-up questions?\s*\n/i];
+    const patterns = [/## Follow-up questions?\s*\n/i, /#{1,3}\s*Follow[\s-]?up.*\n/i];
     let idx = -1;
     for (const pat of patterns) {
       const match = content.match(pat);
-      if (match) idx = match.index;
+      if (match && match.index !== undefined) { idx = match.index; break; }
     }
     expect(idx).toBeGreaterThan(0);
 
@@ -35,33 +21,42 @@ describe('DashboardLayout helpers', () => {
     expect(rest).toHaveLength(3);
   });
 
-  it('healthScore calculates correctly', () => {
-    // 0 issues = 100
-    const score1 = Math.max(10, 100 - 0 * 8);
-    expect(score1).toBe(100);
+  it('parseFollowUps handles bold heading format', () => {
+    const content = `Answer here.
 
-    // 5 issues = 60
-    const score2 = Math.max(10, 100 - 5 * 8);
-    expect(score2).toBe(60);
+**Follow-up Questions**
+1. How does X work?
+2. Where is Y?
+3. What triggers Z?`;
 
-    // 15 issues = min 10
-    const score3 = Math.max(10, 100 - 15 * 8);
-    expect(score3).toBe(10);
+    const pat = /\*\*Follow-up questions?.*\*\*\s*\n/i;
+    const match = content.match(pat);
+    expect(match).not.toBeNull();
   });
 
-  it('getIdentityProfile handles missing data', () => {
-    const arch = {};
-    const techStack = (arch.techStack || []).slice(0, 3).join(' + ') || 'Unknown';
-    expect(techStack).toBe('Unknown');
+  it('parseFollowUps handles numbered lists', () => {
+    const rest = `1. How does auth work?
+2. Where is the database?
+3. What triggers the webhook?`;
+
+    const followUps = rest.split('\n')
+      .map(l => l.trim())
+      .filter(l => /^\d+\./.test(l))
+      .map(l => l.replace(/^[\s\d.]+/, '').trim())
+      .filter(l => l.length > 5)
+      .slice(0, 3);
+    expect(followUps).toHaveLength(3);
+    expect(followUps[0]).toBe('How does auth work?');
   });
 });
 
 describe('Markdown rendering logic', () => {
-  it('detects file paths in backticks', () => {
+  it('detects file paths', () => {
     const isFilePath = (text) => /^[\w\-./]+\.(js|ts|jsx|tsx|css|json|md|html|py|rb|go|rs|yaml|yml|toml|sql|sh|env)$/i.test(text) || text.includes('/');
     expect(isFilePath('src/lib/auth.js')).toBe(true);
     expect(isFilePath('package.json')).toBe(true);
     expect(isFilePath('main.go')).toBe(true);
+    expect(isFilePath('backend/src/controllers/agent.js')).toBe(true);
     expect(isFilePath('hello world')).toBe(false);
     expect(isFilePath('const')).toBe(false);
   });
@@ -70,7 +65,23 @@ describe('Markdown rendering logic', () => {
     const isCodeSymbol = (text) => /^[a-zA-Z_$][\w$]*$/.test(text) && text.length > 2;
     expect(isCodeSymbol('handleAuth')).toBe(true);
     expect(isCodeSymbol('UserService')).toBe(true);
-    expect(isCodeSymbol('x')).toBe(false); // too short
-    expect(isCodeSymbol('hello world')).toBe(false); // has space
+    expect(isCodeSymbol('x')).toBe(false);
+    expect(isCodeSymbol('hello world')).toBe(false);
+  });
+
+  it('strips quotes from backtick content for path detection', () => {
+    const ref = "'backend/src/services/groqService.js'";
+    const cleaned = ref.replace(/^['''"]+|['''"]+$/g, '').trim();
+    expect(cleaned).toBe('backend/src/services/groqService.js');
+    expect(cleaned.includes('/')).toBe(true);
+  });
+});
+
+describe('Conversation-based chat', () => {
+  it('generates unique conversation IDs', () => {
+    const id1 = crypto.randomUUID();
+    const id2 = crypto.randomUUID();
+    expect(id1).not.toBe(id2);
+    expect(id1).toMatch(/^[0-9a-f-]{36}$/);
   });
 });

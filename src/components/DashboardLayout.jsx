@@ -73,11 +73,13 @@ function getHighTrafficFiles(a) { const f = (a?.results?.files || []).filter(f =
 function parseFollowUps(content) {
   const patterns = [
     /## Follow-up questions?.*\n/i,
+    /## Follow-up\s*\n/i,
     /\*\*Follow-up questions?.*\*\*\s*\n/i,
     /\*\*Follow-up questions?[^*]*\n/i,
     /\*\*Follow-up:?\*\*\s*\n/i,
     /Follow-up questions?:?\s*\n/i,
     /### Follow-up.*\n/i,
+    /#{1,3}\s*Follow[\s-]?up.*\n/i,
   ];
   let idx = -1;
   let matchLen = 0;
@@ -132,24 +134,72 @@ function MarkdownMessage({ content, onNavigateToFile }) {
         }
         rem = rem.slice(cm[0].length); continue;
       }
-      // Match any quote-wrapped file path (single, smart, or double quotes)
-      const sq = rem.match(/^[''"\u2018\u2019\u201C\u201D]([^\s''"\u2018\u2019\u201C\u201D]+\.\w{1,4})[''"\u2018\u2019\u201C\u201D]/);
-      if (sq && isFilePath(sq[1])) {
+      // Match any quote-wrapped file path (single, smart, double, or backtick-like quotes)
+      const sq = rem.match(/^([''\u2018\u2019\u201C\u201D"`])([^\s''\u2018\u2019\u201C\u201D"`]+\.\w{1,4})\1/);
+      if (sq && isFilePath(sq[2])) {
         result.push(
-          <button key={k++} onClick={() => onNavigateToFile?.(sq[1])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
-            {sq[1]}
+          <button key={k++} onClick={() => onNavigateToFile?.(sq[2])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+            {sq[2]}
           </button>
         );
         rem = rem.slice(sq[0].length); continue;
       }
+      // Match unquoted file paths inline (word/slash sequences ending in known extension)
+      const fp = rem.match(/^([\w\-./]+\.(js|ts|jsx|tsx|css|json|md|html|py|rb|go|rs|yaml|yml|toml|sql|sh|env))\b/i);
+      if (fp && fp[1].includes('/')) {
+        result.push(
+          <button key={k++} onClick={() => onNavigateToFile?.(fp[1])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+            {fp[1]}
+          </button>
+        );
+        rem = rem.slice(fp[0].length); continue;
+      }
       const bm = rem.match(/^\*\*(.+?)\*\*/);
-      if (bm) { result.push(<strong key={k++} className="font-semibold text-vb-ink">{bm[1]}</strong>); rem = rem.slice(bm[0].length); continue; }
+      if (bm) { result.push(<strong key={k++} className="font-semibold text-vb-ink">{renderInline(bm[1])}</strong>); rem = rem.slice(bm[0].length); continue; }
       const im = rem.match(/^\*(.+?)\*/);
-      if (im) { result.push(<em key={k++} className="italic text-vb-ink">{im[1]}</em>); rem = rem.slice(im[0].length); continue; }
-      // Find next special character
+      if (im) { result.push(<em key={k++} className="italic text-vb-ink">{renderInline(im[1])}</em>); rem = rem.slice(im[0].length); continue; }
+      // Find next special character — but never consume a backtick here;
+      // backtick at pos 0 means the cm match above already failed (not a valid
+      // inline code span), so we emit it literally and move on.
       const nx = rem.search(/[`*''\u2018\u2019\u201C\u201D"]/);
-      if (nx <= 0) { result.push(<span key={k++}>{nx === 0 ? rem[0] : rem}</span>); if (nx === 0) rem = rem.slice(1); else break; }
-      else { result.push(<span key={k++}>{rem.slice(0, nx)}</span>); rem = rem.slice(nx); }
+      if (nx === -1) {
+        // No special chars left — check for bare file paths in remaining text
+        const bareMatch = rem.match(/([\w\-./]+\.(js|ts|jsx|tsx|css|json|md|html|py|rb|go|rs|yaml|yml|toml|sql|sh|env))\b/i);
+        if (bareMatch && bareMatch[1].includes('/')) {
+          const idx = rem.indexOf(bareMatch[1]);
+          if (idx > 0) result.push(<span key={k++}>{rem.slice(0, idx)}</span>);
+          result.push(
+            <button key={k++} onClick={() => onNavigateToFile?.(bareMatch[1])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+              {bareMatch[1]}
+            </button>
+          );
+          rem = rem.slice(idx + bareMatch[1].length);
+          continue;
+        }
+        result.push(<span key={k++}>{rem}</span>); break;
+      }
+      if (nx === 0) {
+        // Emit the unmatched special character literally and advance
+        result.push(<span key={k++}>{rem[0]}</span>);
+        rem = rem.slice(1);
+      } else {
+        // Check if there's a file path before the next special char
+        const segment = rem.slice(0, nx);
+        const bareInSegment = segment.match(/([\w\-./]+\.(js|ts|jsx|tsx|css|json|md|html|py|rb|go|rs|yaml|yml|toml|sql|sh|env))\b/i);
+        if (bareInSegment && bareInSegment[1].includes('/')) {
+          const idx = segment.indexOf(bareInSegment[1]);
+          if (idx > 0) result.push(<span key={k++}>{segment.slice(0, idx)}</span>);
+          result.push(
+            <button key={k++} onClick={() => onNavigateToFile?.(bareInSegment[1])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+              {bareInSegment[1]}
+            </button>
+          );
+          rem = rem.slice(idx + bareInSegment[1].length);
+        } else {
+          result.push(<span key={k++}>{rem.slice(0, nx)}</span>);
+          rem = rem.slice(nx);
+        }
+      }
     }
     return result;
   };
@@ -477,7 +527,7 @@ function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename, 
 
   const startRename = (item, i) => {
     setRenamingIdx(i);
-    setRenameValue(item.displayName || item.query.slice(0, 40));
+    setRenameValue(item.displayName || item.title || item.query?.slice(0, 40) || 'New chat');
   };
 
   const submitRename = (item, i) => {
@@ -517,7 +567,7 @@ function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename, 
                 onDoubleClick={() => startRename(item, i)}
                 className={`flex-1 text-left px-3 py-2 text-[12px] transition-colors truncate flex items-center gap-2 min-w-0 ${item.id === activeChatId ? 'text-vb-ink' : 'text-vb-ink2 hover:text-vb-ink'}`}>
                 <Clock size={11} className={`flex-shrink-0 ${item.id === activeChatId ? 'text-vb-accent' : 'text-vb-ink4'}`} />
-                <span className="truncate">{item.displayName || item.query}</span>
+                <span className="truncate">{item.displayName || item.title || item.query || 'New chat'}</span>
               </button>
             )}
             <button onClick={() => setConfirmItem(item)} className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-vb-ink4 hover:text-vb-red transition-all" title="Delete">
@@ -847,15 +897,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                   </div>
                 );
               })}
-              {loading && (
-                <div className="flex items-center gap-3 py-3">
-                  <div className="flex gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-vb-accent animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-vb-accent/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-vb-accent/30 animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              )}
+              {loading && <ChatLoadingIndicator />}
             </div>
           )}
         </div>
@@ -980,7 +1022,7 @@ export default function DashboardLayout() {
   const [query, setQuery] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
-  const [activeChatId, setActiveChatId] = useState(null);
+  const [activeChatId, setActiveChatId] = useState(() => crypto.randomUUID());
   const leftPanel = useResizable({ defaultWidth: 240, minWidth: 180, maxWidth: 400, storageKey: 'vibo-left-panel' });
   const rightPanel = useResizableRight({ defaultWidth: 240, minWidth: 180, maxWidth: 360, storageKey: 'vibo-right-panel' });
   const abortRef = useRef(null);
@@ -1064,7 +1106,7 @@ export default function DashboardLayout() {
       const res = await fetch('/api/query/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: actualQuery, analysisId: analysis.id, files: forcedFiles }),
+        body: JSON.stringify({ query: actualQuery, analysisId: analysis.id, files: forcedFiles, conversationId: activeChatId }),
         signal: abortRef.current.signal,
       });
 
@@ -1123,16 +1165,17 @@ export default function DashboardLayout() {
     setChatLoading(false);
   };
 
-  const handleDeleteHistory = async (item, idx) => {
+  const handleDeleteHistory = async (item) => {
     if (!item) return;
-    if (messages.length > 0 && messages[0]?.content === item.query) {
+    if (activeChatId === item.id) {
       setMessages([]);
+      setActiveChatId(crypto.randomUUID());
     }
-    deleteChatMutation.mutate({ analysisId: analysis?.id, query: item.query });
+    deleteChatMutation.mutate({ analysisId: analysis?.id, conversationId: item.id });
   };
 
   const handleRenameHistory = (item, idx, newName) => {
-    setChatHistory(prev => prev.map((h, i) => i === idx ? { ...h, displayName: newName } : h));
+    // Rename is client-side only for now
   };
 
   const handleNavigateToFile = (ref) => {
@@ -1157,12 +1200,25 @@ export default function DashboardLayout() {
     }
   };
 
-  const handleSelectHistory = (item) => {
-    setMessages([{ role: 'user', content: item.query }, { role: 'assistant', content: item.response }]);
-    setActiveChatId(item.id || null);
-    setHistoryLoaded(true);
+  const handleSelectHistory = async (item) => {
+    setActiveChatId(item.id);
+    // Load all messages in this conversation
+    try {
+      const res = await fetch(`/api/query?conversationId=${item.id}`);
+      const data = await res.json();
+      const msgs = (data.messages || []).flatMap(m => [
+        { role: 'user', content: m.query },
+        { role: 'assistant', content: m.response },
+      ]);
+      setMessages(msgs);
+      setHistoryLoaded(true);
+    } catch {
+      // Fallback: show just the title
+      setMessages([{ role: 'user', content: item.title }]);
+      setHistoryLoaded(true);
+    }
   };
-  const handleNewChat = () => { setMessages([]); setQuery(''); setChatLoading(false); setHistoryLoaded(false); setActiveChatId(null); };
+  const handleNewChat = () => { setMessages([]); setQuery(''); setChatLoading(false); setHistoryLoaded(false); setActiveChatId(crypto.randomUUID()); };
 
   const score = analysis ? healthScore(analysis) : 0;
 
@@ -1232,8 +1288,8 @@ export default function DashboardLayout() {
         </div>
 
         {activeTab === 'chat' && <ChatView analysis={analysis} messages={messages} loading={chatLoading} query={query} setQuery={setQuery} handleSend={handleSend} suggestions={suggestions} chatHistory={chatHistory} onSelectHistory={handleSelectHistory} onNewChat={handleNewChat} onDeleteHistory={handleDeleteHistory} onStopGeneration={handleStopGeneration} onRenameHistory={handleRenameHistory} historyLoaded={historyLoaded} setHistoryLoaded={setHistoryLoaded} onNavigateToFile={handleNavigateToFile} activeChatId={activeChatId} />}
-        {activeTab === 'explore' && <ExploreView analysis={analysis} selectedFile={selectedFile} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
-        {activeTab === 'system' && <SystemTabComponent analysisId={analysisId} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
+        {activeTab === 'explore' && <ExploreView analysis={analysis} selectedFile={selectedFile} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveChatId(crypto.randomUUID()); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
+        {activeTab === 'system' && <SystemTabComponent analysisId={analysisId} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveChatId(crypto.randomUUID()); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
       </main>
 
       {/* Right sidebar — hidden on small screens */}

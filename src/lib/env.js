@@ -6,9 +6,6 @@ export function isAIConfigured() {
   return Boolean(process.env.OPENROUTER_API_KEY || process.env.GROQ_API_KEY);
 }
 
-// Legacy alias
-export const isGroqConfigured = isAIConfigured;
-
 export function isDatabaseConfigured() {
   return Boolean(process.env.DATABASE_URL);
 }

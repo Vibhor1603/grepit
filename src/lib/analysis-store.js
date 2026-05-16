@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, like } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { analyses, query_history } from "../db/schema";
 import { getDb } from "./db";
 
@@ -59,6 +59,72 @@ export async function deleteAnalysisRecord(id) {
 export async function createQueryHistory(payload) {
   const db = getDb();
   await db.insert(query_history).values(payload);
+}
+
+// Get list of conversations (most recent message per conversation_id)
+export async function getConversations(analysisId, limit = 30) {
+  const db = getDb();
+  // Efficient: fetch only the first message per conversation using a subquery approach
+  // Get distinct conversation_ids with their earliest query as title
+  const rows = await db
+    .select({
+      conversation_id: query_history.conversation_id,
+      query: query_history.query,
+      created_at: query_history.created_at,
+    })
+    .from(query_history)
+    .where(eq(query_history.analysis_id, analysisId))
+    .orderBy(query_history.created_at)
+    .limit(500);
+
+  // Group by conversation_id — take first message as title, track latest timestamp
+  const convMap = new Map();
+  for (const row of rows) {
+    if (!convMap.has(row.conversation_id)) {
+      convMap.set(row.conversation_id, {
+        id: row.conversation_id,
+        title: row.query.slice(0, 80),
+        created_at: row.created_at,
+        last_activity: row.created_at,
+        messageCount: 1,
+      });
+    } else {
+      const conv = convMap.get(row.conversation_id);
+      conv.messageCount++;
+      // Track latest activity for sorting
+      if (row.created_at > conv.last_activity) {
+        conv.last_activity = row.created_at;
+      }
+    }
+  }
+
+  // Sort by most recent activity (newest first) and limit
+  return [...convMap.values()]
+    .sort((a, b) => new Date(b.last_activity) - new Date(a.last_activity))
+    .slice(0, limit);
+}
+
+// Get all messages in a conversation
+export async function getConversationMessages(conversationId) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: query_history.id,
+      query: query_history.query,
+      response: query_history.response,
+      created_at: query_history.created_at,
+    })
+    .from(query_history)
+    .where(eq(query_history.conversation_id, conversationId))
+    .orderBy(query_history.created_at);
+
+  return rows;
+}
+
+// Delete an entire conversation
+export async function deleteConversation(conversationId) {
+  const db = getDb();
+  await db.delete(query_history).where(eq(query_history.conversation_id, conversationId));
 }
 
 export async function getRecentQueries(analysisId, limit = 3) {

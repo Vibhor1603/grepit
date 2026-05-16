@@ -31,38 +31,49 @@ export function useFileContent(analysisId, filePath) {
   });
 }
 
-/* ── Fetch chat history ── */
+/* ── Fetch conversations list (sidebar) ── */
 export function useChatHistory(analysisId) {
   return useQuery({
     queryKey: ['chatHistory', analysisId],
     queryFn: async () => {
       const res = await fetch(`/api/query?analysisId=${analysisId}`);
       const data = await res.json();
-      return data.history || [];
+      return data.conversations || [];
     },
     enabled: Boolean(analysisId),
-    staleTime: 5_000, // Short stale time so invalidation triggers refetch
+    staleTime: 5_000,
   });
 }
 
-/* ── Delete chat history item ── */
+/* ── Fetch all messages in a conversation ── */
+export function useConversationMessages(conversationId) {
+  return useQuery({
+    queryKey: ['conversation', conversationId],
+    queryFn: async () => {
+      const res = await fetch(`/api/query?conversationId=${conversationId}`);
+      const data = await res.json();
+      return data.messages || [];
+    },
+    enabled: Boolean(conversationId),
+    staleTime: 2_000,
+  });
+}
+
+/* ── Delete a conversation ── */
 export function useDeleteChatHistory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ analysisId, query }) => {
-      const res = await fetch('/api/query', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ analysisId, query }) });
-      // Don't throw on failure — item might already be deleted
+    mutationFn: async ({ analysisId, conversationId }) => {
+      const res = await fetch('/api/query', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ analysisId, conversationId }) });
       return res.ok;
     },
-    onMutate: async ({ analysisId, query }) => {
-      // Optimistic update — remove from cache immediately
+    onMutate: async ({ analysisId, conversationId }) => {
       await queryClient.cancelQueries({ queryKey: ['chatHistory', analysisId] });
       const prev = queryClient.getQueryData(['chatHistory', analysisId]);
-      queryClient.setQueryData(['chatHistory', analysisId], (old) => (old || []).filter(h => h.query !== query));
+      queryClient.setQueryData(['chatHistory', analysisId], (old) => (old || []).filter(h => h.id !== conversationId));
       return { prev };
     },
     onError: (_, { analysisId }, context) => {
-      // Rollback on error
       if (context?.prev) queryClient.setQueryData(['chatHistory', analysisId], context.prev);
     },
     onSettled: (_, __, { analysisId }) => {

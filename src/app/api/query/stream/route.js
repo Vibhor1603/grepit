@@ -1,17 +1,11 @@
 import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../../lib/rateLimit";
-import { getAnalysisRecord, createQueryHistory, getRecentQueries } from "../../../../lib/analysis-store";
+import { getAnalysisRecord, createQueryHistory, getRecentQueries, getConversationMessages } from "../../../../lib/analysis-store";
 import { buildQueryResponse } from "../../../../lib/analysis";
 import { isAIConfigured } from "../../../../lib/env";
-import { getAIHeaders, getAIApiUrl, getAIModel } from "../../../../lib/ai";
+import { getAIHeaders, getAIApiUrl, getAIModel, GROQ_BASE_URL, GROQ_FALLBACK_MODELS } from "../../../../lib/ai";
 import { getCurrentSession, getSessionOwner } from "../../../../lib/server-session";
 import { queryCodebase } from "../../../../lib/codebase-index";
-
-// Fallback models for Groq (only used if OpenRouter fails)
-const GROQ_FALLBACK_MODELS = [
-  "llama-3.1-8b-instant",
-  "llama-3.3-70b-versatile",
-];
 
 // Streaming query endpoint — returns SSE
 export async function POST(request) {
@@ -27,7 +21,7 @@ export async function POST(request) {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
 
-  const { query, analysisId, files: forcedFilePaths } = body;
+  const { query, analysisId, files: forcedFilePaths, conversationId } = body;
   if (!query || typeof query !== "string" || !query.trim()) {
     return new Response(JSON.stringify({ error: "query is required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
@@ -106,26 +100,46 @@ export async function POST(request) {
 
   console.log(`[stream] Context: ${context.length} chars, query: ${query.length} chars`);
 
-  // Fetch conversation history — full context, no trimming needed with 1M window
-  const history = await getRecentQueries(analysisId, 5).catch(() => []);
-  const historyMessages = history.flatMap(h => [
-    { role: "user", content: h.query },
-    { role: "assistant", content: h.response || "" },
-  ]);
+  // Fetch conversation history — use conversation messages if available, else recent queries
+  let historyMessages = [];
+  if (conversationId) {
+    const convMessages = await getConversationMessages(conversationId).catch(() => []);
+    historyMessages = convMessages.flatMap(h => [
+      { role: "user", content: h.query },
+      { role: "assistant", content: h.response || "" },
+    ]);
+  } else {
+    const history = await getRecentQueries(analysisId, 3).catch(() => []);
+    historyMessages = history.flatMap(h => [
+      { role: "user", content: h.query },
+      { role: "assistant", content: h.response || "" },
+    ]);
+  }
 
   const systemPrompt = `You are an expert code analyst for this codebase. Answer ONLY about this codebase.
 
-RULES:
+RESPONSE STYLE:
+- Match response length to the question. Simple questions get short answers. Complex questions get detailed ones.
 - ALWAYS wrap file paths in backticks like \`path/to/file.js\`. Never use single quotes for file paths.
-- Show real code from context only.
-- Use **bold**, ## headings, bullet lists, tables, mermaid diagrams as needed.
-- When user attaches a file, base answer on that file's code.
+- Include code snippets only when they directly help explain the answer — not by default.
+- Use **bold** for key terms, ## headings for sections, bullet lists for steps.
+- Use markdown tables when comparing items or listing endpoints/routes.
+- Include mermaid diagrams only when visualizing architecture or data flow adds real value.
+- When user attaches a file, base answer on that file's actual code from context.
 
-ONBOARDING: If user asks "where do I start" / "onboarding guide" / "guide me" — ask what they're building so you can create a personalized guide. Once they answer, respond with a mermaid TD flowchart showing reading order. CRITICAL MERMAID RULES: Use simple node IDs (A, B, C...) with short labels in square brackets like A["filename.js"]. Do NOT use slashes, parentheses, or special chars in labels. Use --> for arrows with short labels in pipes like A -->|"data flow"| B. Keep labels under 4 words. After the diagram, provide a numbered list of full file paths in backticks with one-line descriptions (5-7 files max), then 2 sentences on reading order logic. ALWAYS include the Follow-up questions section at the end.
+ONBOARDING GUIDE:
+When user asks "where do I start" / "onboarding guide" / "guide me":
+1. First response: Ask what they want to work on. Mention specific features, API routes, data flows, or services from this codebase they could explore.
+2. Once they answer: Provide a focused guide:
+   - A mermaid TD flowchart showing the data flow (CRITICAL: use simple node IDs like A["filename"] with no slashes or special chars in labels, arrows like A -->|"label"| B)
+   - How the feature works end-to-end: what triggers what, what calls what
+   - Key files with paths in backticks and what each does
+   - Environment variables needed (if any)
+   Keep it focused and practical — no filler, no generic advice.
 
 End every response with:
 ## Follow-up questions
-3 questions from the user's POV (e.g. "How does X work?").
+3 short questions (max 10 words each) from the user's POV. Keep them concise and clickable.
 
 Context:
 ${context}`;
@@ -155,7 +169,7 @@ ${context}`;
           model: primaryModel,
           messages: allMessages,
           temperature: 0.25,
-          max_tokens: 4000,
+          max_tokens: 8000,
           stream: true,
         };
 
@@ -170,7 +184,7 @@ ${context}`;
           console.log(`[stream] Primary (${primaryModel}) failed with ${aiRes.status}, trying Groq fallback...`);
           for (const model of GROQ_FALLBACK_MODELS) {
             const fallbackBody = { ...requestBody, model, max_tokens: 2000 };
-            aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            aiRes = await fetch(GROQ_BASE_URL, {
               method: "POST",
               headers: {
                 Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
@@ -255,7 +269,7 @@ ${context}`;
           .replace(/<think>[\s\S]*?<\/think>/gi, '')
           .replace(/^(User|Assistant|System):\s*/gim, '')
           .trim();
-        createQueryHistory({ analysis_id: analysisId, owner_email: ownerEmail, query, response: cleanResponse }).catch(() => {});
+        createQueryHistory({ analysis_id: analysisId, conversation_id: conversationId, owner_email: ownerEmail, query, response: cleanResponse }).catch(() => {});
 
       } catch (err) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`));

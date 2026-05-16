@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../lib/rateLimit";
 import { buildQueryResponse } from "../../../lib/analysis";
-import { createQueryHistory, getAnalysisRecord, getRecentQueries, deleteQueryHistory } from "../../../lib/analysis-store";
+import { createQueryHistory, getAnalysisRecord, getRecentQueries, deleteQueryHistory, getConversations, getConversationMessages, deleteConversation } from "../../../lib/analysis-store";
 import { isAIConfigured } from "../../../lib/env";
 import { buildReasoningRequest, getAIModel, aiFetch } from "../../../lib/ai";
 import { getCurrentSession, getSessionOwner } from "../../../lib/server-session";
@@ -268,35 +268,40 @@ ${context}`,
   }
 }
 
-// GET handler — fetch query history for an analysis
+// GET handler — fetch conversations or messages for an analysis
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const analysisId = searchParams.get('analysisId');
-  if (!analysisId) return NextResponse.json({ error: 'analysisId required' }, { status: 400 });
+  const conversationId = searchParams.get('conversationId');
+
+  if (!analysisId && !conversationId) return NextResponse.json({ error: 'analysisId or conversationId required' }, { status: 400 });
 
   try {
-    const history = await getRecentQueries(analysisId, 20).catch(() => []);
-    return NextResponse.json({ history });
+    // If conversationId provided, return all messages in that conversation
+    if (conversationId) {
+      const messages = await getConversationMessages(conversationId).catch(() => []);
+      return NextResponse.json({ messages });
+    }
+
+    // Otherwise return list of conversations for the sidebar
+    const conversations = await getConversations(analysisId).catch(() => []);
+    return NextResponse.json({ conversations });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// DELETE handler — delete a specific query from history
+// DELETE handler — delete a conversation
 export async function DELETE(request) {
   let body;
   try { body = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { analysisId, query, deleteAll } = body;
-  if (!analysisId) {
-    return NextResponse.json({ error: "analysisId required" }, { status: 400 });
-  }
+  const { analysisId, conversationId, query, deleteAll } = body;
 
   try {
-    if (deleteAll) {
-      // Delete ALL history for this analysis
+    if (deleteAll && analysisId) {
       const { getDb } = await import("../../../lib/db");
       const { query_history } = await import("../../../db/schema");
       const { eq } = await import("drizzle-orm");
@@ -305,15 +310,20 @@ export async function DELETE(request) {
       return NextResponse.json({ success: true, deleted: 'all' });
     }
 
-    if (!query) {
-      return NextResponse.json({ error: "query required" }, { status: 400 });
+    if (conversationId) {
+      await deleteConversation(conversationId);
+      return NextResponse.json({ success: true });
     }
 
-    console.log("[query DELETE] analysisId:", analysisId, "query (first 50):", query.slice(0, 50));
-    await deleteQueryHistory(analysisId, query);
-    return NextResponse.json({ success: true });
+    // Legacy: delete by query text
+    if (analysisId && query) {
+      await deleteQueryHistory(analysisId, query);
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "conversationId or query required" }, { status: 400 });
   } catch (error) {
-    console.error("[query DELETE] error:", error.message, error.stack);
+    console.error("[query DELETE] error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
