@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../../lib/rateLimit";
 import { getAnalysisRecord, createQueryHistory, getRecentQueries, getConversationMessages } from "../../../../lib/analysis-store";
@@ -6,6 +7,7 @@ import { isAIConfigured } from "../../../../lib/env";
 import { getAIHeaders, getAIApiUrl, getAIModel, GROQ_BASE_URL, GROQ_FALLBACK_MODELS } from "../../../../lib/ai";
 import { getCurrentSession, getSessionOwner } from "../../../../lib/server-session";
 import { queryCodebase } from "../../../../lib/codebase-index";
+import { checkGate, logUsage } from "../../../../lib/subscription-gate";
 
 // Streaming query endpoint — returns SSE
 export async function POST(request) {
@@ -30,12 +32,17 @@ export async function POST(request) {
   }
 
   const session = await getCurrentSession();
-  const ownerEmail = getSessionOwner(session);
+  const ownerEmail = await getSessionOwner(session);
 
   const analysis = await getAnalysisRecord(analysisId).catch(() => null);
   if (!analysis) return new Response(JSON.stringify({ error: "Analysis not found" }), { status: 404, headers: { 'Content-Type': 'application/json' } });
   if (analysis.owner_email && analysis.owner_email !== ownerEmail) {
     return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  const gateResult = await checkGate(session.userId, "ai_query");
+  if (!gateResult.allowed) {
+    return new Response(JSON.stringify({ error: gateResult.reason, code: gateResult.code }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
   const isAuthed = Boolean(ownerEmail);
@@ -118,6 +125,11 @@ export async function POST(request) {
 
   const systemPrompt = `You are an expert code analyst for this codebase. Answer ONLY about this codebase.
 
+WHEN YOU CAN'T ANSWER:
+- Never bluntly refuse or say "I can't help with that." Instead, acknowledge what they asked, explain what you can see in the codebase that's related, and suggest what they might actually be looking for.
+- If the question is close to something in the codebase, point them in the right direction. If it's completely unrelated to the codebase, gently redirect: "That's outside what I can see in this codebase, but I can help you with [related thing]."
+- Always include follow-up questions even when you can't fully answer — guide them toward something useful.
+
 RESPONSE STYLE:
 - Match response length to the question. Simple questions get short answers. Complex questions get detailed ones.
 - ALWAYS wrap file paths in backticks like \`path/to/file.js\`. Never use single quotes for file paths.
@@ -126,20 +138,48 @@ RESPONSE STYLE:
 - Use markdown tables when comparing items or listing endpoints/routes.
 - Include mermaid diagrams only when visualizing architecture or data flow adds real value.
 - When user attaches a file, base answer on that file's actual code from context.
+- NEVER repeat information already covered in previous messages in this conversation. If something was already explained (env vars, setup steps, file purposes), reference it briefly ("as mentioned earlier") or skip it entirely. Check the conversation history before generating — don't regenerate what's already there.
 
 ONBOARDING GUIDE:
-When user asks "where do I start" / "onboarding guide" / "guide me":
-1. First response: Ask what they want to work on. Mention specific features, API routes, data flows, or services from this codebase they could explore.
-2. Once they answer: Provide a focused guide:
-   - A mermaid TD flowchart showing the data flow (CRITICAL: use simple node IDs like A["filename"] with no slashes or special chars in labels, arrows like A -->|"label"| B)
-   - How the feature works end-to-end: what triggers what, what calls what
-   - Key files with paths in backticks and what each does
-   - Environment variables needed (if any)
-   Keep it focused and practical — no filler, no generic advice.
+When user asks "where do I start" / "onboarding guide" / "onboard me" / "get me started" / "guide me" / "how to get started" / "walk me through" / "help me get started":
+- First response: Ask what they need the guide for. Suggestions should be DEVELOPER TASKS — things someone would actually need to implement, modify, or understand to do their job. NOT feature descriptions. Think: "implementing X", "adding Y to Z", "understanding how A connects to B", "modifying the C pipeline". Frame them as work a developer would do, not a product tour. 3-4 suggestions max. At the end, say something like "or if you have something else in mind, just let me know and I'll create a proper guide so you don't waste any time."
+- Once user responds with their goal: Provide a proper onboarding guide with:
+  - A mermaid TD flowchart showing the data/control flow (use simple IDs like A["filename"], no slashes/special chars, arrows like A -->|"label"| B, labels under 4 words)
+  - Clear explanation of how the feature works end-to-end
+  - Key files with paths in backticks and what each does
+  - Short code snippets where they help explain (only relevant lines)
+  - Environment variables needed (if any)
+  Make it feel like a real onboarding doc — structured, visual, actionable.
+
+CONVERSATIONAL STYLE:
+- Be natural and direct. Ask clarifying questions when the user's intent is unclear.
+- Use bullet points for lists of options/items. Use prose for explanations.
+- Use formatting (headings, code blocks, tables) only when it genuinely helps.
+
+DAY 1 OVERVIEW:
+When user says "I'm new here" / "new to this codebase" / "day 1" / "give me the big picture" / "codebase overview" / "what is this":
+You are onboarding a day-1 engineer who knows NOTHING. Give them everything they need to not feel lost. Include ALL of the following:
+
+1. What this system does (2-3 sentences — what problem it solves, who uses it)
+2. High-level architecture diagram (mermaid TD — show how the main pieces connect)
+3. Project structure — table with key directories/folders and what lives in each
+4. Entry points — where does the app start? What are the main files that kick everything off?
+5. Available scripts — npm scripts, make targets, or whatever commands they need to run/build/test/deploy
+6. Key files to know about — the most important files a new dev should be aware of (with paths in backticks and 1 line about what each does)
+7. Environment setup — what env vars are needed, any external services required
+8. How to run it locally — the actual commands
+9. Core patterns — any important architectural patterns used (e.g., "all API routes go through middleware X", "state is managed via Y", "the DB is accessed through Z layer")
+
+Include code snippets for anything that's non-obvious (e.g., how a request flows through middleware, how the main export works). Use tables where they help organize info. This should feel like the README that every codebase should have but doesn't.
+
+For large codebases: give the overview of the whole system, then ask "Want me to go deeper on any specific area?"
+
+MERMAID DIAGRAMS:
+When including flowcharts, use simple node IDs like A["filename"] with no slashes or special chars in labels. Arrows like A -->|"label"| B. Keep labels under 4 words.
 
 End every response with:
 ## Follow-up questions
-3 short questions (max 10 words each) from the user's POV. Keep them concise and clickable.
+3 short questions (under 8 words) that the USER would naturally ask next. Write them as if the user is typing them — first person, like "How does the auth flow work?" or "Where is the database schema?" NEVER write questions from the AI's perspective.
 
 Context:
 ${context}`;
@@ -271,7 +311,17 @@ ${context}`;
           .trim();
         createQueryHistory({ analysis_id: analysisId, conversation_id: conversationId, owner_email: ownerEmail, query, response: cleanResponse }).catch(() => {});
 
+        logUsage(session.userId, "ai_query", {
+          analysis_id: analysisId,
+          query_length: query.length,
+          response_length: cleanResponse.length,
+        }).catch(() => {});
+
       } catch (err) {
+        Sentry.captureException(err, {
+          tags: { route: "query-stream" },
+          extra: { analysisId, query: query?.slice(0, 200) },
+        });
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`));
         controller.close();
       }

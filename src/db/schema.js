@@ -44,3 +44,42 @@ export const query_history = pgTable(
     index("query_history_conversation_id_idx").on(table.conversation_id),
   ],
 );
+
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user_id: text("user_id").notNull().unique(),
+    owner_email: text("owner_email"),
+    stripe_customer_id: text("stripe_customer_id"),
+    stripe_subscription_id: text("stripe_subscription_id"),
+    stripe_price_id: text("stripe_price_id"),
+    status: text("status").notNull().default("inactive"),
+    plan: text("plan").notNull().default("free"),
+    current_period_end: timestamp("current_period_end", { withTimezone: true, mode: "string" }),
+    cancel_at_period_end: boolean("cancel_at_period_end").notNull().default(false),
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("subscriptions_user_id_idx").on(table.user_id),
+    index("subscriptions_email_idx").on(table.owner_email),
+    index("subscriptions_status_idx").on(table.status),
+  ],
+);
+
+export const usage_logs = pgTable(
+  "usage_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user_id: text("user_id").notNull(),
+    feature: text("feature").notNull(),
+    metadata: jsonb("metadata").notNull().default({}),
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("usage_logs_user_id_idx").on(table.user_id),
+    index("usage_logs_feature_idx").on(table.feature),
+    index("usage_logs_created_at_idx").on(table.created_at),
+  ],
+);

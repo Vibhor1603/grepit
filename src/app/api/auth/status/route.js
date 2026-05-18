@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { isGitHubAuthConfigured } from "../../../../lib/env";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
+  const { userId } = await auth();
   return NextResponse.json({
-    configured: isGitHubAuthConfigured(),
+    configured: true,
+    authenticated: Boolean(userId),
   });
 }

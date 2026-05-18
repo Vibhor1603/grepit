@@ -33,8 +33,8 @@
 
   .vb-reveal {
     opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(24px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .vb-reveal.visible {
     opacity: 1;
@@ -46,7 +46,60 @@
   from { stroke-dasharray: 0 251; }
 }
 
+/* Clerk auth component dark theme overrides */
+.cl-card,
+.cl-modalContent,
+.cl-signIn-root,
+.cl-signUp-root {
+  background-color: #141416 !important;
+  color: #eaeaec !important;
+}
+.cl-headerTitle,
+.cl-headerSubtitle,
+.cl-formFieldLabel,
+.cl-footerActionText,
+.cl-dividerText,
+.cl-identityPreviewText,
+.cl-formFieldInput,
+.cl-socialButtonsBlockButtonText,
+.cl-internal-b1zuol {
+  color: inherit !important;
+}
+.cl-formFieldInput {
+  background-color: #1a1a1e !important;
+  border-color: rgba(255,255,255,0.08) !important;
+  color: #eaeaec !important;
+}
+.cl-formFieldInput::placeholder {
+  color: #4a4a54 !important;
+}
+.cl-socialButtonsBlockButton {
+  background-color: #1a1a1e !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+.cl-socialButtonsBlockButton:hover {
+  background-color: #222226 !important;
+}
+.cl-dividerLine {
+  background-color: rgba(255,255,255,0.06) !important;
+}
+.cl-footerActionLink {
+  color: #E0FC10 !important;
+}
+.cl-formButtonPrimary {
+  background-color: #E0FC10 !important;
+  color: #0a0a0c !important;
+}
+.cl-modalBackdrop {
+  background-color: rgba(0,0,0,0.7) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
 /* Mermaid diagram text visibility overrides */
+.vb-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
 .vb-diagram svg text,
 .vb-diagram svg tspan {
   fill: #eaeaec !important;

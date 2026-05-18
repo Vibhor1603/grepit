@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { isAIConfigured } from "./env";
 import { buildStructuredRequest, aiFetch } from "./ai";
 
@@ -664,7 +665,11 @@ export async function maybeEnhanceAnalysisWithGroq(baseAnalysis, context = {}) {
         ...enhanced,
       },
     };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { source: "ai-enhancement" },
+      extra: { repoName: baseAnalysis?.repoName },
+    });
     return baseAnalysis;
   }
 }

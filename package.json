@@ -14,12 +14,15 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.3.5",
     "@neondatabase/serverless": "^1.1.0",
     "@react-pdf/renderer": "^4.5.1",
+    "@sentry/nextjs": "^10.53.1",
     "@tanstack/react-query": "^5.100.10",
     "autoprefixer": "^10.4.27",
     "dompurify": "^3.4.3",
     "drizzle-orm": "^0.45.2",
+    "framer-motion": "^12.38.0",
     "jszip": "^3.10.1",
     "lucide-react": "^1.6.0",
     "mermaid": "^11.15.0",
@@ -29,6 +32,8 @@
     "prism-react-renderer": "^2.4.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-hot-toast": "^2.6.0",
+    "stripe": "^22.1.1",
     "tailwindcss": "^3.4.19"
   },
   "devDependencies": {

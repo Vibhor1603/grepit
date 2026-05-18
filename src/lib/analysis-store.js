@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { analyses, query_history } from "../db/schema";
 import { getDb } from "./db";
@@ -22,16 +23,25 @@ export function serializeAnalysisRecord(record) {
 
 export async function createAnalysisRecord(payload) {
   const db = getDb();
-  const [data] = await db.insert(analyses).values(payload).returning();
-  return serializeAnalysisRecord(data);
+  try {
+    const [data] = await db.insert(analyses).values(payload).returning();
+    return serializeAnalysisRecord(data);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { db_op: "createAnalysisRecord" } });
+    throw err;
+  }
 }
 
 export async function updateAnalysisRecord(id, payload) {
   const db = getDb();
-  const [data] = await db.update(analyses).set(payload).where(eq(analyses.id, id)).returning();
-
-  if (!data) throw notFound("Analysis not found.");
-  return serializeAnalysisRecord(data);
+  try {
+    const [data] = await db.update(analyses).set(payload).where(eq(analyses.id, id)).returning();
+    if (!data) throw notFound("Analysis not found.");
+    return serializeAnalysisRecord(data);
+  } catch (err) {
+    if (err.status !== 404) Sentry.captureException(err, { tags: { db_op: "updateAnalysisRecord" }, extra: { id } });
+    throw err;
+  }
 }
 
 export async function getAnalysisRecord(id) {

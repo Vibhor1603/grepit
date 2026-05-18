@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../lib/rateLimit";
@@ -55,8 +56,8 @@ async function getIpAndSession(headersList) {
 export async function GET(request) {
   const headersList = await headers();
   const { ip, session } = await getIpAndSession(headersList);
-  const ownerEmail  = getSessionOwner(session);
-  const accessToken = getGithubAccessToken(session);
+  const ownerEmail  = await getSessionOwner(session);
+  const accessToken = await getGithubAccessToken(session);
 
   const rlKey = rateLimitKey("file-get", ip, ownerEmail);
   const limit = rateLimit(rlKey, 60, 60_000);
@@ -81,6 +82,9 @@ export async function GET(request) {
     const resolved = await resolveFileCode({ analysis, indexedFile, filePath, accessToken });
     return NextResponse.json({ path: filePath, code: resolved.code, truncated: resolved.truncated, source: resolved.source });
   } catch (error) {
+    if (error.status !== 403 && error.status !== 404) {
+      Sentry.captureException(error, { tags: { route: "file-get" } });
+    }
     return NextResponse.json({ error: error.message }, { status: error.status || 500 });
   }
 }
@@ -93,8 +97,8 @@ export async function POST(request) {
   }
 
   const { ip, session } = await getIpAndSession(headersList);
-  const ownerEmail  = getSessionOwner(session);
-  const accessToken = getGithubAccessToken(session);
+  const ownerEmail  = await getSessionOwner(session);
+  const accessToken = await getGithubAccessToken(session);
 
   const rlKey = rateLimitKey("file-insight", ip, ownerEmail);
   const limit = rateLimit(rlKey, 20, 60_000);
@@ -166,6 +170,12 @@ export async function POST(request) {
 
     return NextResponse.json({ response });
   } catch (error) {
+    if (error.status !== 403 && error.status !== 404) {
+      Sentry.captureException(error, {
+        tags: { route: "file-insight" },
+        extra: { analysisId: body?.analysisId, filePath: body?.filePath },
+      });
+    }
     return NextResponse.json({ error: error.message }, { status: error.status || 500 });
   }
 }

@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 
 /src/generated/prisma
+
+# Sentry build plugin auth token (contains secrets)
+.env.sentry-build-plugin

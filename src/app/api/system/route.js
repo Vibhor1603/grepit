@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { getAnalysisRecord } from "../../../lib/analysis-store";
 import { getCurrentSession, getSessionOwner } from "../../../lib/server-session";
@@ -16,7 +17,7 @@ export async function GET(request) {
     if (!analysis) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const session = await getCurrentSession();
-    const ownerEmail = getSessionOwner(session);
+    const ownerEmail = await getSessionOwner(session);
     if (analysis.owner_email && analysis.owner_email !== ownerEmail) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
@@ -43,6 +44,10 @@ export async function GET(request) {
 
     return NextResponse.json({ techStack, entryPoints, conventions, securityReport, database });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { route: "system" },
+      extra: { analysisId: new URL(request.url).searchParams.get("id") },
+    });
     console.error('[system] error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

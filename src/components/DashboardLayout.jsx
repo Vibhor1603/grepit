@@ -1,17 +1,19 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 import { useAnalysis, useChatHistory, useDeleteChatHistory, useFileContent } from '../hooks/useApi';
 import { useQueryClient } from '@tanstack/react-query';
 import { useResizable, useResizableRight } from '../hooks/useResizable';
 import { LOADING_MESSAGES, getRandomMessage, getRateLimitMessage, ERROR_MESSAGES, EMPTY_STATES } from '../lib/personality';
-import { MessageSquare, LayoutGrid, Terminal, FileText, Folder, ChevronRight, Code2, Shield, Server, Cpu, Layers, Send, Plus, Clock, X, Square, Copy, Check, Trash2, Search, ZoomIn, ZoomOut, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { MessageSquare, LayoutGrid, Terminal, FileText, Folder, ChevronRight, Code2, Shield, Server, Cpu, Layers, Send, Plus, Clock, X, Square, Copy, Check, Trash2, Search, ZoomIn, ZoomOut, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, UserCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import ChatInputComponent from './ChatInput';
 import SystemTabComponent from './SystemTab';
 import SymbolInspector from './SymbolInspector';
+import { ViboMark } from './ViboLogo';
 import { Highlight, themes } from 'prism-react-renderer';
+import { healthScore, getIdentityProfile, getHighTrafficFiles, parseFollowUps } from '../utils/client/formatting';
 
 const viboCodeTheme = {
   ...themes.vsDark,
@@ -67,45 +69,11 @@ function useToast() {
 }
 
 /* ── Helpers ── */
+
 function generateId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); });
 }
-function healthScore(a) { const arch = a?.architecture || {}; return Math.max(10, 100 - ((arch.securityIssues || []).length + (a?.results?.security?.hardcodedSecrets || []).length) * 8); }
-function getIdentityProfile(a) { const arch = a?.architecture || a?.results || {}; return { techStack: (arch.techStack || []).slice(0, 3).join(' + ') || 'Unknown', storage: arch.storage || arch.database || 'Not detected', runtime: arch.runtime || 'Not detected' }; }
-function getHighTrafficFiles(a) { const f = (a?.results?.files || []).filter(f => f.complexity > 5 || f.lineCount > 100).sort((a, b) => (b.complexity || 0) - (a.complexity || 0)).slice(0, 3).map(f => f.path.split('/').pop()); return f.length > 0 ? f : null; }
-function parseFollowUps(content) {
-  const patterns = [
-    /## Follow-up questions?.*\n/i,
-    /## Follow-up\s*\n/i,
-    /\*\*Follow-up questions?.*\*\*\s*\n/i,
-    /\*\*Follow-up questions?[^*]*\n/i,
-    /\*\*Follow-up:?\*\*\s*\n/i,
-    /Follow-up questions?:?\s*\n/i,
-    /### Follow-up.*\n/i,
-    /#{1,3}\s*Follow[\s-]?up.*\n/i,
-  ];
-  let idx = -1;
-  let matchLen = 0;
-  for (const pat of patterns) {
-    const match = content.match(pat);
-    if (match && match.index !== undefined) {
-      const pos = match.index;
-      if (idx === -1 || pos > idx) { idx = pos; matchLen = match[0].length; }
-    }
-  }
-  if (idx === -1) return { body: content, followUps: [] };
-  const body = content.slice(0, idx).replace(/---\s*$/, '').trim();
-  const rest = content.slice(idx + matchLen);
-  const followUps = rest.split('\n')
-    .map(l => l.trim())
-    .filter(l => l.startsWith('-') || l.startsWith('*') || /^\d+\./.test(l))
-    .map(l => l.replace(/^[\s\-*\d.]+/, '').replace(/^\[|\]$/g, '').replace(/\?$/, '?').trim())
-    .filter(l => l.length > 5)
-    .slice(0, 3);
-  return { body, followUps };
-}
-
 /* ── Markdown renderer ── */
 function MarkdownMessage({ content, onNavigateToFile }) {
   const lines = content.split('\n');
@@ -129,7 +97,7 @@ function MarkdownMessage({ content, onNavigateToFile }) {
         const ref = cm[1].replace(/^['''"]+|['''"]+$/g, '').trim();
         if (isFilePath(ref) || isCodeSymbol(ref)) {
           result.push(
-            <button key={k++} onClick={() => onNavigateToFile?.(ref)} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+            <button key={k++} onClick={() => onNavigateToFile?.(ref)} className="inline px-0.5 text-vb-accent-dim font-mono text-[12px] underline underline-offset-2 decoration-vb-accent/40 hover:text-vb-accent hover:decoration-vb-accent cursor-pointer transition-colors">
               {ref}
             </button>
           );
@@ -142,7 +110,7 @@ function MarkdownMessage({ content, onNavigateToFile }) {
       const sq = rem.match(/^([''\u2018\u2019\u201C\u201D"`])([^\s''\u2018\u2019\u201C\u201D"`]+\.\w{1,4})\1/);
       if (sq && isFilePath(sq[2])) {
         result.push(
-          <button key={k++} onClick={() => onNavigateToFile?.(sq[2])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+          <button key={k++} onClick={() => onNavigateToFile?.(sq[2])} className="inline px-0.5 text-vb-accent-dim font-mono text-[12px] underline underline-offset-2 decoration-vb-accent/40 hover:text-vb-accent hover:decoration-vb-accent cursor-pointer transition-colors">
             {sq[2]}
           </button>
         );
@@ -152,7 +120,7 @@ function MarkdownMessage({ content, onNavigateToFile }) {
       const fp = rem.match(/^([\w\-./]+\.(js|ts|jsx|tsx|css|json|md|html|py|rb|go|rs|yaml|yml|toml|sql|sh|env))\b/i);
       if (fp && fp[1].includes('/')) {
         result.push(
-          <button key={k++} onClick={() => onNavigateToFile?.(fp[1])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+          <button key={k++} onClick={() => onNavigateToFile?.(fp[1])} className="inline px-0.5 text-vb-accent-dim font-mono text-[12px] underline underline-offset-2 decoration-vb-accent/40 hover:text-vb-accent hover:decoration-vb-accent cursor-pointer transition-colors">
             {fp[1]}
           </button>
         );
@@ -173,7 +141,7 @@ function MarkdownMessage({ content, onNavigateToFile }) {
           const idx = rem.indexOf(bareMatch[1]);
           if (idx > 0) result.push(<span key={k++}>{rem.slice(0, idx)}</span>);
           result.push(
-            <button key={k++} onClick={() => onNavigateToFile?.(bareMatch[1])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+            <button key={k++} onClick={() => onNavigateToFile?.(bareMatch[1])} className="inline px-0.5 text-vb-accent-dim font-mono text-[12px] underline underline-offset-2 decoration-vb-accent/40 hover:text-vb-accent hover:decoration-vb-accent cursor-pointer transition-colors">
               {bareMatch[1]}
             </button>
           );
@@ -194,7 +162,7 @@ function MarkdownMessage({ content, onNavigateToFile }) {
           const idx = segment.indexOf(bareInSegment[1]);
           if (idx > 0) result.push(<span key={k++}>{segment.slice(0, idx)}</span>);
           result.push(
-            <button key={k++} onClick={() => onNavigateToFile?.(bareInSegment[1])} className="inline px-1 py-0.5 text-vb-accent text-[12px] font-mono underline underline-offset-2 decoration-vb-accent/40 hover:decoration-vb-accent cursor-pointer transition-colors">
+            <button key={k++} onClick={() => onNavigateToFile?.(bareInSegment[1])} className="inline px-0.5 text-vb-accent-dim font-mono text-[12px] underline underline-offset-2 decoration-vb-accent/40 hover:text-vb-accent hover:decoration-vb-accent cursor-pointer transition-colors">
               {bareInSegment[1]}
             </button>
           );
@@ -758,19 +726,18 @@ function InlineDiagramRender({ mermaidCode }) {
   );
 
   if (fullscreen) {
+    // Remove fixed width/height from SVG so it scales to fill the viewport
+    const scaledSvg = svg.replace(/<svg([^>]*?)width="[^"]*"/, '<svg$1').replace(/height="[^"]*"/, '').replace(/<svg/, '<svg style="width:90vw;max-height:80vh"');
     return (
-      <div className="fixed inset-0 z-[250] bg-vb-bg/95 backdrop-blur-sm flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
-          <span className="text-[13px] text-vb-ink2">Diagram View</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setFullscreen(false)} className="p-1.5 rounded-md text-vb-ink2 hover:text-vb-ink hover:bg-white/[0.06] transition-colors" title="Exit fullscreen">
-              <Minimize2 size={15} />
-            </button>
-            <button onClick={() => setFullscreen(false)} className="group/close w-[14px] h-[14px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center" title="Close"><X size={8} className="text-[#4a0000] opacity-0 group-hover/close:opacity-100 transition-opacity" /></button>
-          </div>
+      <div className="fixed inset-0 z-[250] bg-vb-bg flex flex-col" onClick={() => setFullscreen(false)}>
+        <div className="flex items-center justify-between px-6 py-3 border-b border-white/[0.06] flex-shrink-0" onClick={e => e.stopPropagation()}>
+          <span className="text-[13px] text-vb-ink3">Diagram View</span>
+          <button onClick={() => setFullscreen(false)} className="p-1.5 rounded-md text-vb-ink3 hover:text-vb-ink hover:bg-white/[0.06] transition-colors" title="Exit fullscreen">
+            <Minimize2 size={15} />
+          </button>
         </div>
-        <div className="flex-1 overflow-auto p-8 flex items-center justify-center">
-          {diagramContent}
+        <div className="flex-1 overflow-auto flex items-center justify-center p-8" onClick={e => e.stopPropagation()}>
+          <div className="vb-diagram" dangerouslySetInnerHTML={{ __html: scaledSvg }} />
         </div>
       </div>
     );
@@ -845,9 +812,13 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
             <PanelLeftOpen size={14} />
           </button>
         )}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6" onMouseDown={() => { if (document.activeElement?.tagName === 'INPUT') document.activeElement.blur(); }}>
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center">
+              <div className="flex items-center gap-2 mb-3">
+                <ViboMark size={22} />
+                <span className="text-[18px] font-semibold tracking-tight text-vb-ink select-none">vi<span className="text-vb-accent">b</span>o</span>
+              </div>
               <p className="text-[14px] text-vb-ink3 mb-6">What's confusing you today?</p>
               <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-lg">
                 {suggestions.map((s, i) => (
@@ -1055,7 +1026,7 @@ export default function DashboardLayout() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const analysisId = searchParams.get('id');
-  const { data: session } = useSession();
+  const { user, isLoaded: clerkLoaded, isSignedIn } = useUser();
   // React Query hooks
   const { data: analysis, isLoading: loading, error: analysisError } = useAnalysis(analysisId);
   const { data: chatHistory = [] } = useChatHistory(analysisId);
@@ -1065,21 +1036,23 @@ export default function DashboardLayout() {
 
   // Dynamic suggestions based on the analyzed codebase
   const suggestions = useMemo(() => {
-    if (!analysis) return ['Where do I start?', 'Explain Architecture', 'Map API Routes', 'Show Architecture Diagram'];
+    // First 2 chips are always present, last 2 are codebase-specific
+    const fixed = ['I\'m new here', 'Guide me through something'];
+    if (!analysis) return [...fixed, 'Show architecture diagram', 'Explain the tech stack'];
     const arch = analysis.architecture || analysis.results || {};
-    const techStack = (arch.techStack || []).slice(0, 2).join(' & ');
     const hasApi = (arch.apiEndpoints || []).length > 0;
     const hasAuth = (analysis.file_tree || []).some(f => /auth|login|session/i.test(f.path));
     const hasDb = (analysis.file_tree || []).some(f => /database|schema|model|migration/i.test(f.path));
-    const items = [];
-    items.push('Where do I start?');
-    items.push(`How is ${analysis.repo_name} structured?`);
-    if (hasApi) items.push('Walk me through the API routes');
-    if (hasAuth) items.push('Explain the auth flow');
-    if (hasDb) items.push('How does the database layer work?');
-    if (techStack) items.push(`Why was ${techStack} chosen?`);
-    if (items.length < 5) items.push('Find potential security issues');
-    return items.slice(0, 4);
+    const hasFrontend = (analysis.file_tree || []).some(f => /components?\/|pages\/|app\//i.test(f.path));
+    const hasML = (analysis.file_tree || []).some(f => /model|train|inference|pipeline/i.test(f.path));
+    const dynamic = [];
+    if (hasApi) dynamic.push('Walk me through the API routes');
+    if (hasAuth) dynamic.push('Explain the auth flow');
+    if (hasDb) dynamic.push('How does the database layer work?');
+    if (hasFrontend && !hasApi) dynamic.push('How are the frontend components organized?');
+    if (hasML) dynamic.push('Explain the ML pipeline');
+    if (dynamic.length === 0) dynamic.push(`How is ${analysis.repo_name} structured?`);
+    return [...fixed, ...dynamic.slice(0, 2)];
   }, [analysis]);
 
   const handleSend = async (text, attachedFiles = [], hiddenContext = '') => {
@@ -1247,8 +1220,15 @@ export default function DashboardLayout() {
 
   const score = analysis ? healthScore(analysis) : 0;
 
+  if (!clerkLoaded) {
+    return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>;
+  }
+  if (clerkLoaded && !isSignedIn) {
+    router.replace(`/sign-in?redirect_url=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+    return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>;
+  }
   if (loading) {
-    return <div className="min-h-screen bg-vb-bg flex flex-col items-center justify-center gap-3"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg><p className="text-[13px] text-vb-ink3">{LOADING_MESSAGES[Math.floor(Date.now() / 3000) % LOADING_MESSAGES.length]}</p></div>;
+    return <div className="min-h-screen bg-vb-bg flex flex-col items-center justify-center gap-4"><div className="flex items-center gap-2"><ViboMark size={22} /><span className="text-[18px] font-semibold tracking-tight text-vb-ink select-none">vi<span className="text-vb-accent">b</span>o</span></div><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg><p className="text-[13px] text-vb-ink3">{LOADING_MESSAGES[Math.floor(Date.now() / 3000) % LOADING_MESSAGES.length]}</p></div>;
   }
   if (error) return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><div className="text-center space-y-3"><p className="text-vb-red text-[14px]">{getRandomMessage(ERROR_MESSAGES)}</p><p className="text-[12px] text-vb-ink4 font-mono">{error}</p><a href="/" className="inline-block mt-2 text-[13px] text-vb-ink3 underline hover:text-vb-ink transition-colors">← Go back</a></div></div>;
 
@@ -1274,7 +1254,12 @@ export default function DashboardLayout() {
                 <PanelLeftOpen size={15} />
               </button>
             )}
-            <span className="text-vb-ink2">{session?.user?.name || 'vibo'}</span>
+            <a href="/" className="flex items-center gap-1.5 mr-2 hover:opacity-90 transition-opacity" title="Vibo Home">
+              <ViboMark size={18} />
+              <span className="text-[15px] font-semibold tracking-tight text-vb-ink select-none">vi<span className="text-vb-accent">b</span>o</span>
+            </a>
+            <span className="text-vb-ink4 text-[11px]">/</span>
+            <span className="text-vb-ink2">{user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'vibo'}</span>
             <span className="text-vb-ink4">›</span>
             <span className="text-vb-ink font-medium">{analysis?.repo_name || '...'}</span>
           </div>
@@ -1300,6 +1285,10 @@ export default function DashboardLayout() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/profile')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150 mr-1" title="Profile & Settings">
+              <UserCircle size={13} />
+              <span className="hidden sm:inline">Profile</span>
+            </button>
             <button onClick={() => router.push('/')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="Analyze a new repository">
               <Plus size={13} />
               <span className="hidden sm:inline">New</span>

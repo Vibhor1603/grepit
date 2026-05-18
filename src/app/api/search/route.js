@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../lib/rateLimit";
@@ -33,7 +34,7 @@ export async function POST(request) {
   }
 
   const session = await getCurrentSession();
-  const ownerEmail = getSessionOwner(session);
+  const ownerEmail = await getSessionOwner(session);
 
   const rlKey = rateLimitKey("search", ip, ownerEmail);
   const limit = rateLimit(rlKey, 20, 60_000);
@@ -53,6 +54,10 @@ export async function POST(request) {
     const queryResult = queryCodebase(analysis, q, { maxFiles: 20, maxSymbols: 30, maxGraphDepth: 2 });
     return NextResponse.json(queryResult);
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { route: "search" },
+      extra: { analysisId, q },
+    });
     console.error("[search] error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

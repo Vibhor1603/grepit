@@ -52,12 +52,24 @@ export async function fetchGitHubRepository(repoPath, accessToken) {
   }
 
   if (repoResponse.status === 401) {
-    throw new Error("GitHub access token is invalid or expired.");
+    const error = new Error("GitHub access token is invalid or expired.");
+    error.code = "TOKEN_INVALID";
+    throw error;
   }
 
   if (repoResponse.status === 403 && !accessToken) {
     const error = new Error("GitHub authentication is required for this repository.");
     error.code = "AUTH_REQUIRED";
+    throw error;
+  }
+
+  if (repoResponse.status === 403 && accessToken) {
+    const rateLimitRemaining = repoResponse.headers.get("x-ratelimit-remaining");
+    if (rateLimitRemaining === "0") {
+      throw new Error("GitHub API rate limit exceeded. Try again later.");
+    }
+    const error = new Error("Access forbidden. The token may not have sufficient permissions.");
+    error.code = "TOKEN_INVALID";
     throw error;
   }
 

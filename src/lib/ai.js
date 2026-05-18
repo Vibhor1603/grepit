@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+
 // ── AI Provider abstraction ──
 // Primary: OpenRouter (configured chat model) — 1M context, cheap, fast
 // Fallback: Groq (llama-3.1-8b-instant) — free tier
@@ -133,7 +135,9 @@ export async function aiFetch(body, maxAttempts = 2) {
       }
     }
   }
-  throw lastError || new Error("All AI providers failed");
+  const finalError = lastError || new Error("All AI providers failed");
+  Sentry.captureException(finalError, { tags: { source: "ai-provider" } });
+  throw finalError;
 }
 
 // ── Request builders ───────────────────────────────────────────────────────

@@ -1,12 +1,14 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { rateLimit, rateLimitKey } from "../../../lib/rateLimit";
 import { getAnalysisRecord } from "../../../lib/analysis-store";
 import { getCurrentSession, getSessionOwner } from "../../../lib/server-session";
+import { isUserPro } from "../../../lib/subscription-gate";
 
-function buildMarkdownReport(analysis) {
+function buildMarkdownReport(analysis, full = true) {
   const arch = analysis?.architecture || {};
-  return [
+  const sections = [
     `# ${analysis.repo_name} Analysis Report`,
     "",
     `Source: ${analysis.repo_url}`,
@@ -23,13 +25,28 @@ function buildMarkdownReport(analysis) {
     "",
     "## Key Folders",
     ...(arch.keyFolders || []).map(i => `- **${i.name}**: ${i.purpose}`),
-    "",
-    "## Security Issues",
-    ...(arch.securityIssues || []).map(i => `- [${i.severity?.toUpperCase()}] **${i.title}**: ${i.description}`),
-    "",
-    "## Suggestions",
-    ...(arch.suggestions || []).map(i => `- ${i}`),
-  ].join("\n");
+  ];
+
+  if (full) {
+    sections.push(
+      "",
+      "## Security Issues",
+      ...(arch.securityIssues || []).map(i => `- [${i.severity?.toUpperCase()}] **${i.title}**: ${i.description}`),
+      "",
+      "## Suggestions",
+      ...(arch.suggestions || []).map(i => `- ${i}`),
+    );
+  } else {
+    sections.push(
+      "",
+      "## Security Issues",
+      ...(arch.securityIssues || []).slice(0, Math.ceil((arch.securityIssues?.length || 0) / 2)).map(i => `- [${i.severity?.toUpperCase()}] **${i.title}**: ${i.description}`),
+      "",
+      "> **Pro tip:** Upgrade to Pro to unlock the full health report including all security issues, code quality suggestions, and PDF export.",
+    );
+  }
+
+  return sections.join("\n");
 }
 
 export async function GET(request) {
@@ -37,7 +54,7 @@ export async function GET(request) {
   const ip = headersList.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
 
   const session = await getCurrentSession();
-  const ownerEmail = getSessionOwner(session);
+  const ownerEmail = await getSessionOwner(session);
 
   const rlKey = rateLimitKey("report", ip, ownerEmail);
   const limit = rateLimit(rlKey, 10, 60_000);
@@ -56,7 +73,13 @@ export async function GET(request) {
       return NextResponse.json({ error: "You do not have access to this report." }, { status: 403 });
     }
 
-    const markdown = buildMarkdownReport(analysis);
+    const pro = session.userId ? await isUserPro(session.userId) : false;
+
+    if (format === "pdf" && !pro) {
+      return NextResponse.json({ error: "PDF export is a Pro feature.", code: "PRO_FEATURE_ONLY" }, { status: 403 });
+    }
+
+    const markdown = buildMarkdownReport(analysis, pro);
 
     if (format === "json") {
       return NextResponse.json({ markdown, shareToken: analysis?.results?.reports?.shareToken || null });
@@ -69,6 +92,10 @@ export async function GET(request) {
       },
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { route: "report" },
+      extra: { id: new URL(request.url).searchParams.get("id") },
+    });
     console.error("[report] error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

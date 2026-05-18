@@ -69,19 +69,6 @@ export default function ChatInput({ query, setQuery, onSend, loading, onStop, fi
     setAttachedFiles(prev => prev.filter(f => f !== filePath));
   };
 
-  // Handle keyboard in mention dropdown
-  const handleKeyDown = (e) => {
-    if (mentionOpen && mentionResults.length > 0) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(i => Math.min(i + 1, mentionResults.length - 1)); return; }
-      if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(i => Math.max(i - 1, 0)); return; }
-      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); selectMention(mentionResults[mentionIdx]); return; }
-      if (e.key === 'Escape') { setMentionOpen(false); return; }
-    }
-    if (e.key === 'Enter' && !mentionOpen) {
-      handleSend();
-    }
-  };
-
   // Send with attached files as context
   const handleSend = () => {
     const q = query.trim();
@@ -116,20 +103,28 @@ export default function ChatInput({ query, setQuery, onSend, loading, onStop, fi
               type="text"
               value={query || ''}
               onChange={handleChange}
-              onKeyDown={handleKeyDown}
+              onKeyDown={(e) => {
+                if (mentionOpen && mentionResults.length > 0) {
+                  if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(i => Math.min(i + 1, mentionResults.length - 1)); return; }
+                  if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(i => Math.max(i - 1, 0)); return; }
+                  if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); selectMention(mentionResults[mentionIdx]); return; }
+                  if (e.key === 'Escape') { setMentionOpen(false); return; }
+                }
+                if (e.key === 'Enter' && !mentionOpen) {
+                  if (loading) onStop?.();
+                  handleSend();
+                }
+              }}
               onFocus={() => setInputFocused(true)}
               onBlur={() => { setInputFocused(false); setTimeout(() => setMentionOpen(false), 200); }}
               placeholder="Ask about the codebase... (@ to attach files)"
-              disabled={loading}
               className="flex-1 bg-transparent text-[14px] text-vb-ink placeholder:text-vb-ink4 outline-none caret-vb-accent"
             />
             <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
-              {loading ? (
+              {loading && (
                 <button onClick={onStop} className="w-6 h-6 rounded-full border border-white/[0.12] flex items-center justify-center text-vb-ink3 hover:text-vb-ink2 hover:border-white/[0.2] transition-colors" title="Stop generating">
                   <Square size={8} fill="currentColor" />
                 </button>
-              ) : (
-                <kbd className="text-[9px] text-vb-ink4 bg-white/[0.03] border border-white/[0.06] rounded px-1.5 py-0.5 font-mono">⌘K</kbd>
               )}
             </div>
           </div>

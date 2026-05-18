@@ -21,10 +21,9 @@ describe('env helpers', () => {
     vi.unstubAllEnvs();
   });
 
-  it('isGitHubAuthConfigured checks all required vars', () => {
-    vi.stubEnv('GITHUB_ID', 'id');
-    vi.stubEnv('GITHUB_SECRET', 'secret');
-    vi.stubEnv('NEXTAUTH_SECRET', 'secret');
+  it('isGitHubAuthConfigured checks Clerk keys', () => {
+    vi.stubEnv('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', 'pk_test_xxx');
+    vi.stubEnv('CLERK_SECRET_KEY', 'sk_test_xxx');
     expect(isGitHubAuthConfigured()).toBe(true);
     vi.unstubAllEnvs();
   });
