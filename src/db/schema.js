@@ -83,3 +83,22 @@ export const usage_logs = pgTable(
     index("usage_logs_created_at_idx").on(table.created_at),
   ],
 );
+
+export const shared_chats = pgTable(
+  "shared_chats",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    token: text("token").notNull().unique(),
+    conversation_id: uuid("conversation_id").notNull(),
+    analysis_id: uuid("analysis_id").references(() => analyses.id, { onDelete: "cascade" }),
+    shared_by: text("shared_by").notNull(), // user_id of who shared
+    repo_name: text("repo_name"),
+    title: text("title"),
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }), // null = never expires
+  },
+  (table) => [
+    index("shared_chats_token_idx").on(table.token),
+    index("shared_chats_conversation_id_idx").on(table.conversation_id),
+  ],
+);

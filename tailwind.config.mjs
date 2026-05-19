@@ -78,8 +78,13 @@ export default {
         "glow": "glow 3s ease-in-out infinite",
         "float": "float 6s ease-in-out infinite",
         "shimmer": "shimmer 2s linear infinite",
+        "marquee": "marquee 35s linear infinite",
       },
       keyframes: {
+        "marquee": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
         "pulse-dot": {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.4" },

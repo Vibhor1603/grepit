@@ -1,16 +1,20 @@
 "use client";
-import { useSignIn, useSignUp, useUser } from '@clerk/nextjs';
+import { useSignIn, useSignUp, useUser, useClerk } from '@clerk/nextjs';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2, ArrowLeft, Check } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { ViboMark } from '../../components/ViboLogo';
 
 function SignInContent() {
   const signInState = useSignIn();
   const signUpState = useSignUp();
   const { isSignedIn, isLoaded: userLoaded } = useUser();
+  const clerk = useClerk();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get('redirect_url') || '/';
+  // Validate redirect URL — only allow relative paths (prevent open redirect)
+  const rawRedirect = searchParams.get('redirect_url') || '/';
+  const redirectUrl = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/';
   const connectGithub = searchParams.get('connect_github') === '1';
   const router = useRouter();
 
@@ -44,6 +48,11 @@ function SignInContent() {
   };
 
   const [mode, setMode] = useState('signin');
+
+  // Default to signup mode if ?mode=signup
+  useEffect(() => {
+    if (searchParams.get('mode') === 'signup') setMode('signup');
+  }, [searchParams]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -96,6 +105,25 @@ function SignInContent() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) { setFieldErrors({ email: 'Enter your email first' }); return; }
+    if (!signIn) return;
+    setLoading(true);
+    try {
+      await signIn.create({ strategy: 'reset_password_email_code', identifier: email });
+      toast.success('Password reset code sent to your email');
+      // Clerk will handle the rest via their UI flow
+    } catch (err) {
+      const clerkErr = err?.errors?.[0];
+      if (clerkErr?.code === 'form_identifier_not_found') {
+        setFieldErrors({ email: 'No account with this email' });
+      } else {
+        toast.error(clerkErr?.longMessage || 'Could not send reset email');
+      }
+    }
+    setLoading(false);
+  };
+
   const handleEmailSignIn = async (e) => {
     e.preventDefault();
     if (!signIn || !email || !password) return;
@@ -106,7 +134,7 @@ function SignInContent() {
       if (result.status === 'complete') {
         setSuccess(true);
         await setActive({ session: result.createdSessionId });
-        setTimeout(() => router.push(redirectUrl), 400);
+        setTimeout(() => router.replace(redirectUrl), 400);
       }
     } catch (err) {
       const clerkErr = err?.errors?.[0];
@@ -128,20 +156,53 @@ function SignInContent() {
     clearFieldErrors();
     setLoading(true);
     try {
-      await signUp.create({ emailAddress: email, password });
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-      setVerificationEmail(email);
-      setPendingVerification(true);
-      setResendCooldown(30);
+      // Check for disposable email before creating account
+      const checkRes = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (checkData.disposable) {
+          setFieldErrors({ email: 'Disposable emails are not allowed. Please use a real email.' });
+          setLoading(false);
+          return;
+        }
+      }
+
+      console.log('[signup] Creating account for:', email);
+      // Use clerk.client.signUp which has the full SignUpResource with all methods
+      const signUpResource = clerk.client.signUp;
+      await signUpResource.create({ emailAddress: email, password });
+      console.log('[signup] status after create:', signUpResource.status);
+      
+      if (signUpResource.status === 'complete') {
+        setSuccess(true);
+        await setActive({ session: signUpResource.createdSessionId });
+        setTimeout(() => router.replace(redirectUrl), 400);
+      } else {
+        console.log('[signup] Preparing email verification...');
+        await signUpResource.prepareEmailAddressVerification({ strategy: 'email_code' });
+        console.log('[signup] Verification email sent');
+        setVerificationEmail(email);
+        setPendingVerification(true);
+        setResendCooldown(30);
+      }
     } catch (err) {
+      console.error('[signup] Error:', err);
+      console.error('[signup] Error details:', JSON.stringify(err?.errors || err?.message || err));
       const clerkErr = err?.errors?.[0];
       const code = clerkErr?.code;
       if (code === 'form_identifier_exists') {
-        setFieldErrors({ email: 'An account with this email already exists' });
-      } else if (code === 'form_password_pwned' || code === 'form_password_length_too_short') {
-        setFieldErrors({ password: clerkErr?.longMessage || 'Password is too weak' });
+        setFieldErrors({ email: 'An account with this email already exists. Try signing in instead.' });
+      } else if (code?.startsWith('form_password')) {
+        setFieldErrors({ password: clerkErr?.longMessage || clerkErr?.message || 'Password does not meet requirements.' });
+      } else if (code === 'session_exists') {
+        router.replace(redirectUrl);
       } else {
-        toast.error(clerkErr?.longMessage || 'Could not create account');
+        const msg = clerkErr?.longMessage || clerkErr?.message || '';
+        toast.error(msg || 'Could not create account. Please try again.');
       }
     }
     setLoading(false);
@@ -153,14 +214,33 @@ function SignInContent() {
     clearFieldErrors();
     setLoading(true);
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code: verificationCode });
-      if (result.status === 'complete') {
+      const result = await clerk.client.signUp.attemptEmailAddressVerification({ code: verificationCode });
+      console.log('[verify] result status:', result?.status, 'createdSessionId:', result?.createdSessionId);
+      if (result?.status === 'complete') {
+        clearFieldErrors();
         setSuccess(true);
-        await setActive({ session: result.createdSessionId });
-        setTimeout(() => router.push(redirectUrl), 400);
+        if (result.createdSessionId) {
+          await setActive({ session: result.createdSessionId });
+        }
+        setTimeout(() => router.replace(redirectUrl), 600);
+      } else {
+        setFieldErrors({ code: 'Verification incomplete. Try again.' });
       }
     } catch (err) {
-      setFieldErrors({ code: 'Invalid code. Check your email and try again.' });
+      console.error('[verify] Error:', err?.errors?.[0] || err?.message || err);
+      // Check if the sign-up actually completed despite the error
+      const currentStatus = clerk.client?.signUp?.status;
+      console.log('[verify] signUp status after error:', currentStatus);
+      if (currentStatus === 'complete' || clerk.client?.signUp?.createdSessionId) {
+        clearFieldErrors();
+        setSuccess(true);
+        const sessionId = clerk.client.signUp.createdSessionId;
+        if (sessionId) await setActive({ session: sessionId });
+        setTimeout(() => router.replace(redirectUrl), 600);
+      } else {
+        const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Invalid code. Check your email and try again.';
+        setFieldErrors({ code: msg });
+      }
     }
     setLoading(false);
   };
@@ -168,7 +248,7 @@ function SignInContent() {
   const handleResend = async () => {
     if (resendCooldown > 0 || !signUp) return;
     try {
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      await clerk.client.signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setResendCooldown(30);
       toast.success('New code sent');
     } catch {
@@ -178,6 +258,8 @@ function SignInContent() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Clerk CAPTCHA widget — must be in DOM before signUp.create() */}
+      <div id="clerk-captcha" className="fixed bottom-0 left-0" />
       <Toaster position="top-center" toastOptions={{
         style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', fontSize: '13px', padding: '12px 16px' },
         success: { iconTheme: { primary: '#E0FC10', secondary: '#0a0a0c' } },
@@ -192,11 +274,9 @@ function SignInContent() {
           <ArrowLeft size={12} /> Home
         </button>
 
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-6 h-6 rounded-md bg-[#E0FC10] flex items-center justify-center">
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M6 1L11 11H1L6 1Z" fill="#0a0a0c"/></svg>
-          </div>
-          <span className="text-[15px] font-semibold text-[#eaeaec] tracking-tight">vibo</span>
+        <div className="flex items-center gap-2.5 mb-8">
+          <ViboMark size={22} />
+          <span className="text-[17px] font-semibold text-[#eaeaec] tracking-tight">vi<span className="text-[#E0FC10]">b</span>o</span>
         </div>
 
         <h1 className="text-[24px] font-semibold text-[#eaeaec] tracking-tight mb-1">
@@ -286,6 +366,11 @@ function SignInContent() {
                 </button>
               </div>
               {fieldErrors.password && <p className="text-[11px] text-[#ef4444] mt-1">{fieldErrors.password}</p>}
+              {mode === 'signin' && (
+                <button type="button" onClick={handleForgotPassword} className="text-[11px] text-[#787884] hover:text-[#E0FC10] transition-colors mt-1 self-end">
+                  Forgot password?
+                </button>
+              )}
             </div>
             <button type="submit" disabled={loading || !email || !password}
               className={`w-full h-10 rounded-lg font-semibold text-[13px] transition-all flex items-center justify-center gap-2 ${
@@ -306,6 +391,14 @@ function SignInContent() {
             </button>
           </p>
         )}
+
+        {/* Terms & Privacy */}
+        <p className="text-[10px] text-[#4a4a54] text-center mt-8 leading-relaxed">
+          By continuing, you agree to our{' '}
+          <a href="/terms" className="text-[#787884] hover:text-[#E0FC10] underline underline-offset-2 transition-colors">Terms of Service</a>
+          {' '}and{' '}
+          <a href="/privacy" className="text-[#787884] hover:text-[#E0FC10] underline underline-offset-2 transition-colors">Privacy Policy</a>.
+        </p>
       </div>
     </div>
   );

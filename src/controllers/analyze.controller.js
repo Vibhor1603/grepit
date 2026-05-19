@@ -213,8 +213,12 @@ export function formatRouteError(error) {
   const raw = [error?.message, details].filter(Boolean).join("\n");
 
   if (/getaddrinfo ENOTFOUND/i.test(raw)) {
-    const host = raw.match(/ENOTFOUND\s+([^\s)]+)/i)?.[1] || "your Postgres host";
-    return `Unable to reach the Postgres host (${host}). Check DATABASE_URL, DNS, or your network connection.`;
+    return `Service temporarily unavailable. Please try again in a moment.`;
+  }
+
+  // Never expose internal error details to the client
+  if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND|socket hang up/i.test(raw)) {
+    return "Service temporarily unavailable. Please try again.";
   }
 
   return error?.message || "Analysis failed";
@@ -244,7 +248,7 @@ export async function handleAnalyzePost(request) {
   const accessToken = await getGithubAccessToken(session);
 
   const rlKey = rateLimitKey("analyze", ip, ownerEmail);
-  const limit = rateLimit(rlKey, 10, 60_000);
+  const limit = await rateLimit(rlKey, 10, 60_000);
   if (!limit.success) {
     return NextResponse.json(
       { error: `Rate limit exceeded. Try again in ${Math.ceil(limit.resetIn / 1000)}s.`, resetIn: limit.resetIn },
@@ -279,8 +283,63 @@ export async function handleAnalyzePost(request) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
+  const forceReanalyze = body.force === true;
+
+  if (forceReanalyze) {
+    const reanalyzeGate = await checkGate(session.userId, "reanalyze");
+    if (!reanalyzeGate.allowed) {
+      return NextResponse.json({ error: reanalyzeGate.reason, code: reanalyzeGate.code }, { status: 403 });
+    }
+  }
+
   let analysis = null;
   try {
+    if (!forceReanalyze) {
+      // Check for existing pre-indexed analysis (for suggested/public repos)
+      // If one exists and is completed, clone it for this user instead of re-analyzing
+      const existing = await findLatestAnalysisByRepo(normalized.repoUrl, null).catch(() => null);
+      if (existing && existing.status === 'COMPLETED' && existing.owner_email === null) {
+        // Pre-indexed public analysis exists — clone it for this user
+        console.log(`[analyze] Found pre-indexed analysis for ${normalized.repoPath}, cloning...`);
+        const cloned = await createAnalysisRecord({
+          repo_url: existing.repo_url,
+          repo_name: existing.repo_name,
+          status: "COMPLETED",
+          source: existing.source || "github",
+          owner_email: ownerEmail,
+          summary: existing.summary,
+          total_files: existing.total_files,
+          total_lines: existing.total_lines,
+          languages: existing.languages,
+          file_tree: existing.file_tree,
+          architecture: existing.architecture,
+          results: existing.results,
+          is_private: false,
+        });
+
+        logUsage(session.userId, "repo_analyze", {
+          repo_url: normalized.repoUrl,
+          repo_name: existing.repo_name,
+          total_files: existing.total_files,
+          pre_indexed: true,
+        }).catch(() => {});
+
+        return NextResponse.json(cloned);
+      }
+    }
+
+    // Dedup: check if there's already a PROCESSING analysis for this repo by this user (prevents double-click)
+    const inProgress = await findLatestAnalysisByRepo(normalized.repoUrl, ownerEmail).catch(() => null);
+    if (inProgress && inProgress.status === 'PROCESSING') {
+      const ageMs = Date.now() - new Date(inProgress.created_at).getTime();
+      if (ageMs < 120_000) { // Less than 2 minutes old — still processing
+        console.log(`[analyze] Dedup: returning existing PROCESSING analysis ${inProgress.id}`);
+        return NextResponse.json(inProgress);
+      }
+      // Older than 2 min and still PROCESSING — likely stale, delete and re-analyze
+      await deleteAnalysisRecord(inProgress.id).catch(() => {});
+    }
+
     analysis = await createAnalysisRecord({
       repo_url: normalized.repoUrl,
       repo_name: body.repoName || normalized.repo,
@@ -291,45 +350,130 @@ export async function handleAnalyzePost(request) {
 
     console.log(`[analyze] Starting analysis for ${normalized.repoPath} (id: ${analysis.id})`);
 
+    // Overall timeout protection — Vercel has 60s limit, we use 50s to leave room for DB save
+    const ANALYSIS_TIMEOUT = 50_000;
+    const startTime = Date.now();
+    const isTimedOut = () => Date.now() - startTime > ANALYSIS_TIMEOUT;
+
     const previous = await findLatestAnalysisByRepo(normalized.repoUrl, ownerEmail);
 
     console.log(`[analyze] Fetching repository snapshot...`);
     const snapshot = await createGitHubSnapshot(normalized.repoPath, accessToken);
-    console.log(`[analyze] Snapshot complete: ${snapshot.fileTree.length} files`);
+    const fileCount = snapshot.fileTree.length;
+    console.log(`[analyze] Snapshot complete: ${fileCount} files`);
+
+    // Hard limit — repos with 5000+ source files (after filtering) are too large for real-time analysis
+    const sourceFiles = snapshot.fileTree.filter(f => {
+      const p = f.path.toLowerCase();
+      return f.type === 'blob' && !p.includes('node_modules/') && !p.includes('.git/') &&
+             !p.includes('vendor/') && !p.includes('dist/') && !p.includes('build/') &&
+             !p.includes('.next/') && !p.includes('__pycache__/') && !p.includes('.cache/');
+    });
+    
+    if (sourceFiles.length > 5000) {
+      // Clean up the processing record
+      await deleteAnalysisRecord(analysis.id).catch(() => {});
+      return NextResponse.json({
+        error: "large_codebase",
+        message: `This codebase has ${sourceFiles.length.toLocaleString()} source files — it's too large for real-time analysis right now. We're building support for large-scale codebases. Stay tuned.`,
+        fileCount: sourceFiles.length,
+      }, { status: 422 });
+    }
+
+    // Large repo detection — adjust processing based on size
+    const isLargeRepo = sourceFiles.length > 1000;
+    const isHugeRepo = sourceFiles.length > 3000;
+    const fileTreeLimit = isHugeRepo ? 3000 : isLargeRepo ? 4000 : 5000;
+
+    // Filter out noise from file tree (node_modules, build outputs, etc.)
+    const filteredTree = snapshot.fileTree.filter(f => {
+      const p = f.path.toLowerCase();
+      return !p.includes('node_modules/') && !p.includes('.git/') &&
+             !p.includes('vendor/') && !p.includes('dist/') &&
+             !p.includes('build/') && !p.includes('.next/') &&
+             !p.includes('__pycache__/') && !p.includes('.cache/');
+    }).slice(0, fileTreeLimit);
 
     let result = buildRepositoryAnalysis({
       repoUrl: snapshot.repoUrl,
       repoName: body.repoName || snapshot.repoName || normalized.repo,
-      fileTree: snapshot.fileTree.slice(0, 5000),
+      fileTree: filteredTree,
       languages: snapshot.languages,
       repoData: snapshot.repoData,
       source: "github",
     });
 
+    // For huge repos: save a partial result immediately so user sees something
+    if (isHugeRepo) {
+      await updateAnalysisRecord(analysis.id, {
+        status: "PROCESSING",
+        repo_name: result.repoName,
+        summary: `Analyzing ${fileCount} files... This is a large repository.`,
+        total_files: fileCount,
+        languages: result.languages,
+        file_tree: filteredTree,
+        architecture: result.architecture,
+        updated_at: new Date().toISOString(),
+      }).catch(() => {});
+      console.log(`[analyze] Partial save for huge repo (${fileCount} files)`);
+    }
+
     // For large repos (>500 files), skip component enrichment to avoid timeout
     let detailedComponents = [];
-    if (snapshot.fileTree.length <= 500) {
+    if (fileCount <= 500 && !isTimedOut()) {
       console.log(`[analyze] Enriching components...`);
       detailedComponents = await enrichGitHubComponents(snapshot, normalized.repoPath, accessToken);
     } else {
-      console.log(`[analyze] Skipping component enrichment for large repo (${snapshot.fileTree.length} files)`);
+      console.log(`[analyze] Skipping component enrichment (${fileCount} files, timeout: ${isTimedOut()})`);
+    }
+
+    if (isTimedOut()) {
+      console.log(`[analyze] Timeout reached after component enrichment, saving partial results...`);
     }
 
     console.log(`[analyze] Building code intelligence...`);
-    const codeIntel = buildCodeIntelligence(snapshot, previous);
-    console.log(`[analyze] Code intel complete: ${codeIntel.files.length} files indexed`);
+    // For huge repos, limit code-intel to most important files (prioritize source over tests/docs)
+    const codeIntelLimit = isHugeRepo ? 1000 : isLargeRepo ? 1500 : filteredTree.length;
+    const prioritizedTree = filteredTree
+      .filter(f => f.type === 'blob')
+      .sort((a, b) => {
+        // Prioritize: entry points > src > lib > components > everything else > tests
+        const score = (p) => {
+          if (/^(index|main|app|server)\./i.test(p.split('/').pop())) return 0;
+          if (/src\//i.test(p) && !/test|spec|__test/i.test(p)) return 1;
+          if (/lib\//i.test(p)) return 2;
+          if (/component/i.test(p)) return 3;
+          if (/test|spec|__test/i.test(p)) return 9;
+          return 5;
+        };
+        return score(a.path) - score(b.path);
+      })
+      .slice(0, codeIntelLimit);
+    
+    const codeIntelSnapshot = { ...snapshot, fileTree: prioritizedTree };
+    const codeIntel = buildCodeIntelligence(codeIntelSnapshot, previous);
+    console.log(`[analyze] Code intel complete: ${codeIntel.files.length} files indexed (limit: ${codeIntelLimit})`);
 
     console.log(`[analyze] Building codebase index...`);
-    const codebaseIndex = buildCodebaseIndex({
-      fileTree: snapshot.fileTree.slice(0, 5000),
-      files: codeIntel.files,
-      symbolIndex: codeIntel.symbolIndex,
-      dependencyGraph: codeIntel.dependencyGraph,
-      callGraph: codeIntel.callGraph,
-    });
-    const persistedCodebaseIndex = { ...codebaseIndex };
-    delete persistedCodebaseIndex.__runtime;
-    const mergedEndpoints = mergeApiEndpoints(result.architecture.apiEndpoints, codeIntel.files);
+    let codebaseIndex, persistedCodebaseIndex, mergedEndpoints;
+    
+    if (!isTimedOut()) {
+      codebaseIndex = buildCodebaseIndex({
+        fileTree: filteredTree,
+        files: codeIntel.files,
+        symbolIndex: codeIntel.symbolIndex,
+        dependencyGraph: codeIntel.dependencyGraph,
+        callGraph: codeIntel.callGraph,
+      });
+      persistedCodebaseIndex = { ...codebaseIndex };
+      delete persistedCodebaseIndex.__runtime;
+      mergedEndpoints = mergeApiEndpoints(result.architecture.apiEndpoints, codeIntel.files);
+    } else {
+      console.log(`[analyze] Timeout — skipping codebase index, using basic results`);
+      codebaseIndex = { dependencyGraph: {}, fileCallGraph: {} };
+      persistedCodebaseIndex = codebaseIndex;
+      mergedEndpoints = result.architecture.apiEndpoints || [];
+    }
     result = mergeAnalysisDetails(result, {
       components: detailedComponents.length ? detailedComponents : result.architecture.components,
       flowPaths: buildFlowMap(result.architecture.flowPaths, detailedComponents, mergedEndpoints),
@@ -350,17 +494,21 @@ export async function handleAnalyzePost(request) {
       incremental: codeIntel.incremental,
     });
     console.log(`[analyze] Enhancing with AI...`);
-    result = await Promise.race([
-      maybeEnhanceAnalysisWithGroq(result, { snapshot, codeIntel }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), 30000)),
-    ]).catch((err) => {
-      if (err.message === 'AI_TIMEOUT') {
-        console.log(`[analyze] AI enhancement timed out, continuing without it`);
-      } else {
-        console.warn(`[analyze] AI enhancement failed:`, err.message);
-      }
-      return result; // Return un-enhanced result
-    });
+    if (!isTimedOut()) {
+      result = await Promise.race([
+        maybeEnhanceAnalysisWithGroq(result, { snapshot: codeIntelSnapshot, codeIntel }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), Math.min(30000, ANALYSIS_TIMEOUT - (Date.now() - startTime) - 5000))),
+      ]).catch((err) => {
+        if (err.message === 'AI_TIMEOUT') {
+          console.log(`[analyze] AI enhancement timed out, continuing without it`);
+        } else {
+          console.warn(`[analyze] AI enhancement failed:`, err.message);
+        }
+        return result;
+      });
+    } else {
+      console.log(`[analyze] Skipping AI enhancement due to timeout`);
+    }
 
     console.log(`[analyze] Saving results...`);
 
@@ -387,11 +535,9 @@ export async function handleAnalyzePost(request) {
       total_files: result.totalFiles,
     }).catch(() => {});
 
-    logUsage(session.userId, "repo_analyze", {
-      repo_url: result.repoUrl,
-      repo_name: result.repoName,
-      total_files: result.totalFiles,
-    }).catch(() => {});
+    if (forceReanalyze) {
+      logUsage(session.userId, "reanalyze", { repo_url: result.repoUrl }).catch(() => {});
+    }
 
     return NextResponse.json(updated);
   } catch (error) {

@@ -26,7 +26,17 @@ export async function upsertSubscription(data) {
 export async function isUserPro(userId) {
   if (!userId) return false;
   const sub = await getSubscription(userId);
-  return sub?.plan === "pro" && sub?.status === "active";
+  return sub?.status === "active" && (sub?.plan === "pro" || sub?.plan === "team");
+}
+
+/**
+ * Get the user's current plan name.
+ */
+export async function getUserPlan(userId) {
+  if (!userId) return "free";
+  const sub = await getSubscription(userId);
+  if (sub?.status === "active" && sub?.plan) return sub.plan;
+  return "free";
 }
 
 export async function logUsage(userId, feature, metadata = {}) {
@@ -89,32 +99,62 @@ export async function getAnalysisCount(userId) {
 export const FREE_LIMITS = getPlan('free');
 
 export async function checkGate(userId, feature) {
-  const isPro = await isUserPro(userId);
-  const plan = getPlan(isPro ? 'pro' : 'free');
-  if (isPro) return { allowed: true, plan: "pro" };
+  const userPlan = await getUserPlan(userId);
+  const plan = getPlan(userPlan);
+  
+  // Paid plans get through most gates
+  if (userPlan !== "free" && feature !== "pdf_export") {
+    return { allowed: true, plan: userPlan };
+  }
 
   switch (feature) {
     case "repo_analyze": {
       const usageCount = await getAnalysisCount(userId);
       if (usageCount >= plan.maxRepos) {
-        return { allowed: false, plan: "free", reason: `Free plan allows ${plan.maxRepos} repos. Upgrade to Pro for more.`, code: "REPO_LIMIT_REACHED" };
+        return { allowed: false, plan: userPlan, reason: `You've reached your ${plan.name} plan limit of ${plan.maxRepos} repositories. Upgrade to add more — your existing analyses are still accessible.`, code: "REPO_LIMIT_REACHED" };
       }
-      return { allowed: true, plan: "free" };
+      return { allowed: true, plan: userPlan };
     }
     case "ai_query": {
       const usageCount = await getAiQueryCountToday(userId);
       if (usageCount >= plan.maxAiQueriesPerDay) {
-        return { allowed: false, plan: "free", reason: `You've used all ${plan.maxAiQueriesPerDay} AI queries for today. Resets at midnight.`, code: "QUERY_LIMIT_REACHED" };
+        return { allowed: false, plan: userPlan, reason: `You've used all ${plan.maxAiQueriesPerDay} AI queries for today. Resets at midnight.`, code: "QUERY_LIMIT_REACHED" };
       }
-      return { allowed: true, plan: "free" };
+      return { allowed: true, plan: userPlan };
     }
     case "pdf_export": {
       if (!plan.pdfExport) {
-        return { allowed: false, plan: "free", reason: "PDF export is a Pro feature.", code: "PRO_FEATURE_ONLY" };
+        return { allowed: false, plan: userPlan, reason: "PDF export is available on Pro and Team plans.", code: "PRO_FEATURE_ONLY" };
       }
-      return { allowed: true, plan: "free" };
+      return { allowed: true, plan: userPlan };
+    }
+    case "private_repo": {
+      if (!plan.privateRepos) {
+        return { allowed: false, plan: userPlan, reason: "Private repositories require a Pro or Team plan.", code: "PRO_FEATURE_ONLY" };
+      }
+      return { allowed: true, plan: userPlan };
+    }
+    case "reanalyze": {
+      if (userPlan !== "free") return { allowed: true, plan: userPlan };
+      // Free users: 1 re-analysis per repo per week
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const reanalyzeCount = await getFeatureUsageCount(userId, "reanalyze", weekAgo);
+      if (reanalyzeCount >= 1) {
+        return { allowed: false, plan: userPlan, reason: "Free plan allows 1 re-analysis per week. Upgrade for unlimited.", code: "REANALYZE_LIMIT_REACHED" };
+      }
+      return { allowed: true, plan: userPlan };
+    }
+    case "chat_share": {
+      if (userPlan !== "free") return { allowed: true, plan: userPlan };
+      // Free users: 2 shared chats total
+      const shareCount = await getFeatureUsageCount(userId, "chat_share", null);
+      if (shareCount >= 2) {
+        return { allowed: false, plan: userPlan, reason: "Free plan allows 2 shared chats. Upgrade for unlimited sharing.", code: "SHARE_LIMIT_REACHED" };
+      }
+      return { allowed: true, plan: userPlan };
     }
     default:
-      return { allowed: true, plan: "free" };
+      return { allowed: true, plan: userPlan };
   }
 }

@@ -169,7 +169,7 @@ export async function handleQueryPost(request) {
   // Rate limit — authed users get 20/min, anonymous get 5/min
   const isAuthed = Boolean(ownerEmail);
   const rlKey    = rateLimitKey("query", ip, ownerEmail);
-  const limit    = rateLimit(rlKey, isAuthed ? 20 : 5, 60_000);
+  const limit    = await rateLimit(rlKey, isAuthed ? 20 : 5, 60_000);
   if (!limit.success) {
     return NextResponse.json(
       { error: `Rate limit exceeded. Try again in ${Math.ceil(limit.resetIn / 1000)}s.`, remaining: 0 },

@@ -2,8 +2,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Trash2, ChevronRight, Clock, CheckCircle, AlertCircle, Loader2, Crown, Zap } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import UpgradeModal from "../../components/UpgradeModal";
 
 function Github({ size = 18, className = "" }) {
   return (
@@ -17,37 +19,82 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
 
-  const [analyses, setAnalyses] = useState([]);
-  const [subData, setSubData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+  const [connectingGithub, setConnectingGithub] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  // React Query for caching — profile data loads instantly on revisit
+  const { data: subData, isLoading: subLoading } = useQuery({
+    queryKey: ['profile-subscription'],
+    queryFn: () => fetch("/api/profile/subscription").then(r => r.json()),
+    enabled: isSignedIn,
+    staleTime: 60_000, // Cache for 1 min
+  });
+  const { data: analysesData, isLoading: analysesLoading } = useQuery({
+    queryKey: ['profile-analyses'],
+    queryFn: () => fetch("/api/profile/analyses").then(r => r.json()),
+    enabled: isSignedIn,
+    staleTime: 60_000,
+  });
+
+  const loading = subLoading || analysesLoading;
+  const analyses = analysesData?.analyses?.slice(0, 5) || [];
 
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) { router.push("/sign-in"); return; }
-    loadData();
+    // Show toasts for success events from URL params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('github') === 'connected') {
+      toast.success('GitHub connected successfully');
+      window.history.replaceState({}, '', '/profile');
+    }
+    if (params.get('checkout') === 'success') {
+      toast.success('Subscription activated! Welcome aboard.');
+      window.history.replaceState({}, '', '/profile');
+    }
   }, [isLoaded, isSignedIn]);
 
-  const loadData = async () => {
-    setLoading(true);
-    const [subRes, accRes] = await Promise.all([
-      fetch("/api/profile/subscription").then(r => r.json()).catch(() => null),
-      fetch("/api/profile/analyses").then(r => r.json()).catch(() => ({ analyses: [] })),
-    ]);
-    setSubData(subRes);
-    setAnalyses(accRes.analyses?.slice(0, 5) || []);
-    setLoading(false);
+  const handleManageBilling = async () => {
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else toast.error("Could not open billing portal");
+    } catch { toast.error("Could not open billing portal"); }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/profile/delete-account", { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Account deleted. Goodbye.");
+        setTimeout(() => { window.location.href = '/'; }, 1500);
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Could not delete account");
+      }
+    } catch {
+      toast.error("Could not delete account. Contact support.");
+    }
+    setDeleting(false);
   };
 
   const handleDisconnectGithub = async () => {
-    if (!window.confirm("Disconnect your GitHub account? Private repos will no longer be accessible until you reconnect.")) return;
+    setShowDisconnectModal(false);
     setDisconnecting(true);
     try {
       const res = await fetch("/api/profile/disconnect-github", { method: "POST" });
       const data = await res.json();
       if (res.ok) {
         toast.success('GitHub disconnected');
-        loadData();
       } else {
         toast.error(data.error || 'Failed to disconnect');
       }
@@ -66,13 +113,31 @@ export default function ProfilePage() {
 
   if (loading || !isLoaded) {
     return (
-      <div className="min-h-screen bg-vb-bg flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-vb-accent" />
+      <div className="min-h-screen bg-vb-bg">
+        <div className="h-16 border-b border-white/[0.06]" />
+        <div className="max-w-[900px] mx-auto px-6 py-10 space-y-6 animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-white/[0.04]" />
+            <div className="space-y-2"><div className="h-4 w-32 rounded bg-white/[0.04]" /><div className="h-3 w-48 rounded bg-white/[0.03]" /></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="h-28 rounded-xl bg-white/[0.03]" />
+            <div className="h-28 rounded-xl bg-white/[0.03]" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-24 rounded bg-white/[0.04]" />
+            <div className="h-16 rounded-xl bg-white/[0.03]" />
+            <div className="h-16 rounded-xl bg-white/[0.03]" />
+          </div>
+        </div>
       </div>
     );
   }
 
   const isPro = subData?.plan === "pro" && subData?.status === "active";
+  const isTeam = subData?.plan === "team" && subData?.status === "active";
+  const isPaid = isPro || isTeam;
+  const planLabel = isTeam ? "Team" : isPro ? "Pro" : "Free";
 
   return (
     <div className="min-h-screen bg-vb-bg text-vb-ink">
@@ -82,11 +147,11 @@ export default function ProfilePage() {
         error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
       }} />
       <header className="h-16 bg-vb-bg/70 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-6 sticky top-0 z-50">
-        <button onClick={() => router.push("/")} className="flex items-center gap-2 text-vb-ink3 hover:text-vb-accent transition-colors">
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-vb-ink3 hover:text-vb-accent transition-colors">
           <ArrowLeft size={16} /> <span className="text-[13px]">Back</span>
         </button>
         <div className="ml-auto flex items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} className="text-[12px] font-medium text-vb-bg bg-vb-accent px-4 py-2 rounded-lg hover:bg-vb-accent-bright transition-all">
+          <button onClick={() => router.push("/")} className="text-[12px] font-medium text-vb-bg bg-vb-accent px-4 py-2 rounded-lg hover:bg-vb-accent-bright transition-all">
             New Analysis
           </button>
           <SignOutButton><button className="text-[12px] text-vb-ink4 hover:text-vb-accent px-3 py-1.5 rounded-lg border border-white/[0.06] hover:border-vb-accent/20 transition-all">Sign out</button></SignOutButton>
@@ -100,7 +165,8 @@ export default function ProfilePage() {
             <h1 className="text-[20px] font-semibold">{user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.emailAddresses?.[0]?.emailAddress}</h1>
             <p className="text-[12px] text-vb-ink4">{user?.emailAddresses?.[0]?.emailAddress}</p>
           </div>
-          {isPro && <span className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold bg-vb-accent/10 text-vb-accent px-3 py-1.5 rounded-full border border-vb-accent/20"><Crown size={12} /> Pro</span>}
+          {isPaid && <span className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold bg-vb-accent/10 text-vb-accent px-3 py-1.5 rounded-full border border-vb-accent/20"><Crown size={12} /> {planLabel}</span>}
+          {!isPaid && <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium bg-white/[0.04] text-vb-ink3 px-3 py-1.5 rounded-full border border-white/[0.06]">Free</span>}
         </div>
 
         {/* Two-column grid for subscription + github */}
@@ -111,23 +177,26 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[15px] font-semibold">{isPro ? "Pro" : "Free"}</span>
-                  {isPro && subData?.cancelAtPeriodEnd && <span className="text-[10px] text-vb-ink4 bg-white/[0.04] px-2 py-0.5 rounded-full">Cancels at period end</span>}
+                  <span className="text-[15px] font-semibold">{planLabel}</span>
+                  {isPaid && subData?.cancelAtPeriodEnd && <span className="text-[10px] text-vb-ink4 bg-white/[0.04] px-2 py-0.5 rounded-full">Cancels at period end</span>}
                 </div>
                 <p className="text-[12px] text-vb-ink3">
-                  {isPro
-                    ? subData?.currentPeriodEnd ? `Renews ${new Date(subData.currentPeriodEnd).toLocaleDateString()}` : "$12/month"
-                    : "3 repos · 20 AI queries/day"}
+                  {isPaid
+                    ? subData?.currentPeriodEnd ? `Renews ${new Date(subData.currentPeriodEnd).toLocaleDateString()}` : `${isTeam ? '$30' : '$12'}/month`
+                    : "3 repositories · 20 AI queries/day"}
                 </p>
               </div>
-              {isPro ? (
-                subData?.portalUrl ? (
-                  <a href={subData.portalUrl} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors border border-white/[0.06] rounded-lg px-3 py-1.5">
+              {isPaid ? (
+                <div className="flex items-center gap-2">
+                  <button onClick={handleManageBilling} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors border border-white/[0.06] rounded-lg px-3 py-1.5">
                     Manage <ExternalLink size={11} />
-                  </a>
-                ) : null
+                  </button>
+                  <button onClick={handleManageBilling} className="flex items-center gap-1.5 text-[11px] text-vb-ink4 hover:text-vb-red transition-colors border border-white/[0.06] hover:border-vb-red/20 rounded-lg px-3 py-1.5">
+                    Cancel
+                  </button>
+                </div>
               ) : (
-                <button onClick={() => router.push("/?scrollTo=pricing")} className="flex items-center gap-1.5 text-[11px] font-medium bg-vb-accent text-vb-bg px-3 py-1.5 rounded-lg hover:bg-vb-accent-bright transition-all">
+                <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 text-[11px] font-medium bg-vb-accent text-vb-bg px-3 py-1.5 rounded-lg hover:bg-vb-accent-bright transition-all">
                   <Zap size={11} /> Upgrade
                 </button>
               )}
@@ -142,18 +211,27 @@ export default function ProfilePage() {
                 <Github size={16} className={subData?.githubConnected ? "text-vb-accent" : "text-vb-ink4"} />
                 <div>
                   <p className="text-[13px] font-medium">{subData?.githubConnected ? "Connected" : "Not connected"}</p>
-                  <p className="text-[11px] text-vb-ink4">{subData?.githubConnected ? "Private repos unlocked" : "Required for private repos"}</p>
+                  <p className="text-[11px] text-vb-ink4">{subData?.githubConnected ? "Private repositories unlocked" : "Required for private repositories"}</p>
                 </div>
               </div>
               {subData?.githubConnected ? (
-                <button onClick={handleDisconnectGithub} disabled={disconnecting}
+                <button onClick={() => setShowDisconnectModal(true)} disabled={disconnecting}
                   className="flex items-center gap-1.5 text-[11px] text-red-400 hover:text-red-300 border border-red-400/20 hover:border-red-400/40 rounded-lg px-2.5 py-1.5 transition-all disabled:opacity-50">
                   {disconnecting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                   Disconnect
                 </button>
               ) : (
-                <button onClick={() => router.push("/")} className="flex items-center gap-1.5 text-[11px] text-vb-accent border border-vb-accent/20 rounded-lg px-2.5 py-1.5 hover:bg-vb-accent/5 transition-all">
-                  <Github size={11} /> Connect
+                <button onClick={() => {
+                  setConnectingGithub(true);
+                  const clientId = process.env.NEXT_PUBLIC_GITHUB_OAUTH_CLIENT_ID;
+                  const redirectUri = process.env.NEXT_PUBLIC_GITHUB_OAUTH_REDIRECT_URI;
+                  if (!clientId || !redirectUri) { toast.error("GitHub OAuth not configured"); setConnectingGithub(false); return; }
+                  const state = `${user.id}:${encodeURIComponent('__profile__')}`;
+                  const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+                  window.location.href = url;
+                }} disabled={connectingGithub} className="flex items-center gap-1.5 text-[11px] text-vb-accent border border-vb-accent/20 rounded-lg px-2.5 py-1.5 hover:bg-vb-accent/5 transition-all disabled:opacity-50">
+                  {connectingGithub ? <Loader2 size={11} className="animate-spin" /> : <Github size={11} />}
+                  {connectingGithub ? 'Connecting...' : 'Connect'}
                 </button>
               )}
             </div>
@@ -166,7 +244,7 @@ export default function ProfilePage() {
           {analyses.length === 0 ? (
             <div className="bg-[#111113] border border-white/[0.06] rounded-xl p-8 text-center">
               <p className="text-[13px] text-vb-ink3 mb-3">No analyses yet</p>
-              <button onClick={() => router.push("/")} className="text-[12px] font-medium bg-vb-accent text-vb-bg px-4 py-2 rounded-lg hover:bg-vb-accent-bright transition-all">Analyze your first repo</button>
+              <button onClick={() => router.push("/")} className="text-[12px] font-medium bg-vb-accent text-vb-bg px-4 py-2 rounded-lg hover:bg-vb-accent-bright transition-all">Analyze your first codebase</button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -186,7 +264,114 @@ export default function ProfilePage() {
             </div>
           )}
         </section>
+
+        {/* Danger Zone */}
+        <section className="mt-10">
+          <h2 className="text-[11px] text-vb-red uppercase tracking-wider font-medium mb-3">Danger Zone</h2>
+          <div className="bg-[#111113] border border-vb-red/20 rounded-xl p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[13px] font-medium text-vb-ink">Delete account</p>
+                <p className="text-[11px] text-vb-ink4 mt-0.5">Permanently delete your account and all data. This cannot be undone.</p>
+              </div>
+              <button onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-1.5 text-[11px] text-vb-red border border-vb-red/20 hover:bg-vb-red/[0.06] rounded-lg px-3 py-1.5 transition-all">
+                <Trash2 size={11} /> Delete
+              </button>
+            </div>
+          </div>
+        </section>
       </main>
+
+      {/* Disconnect GitHub Modal */}
+      {showDisconnectModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowDisconnectModal(false)}>
+          <div className="w-full max-w-[380px] bg-[#111113] border border-white/[0.08] rounded-xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)]" onClick={e => e.stopPropagation()}>
+            <h3 className="text-[15px] font-semibold text-vb-ink mb-2">Disconnect GitHub?</h3>
+            <p className="text-[12px] text-vb-ink3 leading-relaxed mb-5">
+              Private repositories will no longer be accessible until you reconnect. Your existing analyses will remain.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowDisconnectModal(false)}
+                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleDisconnectGithub}
+                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-red-400 border border-red-400/20 bg-red-400/[0.06] hover:bg-red-400/[0.12] transition-colors">
+                Disconnect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowDeleteModal(false)}>
+          <div className="w-full max-w-[420px] bg-[#111113] border border-white/[0.08] rounded-xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-vb-red/10 border border-vb-red/20 flex items-center justify-center">
+                <AlertCircle size={18} className="text-vb-red" />
+              </div>
+              <div>
+                <h3 className="text-[15px] font-semibold text-vb-ink">Delete your account?</h3>
+                <p className="text-[11px] text-vb-ink4">This action is permanent and irreversible.</p>
+              </div>
+            </div>
+
+            <div className="bg-vb-red/[0.04] border border-vb-red/10 rounded-lg p-4 mb-5">
+              <p className="text-[12px] text-vb-ink2 leading-relaxed">
+                This will permanently delete:
+              </p>
+              <ul className="mt-2 space-y-1.5 text-[12px] text-vb-ink3">
+                <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-vb-red" />All your codebase analyses</li>
+                <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-vb-red" />All chat conversations and history</li>
+                <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-vb-red" />All shared chat links</li>
+                <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-vb-red" />Your subscription (if active, it will be cancelled)</li>
+                <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-vb-red" />Your account and all personal data</li>
+              </ul>
+              <p className="text-[11px] text-vb-red mt-3 font-medium">This cannot be undone. There is no recovery.</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-[11px] text-vb-ink4 mb-1.5 block">Type <span className="font-mono font-bold text-vb-ink2">DELETE</span> to confirm</label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full h-9 px-3 rounded-lg bg-[#0a0a0c] border border-white/[0.08] text-[13px] text-vb-ink font-mono placeholder:text-vb-ink4 outline-none focus:border-vb-red/30"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); }}
+                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleDeleteAccount} disabled={deleteConfirmText !== 'DELETE' || deleting}
+                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-white bg-vb-red hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
+                {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                {deleting ? 'Deleting...' : 'Delete my account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="border-t border-white/[0.06] py-6 px-6">
+
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} currentPlan={subData?.plan || 'free'} />
+        <div className="max-w-[900px] mx-auto flex items-center justify-between">
+          <span className="text-[11px] text-vb-ink3">© {new Date().getFullYear()} Vibo</span>
+          <div className="flex items-center gap-4">
+            <a href="/privacy" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Privacy</a>
+            <a href="/terms" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Terms</a>
+            <a href="mailto:hello@vibo.dev" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Contact</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -12,35 +12,38 @@ export const PLANS = {
     stripe_price_id: null,
 
     // Limits
-    maxRepos: 3,
-    maxAiQueriesPerDay: 30,
-    maxDiagramsPerHour: 5,
-    maxFileViewsPerHour: 50,
-    maxTokensPerDay: 500_000,       // ~$0.28 at current AI provider rates
-    maxRepoFiles: 2000,             // Max files in a single repo
-    maxChatConversations: 10,
+    maxRepos: 2,
+    maxAiQueriesPerDay: 15,
+    maxDiagramsPerHour: 10,
+    maxFileViewsPerHour: 30,
+    maxTokensPerDay: 50_000,
+    maxRepoFiles: 2000,
+    maxChatConversations: 5,
+    maxMessagesPerChat: 12,
 
     // Features
     pdfExport: false,
-    fullHealthReport: true,
+    privateRepos: true,
+    fullSecurityReport: false,
     priorityQueue: false,
     customBranding: false,
 
     // Rate limits (requests per window)
     rateLimit: {
       analyze: { max: 3, windowMs: 86_400_000 },   // 3/day
-      query: { max: 20, windowMs: 3_600_000 },     // 20/hour
-      stream: { max: 20, windowMs: 3_600_000 },    // 20/hour
-      diagram: { max: 5, windowMs: 3_600_000 },    // 5/hour
-      file: { max: 50, windowMs: 3_600_000 },      // 50/hour
+      query: { max: 15, windowMs: 3_600_000 },     // 15/hour
+      stream: { max: 15, windowMs: 3_600_000 },    // 15/hour
+      diagram: { max: 3, windowMs: 3_600_000 },    // 3/hour
+      file: { max: 30, windowMs: 3_600_000 },      // 30/hour
     },
 
     // Display
-    cta: 'Get started',
+    cta: 'Get started free',
+    featured: false,
     features: [
-      '3 repositories',
-      '30 AI queries/day',
-      'Full health report',
+      '2 repositories',
+      '15 AI queries/day',
+      'Basic health report',
       'Code explorer',
       'Architecture diagrams',
     ],
@@ -53,80 +56,86 @@ export const PLANS = {
     stripe_price_id: process.env.STRIPE_PRO_PRICE_ID || null,
 
     // Limits
-    maxRepos: 100,
-    maxAiQueriesPerDay: 2000,
+    maxRepos: 5,
+    maxAiQueriesPerDay: 100,
     maxDiagramsPerHour: 50,
-    maxFileViewsPerHour: 500,
-    maxTokensPerDay: 2_000_000,     // ~$0.60
-    maxRepoFiles: 10000,
-    maxChatConversations: 100,
+    maxFileViewsPerHour: 200,
+    maxTokensPerDay: 400_000,
+    maxRepoFiles: 5000,
+    maxChatConversations: 50,
+    maxMessagesPerChat: 30,
 
     // Features
     pdfExport: true,
-    fullHealthReport: true,
-    priorityQueue: true,
+    privateRepos: true,
+    fullSecurityReport: true,
+    priorityQueue: false,
     customBranding: false,
 
     // Rate limits
     rateLimit: {
-      analyze: { max: 30, windowMs: 86_400_000 },
-      query: { max: 200, windowMs: 3_600_000 },
-      stream: { max: 200, windowMs: 3_600_000 },
-      diagram: { max: 50, windowMs: 3_600_000 },
-      file: { max: 500, windowMs: 3_600_000 },
+      analyze: { max: 15, windowMs: 86_400_000 },
+      query: { max: 60, windowMs: 3_600_000 },
+      stream: { max: 60, windowMs: 3_600_000 },
+      diagram: { max: 20, windowMs: 3_600_000 },
+      file: { max: 200, windowMs: 3_600_000 },
     },
 
     // Display
     cta: 'Upgrade to Pro',
+    featured: true,
     features: [
-      'Unlimited repositories',
-      '2000 AI queries/day',
-      'Full health report',
+      '5 repositories',
+      '100 AI queries/day',
+      'Full security report',
       'PDF export',
-      'Priority analysis queue',
-      'Private repo support',
+      'Unlimited re-analysis',
+      'Unlimited sharing',
     ],
   },
 
   team: {
     name: 'Team',
-    price: '$29',
-    period: '/month per seat',
+    price: '$30',
+    period: '/month',
     stripe_price_id: process.env.STRIPE_TEAM_PRICE_ID || null,
 
     // Limits
-    maxRepos: 500,
-    maxAiQueriesPerDay: 10000,
-    maxDiagramsPerHour: 200,
-    maxFileViewsPerHour: 2000,
-    maxTokensPerDay: 10_000_000,
-    maxRepoFiles: 50000,
-    maxChatConversations: 500,
+    maxRepos: 15,
+    maxAiQueriesPerDay: 500,
+    maxDiagramsPerHour: 100,
+    maxFileViewsPerHour: 1000,
+    maxTokensPerDay: 2_000_000,
+    maxRepoFiles: 10000,
+    maxChatConversations: 200,
+    maxMessagesPerChat: 80,
 
     // Features
     pdfExport: true,
-    fullHealthReport: true,
+    privateRepos: true,
+    fullSecurityReport: true,
     priorityQueue: true,
-    customBranding: true,
+    customBranding: false,
 
     // Rate limits
     rateLimit: {
-      analyze: { max: 100, windowMs: 86_400_000 },
-      query: { max: 500, windowMs: 3_600_000 },
-      stream: { max: 500, windowMs: 3_600_000 },
-      diagram: { max: 200, windowMs: 3_600_000 },
-      file: { max: 2000, windowMs: 3_600_000 },
+      analyze: { max: 50, windowMs: 86_400_000 },
+      query: { max: 200, windowMs: 3_600_000 },
+      stream: { max: 200, windowMs: 3_600_000 },
+      diagram: { max: 100, windowMs: 3_600_000 },
+      file: { max: 1000, windowMs: 3_600_000 },
     },
 
     // Display
-    cta: 'Contact us',
+    cta: 'Go Team',
+    featured: false,
     features: [
       'Everything in Pro',
-      '10,000 AI queries/day',
-      'Team collaboration',
-      'Custom branding',
+      '500 AI queries/day',
+      '15 repositories',
+      'Large codebase support',
+      'Priority analysis queue',
       'Priority support',
-      'SSO (coming soon)',
     ],
   },
 };
@@ -136,6 +145,22 @@ export const PLANS = {
  */
 export function getPlan(planName) {
   return PLANS[planName] || PLANS.free;
+}
+
+/**
+ * Resolve plan name from a Stripe price ID.
+ */
+export function getPlanByPriceId(priceId) {
+  if (!priceId) return 'free';
+  // Check config first
+  for (const [key, plan] of Object.entries(PLANS)) {
+    if (plan.stripe_price_id && plan.stripe_price_id === priceId) return key;
+  }
+  // Fallback: check env vars directly (in case config was loaded before env was available)
+  if (priceId === process.env.STRIPE_PRO_PRICE_ID) return 'pro';
+  if (priceId === process.env.STRIPE_TEAM_PRICE_ID) return 'team';
+  console.warn(`[plans] getPlanByPriceId: no match for priceId=${priceId}, PRO=${process.env.STRIPE_PRO_PRICE_ID}, TEAM=${process.env.STRIPE_TEAM_PRICE_ID}`);
+  return 'free';
 }
 
 /**

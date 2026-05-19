@@ -3,14 +3,16 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { useAnalysis, useChatHistory, useDeleteChatHistory, useFileContent } from '../hooks/useApi';
+import { usePlan } from '../hooks/usePlan';
 import { useQueryClient } from '@tanstack/react-query';
 import { useResizable, useResizableRight } from '../hooks/useResizable';
 import { LOADING_MESSAGES, getRandomMessage, getRateLimitMessage, ERROR_MESSAGES, EMPTY_STATES } from '../lib/personality';
-import { MessageSquare, LayoutGrid, Terminal, FileText, Folder, ChevronRight, Code2, Shield, Server, Cpu, Layers, Send, Plus, Clock, X, Square, Copy, Check, Trash2, Search, ZoomIn, ZoomOut, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, UserCircle } from 'lucide-react';
+import { MessageSquare, LayoutGrid, Terminal, FileText, Folder, ChevronRight, Code2, Shield, Server, Cpu, Layers, Send, Plus, Clock, X, Square, Copy, Check, Trash2, Search, ZoomIn, ZoomOut, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, UserCircle, Share2, Zap, RefreshCw, Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import ChatInputComponent from './ChatInput';
 import SystemTabComponent from './SystemTab';
 import SymbolInspector from './SymbolInspector';
+import UpgradeModal from './UpgradeModal';
 import { ViboMark } from './ViboLogo';
 import { Highlight, themes } from 'prism-react-renderer';
 import { healthScore, getIdentityProfile, getHighTrafficFiles, parseFollowUps } from '../utils/client/formatting';
@@ -53,6 +55,18 @@ function CopyButton({ text }) {
       {copied ? <Check size={13} className="text-vb-accent" /> : <Copy size={13} />}
     </button>
   );
+}
+
+/* ── Time Ago Helper ── */
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return `${Math.floor(days / 7)}w ago`;
 }
 
 /* ── Toast ── */
@@ -395,21 +409,12 @@ function FileTreeSidebar({ analysis, selectedFile, onSelectFile, score, onCollap
         {renderNode(tree)}
       </div>
       )}
-      <div className="mx-2 mb-3 p-3 border border-white/[0.06] rounded-lg">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-medium text-vb-ink3">Health Index</span>
-          <span className="text-[11px] text-vb-ink2 font-mono">{score}%</span>
-        </div>
-        <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
-          <div className="h-full bg-vb-accent rounded-full transition-all duration-700" style={{ width: `${score}%` }} />
-        </div>
-      </div>
     </div>
   );
 }
 
 /* ── Right Panel ── */
-function RightPanel({ analysis, selectedFile, activeTab }) {
+function RightPanel({ analysis, selectedFile, activeTab, userPlan, onShareChat, activeChatId, sharingChatId }) {
   const fileIntel = useMemo(() => {
     if (!selectedFile || !analysis?.results?.files) return null;
     return analysis.results.files.find(f => f.path === selectedFile) || null;
@@ -420,13 +425,12 @@ function RightPanel({ analysis, selectedFile, activeTab }) {
 
   const profile = getIdentityProfile(analysis);
   const highTraffic = getHighTrafficFiles(analysis);
-  const displayFiles = highTraffic || ['Dashboard.tsx', 'useAnalysis.ts', 'App.tsx'];
+  const displayFiles = highTraffic || [];
 
   return (
     <div className="h-full flex flex-col overflow-y-auto">
       {showSymbols ? (
         <>
-          {/* File header — minimal, just context */}
           <div className="px-3 py-2.5 border-b border-white/[0.06] flex items-center gap-2 min-w-0">
             <span className="text-[12px] font-mono text-vb-ink font-medium truncate">{fileName}</span>
             <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
@@ -438,36 +442,74 @@ function RightPanel({ analysis, selectedFile, activeTab }) {
               )}
             </div>
           </div>
-          {/* Symbol inspector */}
           <div className="flex-1 overflow-y-auto">
             <SymbolInspector fileIntel={fileIntel} fileName={fileName} />
           </div>
         </>
       ) : (
         <>
+          {/* Quick Actions */}
           <div className="px-4 py-5 border-b border-white/[0.06]">
-            <h3 className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider mb-4">Identity Profile</h3>
-            <div className="space-y-4">
-              {[{ label: 'Tech Stack', value: profile.techStack, Icon: Code2 }, { label: 'Storage', value: profile.storage, Icon: Server }, { label: 'Runtime', value: profile.runtime, Icon: Cpu }].map(({ label, value, Icon }, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-md bg-vb-accent/[0.06] border border-vb-accent/[0.1] flex items-center justify-center flex-shrink-0 text-vb-accent"><Icon size={13} /></div>
-                  <div><div className="text-[10px] text-vb-ink3 uppercase tracking-wide">{label}</div><div className="text-[13px] text-vb-ink font-medium mt-0.5">{value}</div></div>
-                </div>
-              ))}
+            <h3 className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider mb-3">Quick Actions</h3>
+            <div className="space-y-2">
+              {activeChatId && (
+                <button onClick={() => onShareChat?.()} disabled={sharingChatId === activeChatId} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1] transition-colors text-left disabled:opacity-50">
+                  {sharingChatId === activeChatId ? (
+                    <svg className="w-[13px] h-[13px] animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  ) : (
+                    <Share2 size={13} className="text-vb-accent" />
+                  )}
+                  <span className="text-[12px] text-vb-ink2">{sharingChatId === activeChatId ? 'Generating link...' : 'Share this chat'}</span>
+                </button>
+              )}
+              <a href={analysis?.repo_url || '#'} target="_blank" rel="noopener noreferrer" className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1] transition-colors">
+                <Code2 size={13} className="text-vb-ink4" />
+                <span className="text-[12px] text-vb-ink2">View on GitHub</span>
+              </a>
             </div>
           </div>
+
+          {/* Codebase Summary */}
           <div className="px-4 py-5 border-b border-white/[0.06]">
-            <h3 className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider mb-3">High-Traffic Files</h3>
-            <div className="space-y-2">{displayFiles.map((file, i) => (
-              <div key={i} className="flex items-center justify-between px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg">
-                <span className="text-[13px] text-vb-ink2 truncate">{file}</span>
+            <h3 className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider mb-3">Codebase</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-vb-ink4">Repository</span>
+                <span className="text-[12px] text-vb-ink2 font-medium truncate ml-2 max-w-[120px]">{analysis?.repo_name || '—'}</span>
               </div>
-            ))}</div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-vb-ink4">Files</span>
+                <span className="text-[12px] text-vb-ink2 font-mono">{analysis?.total_files?.toLocaleString() || '—'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-vb-ink4">Lines</span>
+                <span className="text-[12px] text-vb-ink2 font-mono">{analysis?.total_lines?.toLocaleString() || '—'}</span>
+              </div>
+              {profile.techStack && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-[11px] text-vb-ink4">Stack</span>
+                  <span className="text-[12px] text-vb-ink2 leading-relaxed break-words">{profile.techStack}</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="px-4 py-5 mt-auto">
-            <div className="p-4 rounded-lg bg-vb-accent/[0.04] border border-vb-accent/[0.1]">
-              <div className="flex items-center gap-2 mb-1.5"><Shield size={14} className="text-vb-accent" /><span className="text-[13px] font-semibold text-vb-accent">Pro Guard</span></div>
-              <p className="text-[12px] text-vb-ink3 leading-relaxed">Continuous analysis is active. Your codebase is safe.</p>
+
+          {/* Plan info — directly below codebase */}
+          <div className="px-4 py-4 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-vb-ink4 uppercase tracking-wider">Plan</span>
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${userPlan === 'free' ? 'bg-white/[0.04] text-vb-ink3' : 'bg-vb-accent/10 text-vb-accent border border-vb-accent/20'}`}>
+                {userPlan === 'free' ? 'Free' : userPlan === 'pro' ? 'Pro' : 'Team'}
+              </span>
+            </div>
+          </div>
+
+          {/* Footer links at bottom of scroll */}
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-center gap-4">
+              <a href="/privacy" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Privacy</a>
+              <a href="/terms" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Terms</a>
+              <a href="mailto:hello@vibo.dev" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Contact</a>
             </div>
           </div>
         </>
@@ -492,7 +534,7 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 }
 
 /* ── Chat History Sidebar ── */
-function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename, onCollapse, activeChatId }) {
+function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename, onShare, sharingChatId, onCollapse, activeChatId }) {
   const [confirmItem, setConfirmItem] = useState(null);
   const [renamingIdx, setRenamingIdx] = useState(null);
   const [renameValue, setRenameValue] = useState('');
@@ -542,6 +584,13 @@ function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename, 
                 <span className="truncate">{item.displayName || item.title || item.query || 'New chat'}</span>
               </button>
             )}
+            <button onClick={() => onShare?.(item)} disabled={sharingChatId === item.id} className="opacity-0 group-hover:opacity-100 p-1 text-vb-ink4 hover:text-vb-accent transition-all disabled:opacity-50" title="Share">
+              {sharingChatId === item.id ? (
+                <svg className="w-[11px] h-[11px] animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              ) : (
+                <Share2 size={11} />
+              )}
+            </button>
             <button onClick={() => setConfirmItem(item)} className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-vb-ink4 hover:text-vb-red transition-all" title="Delete">
               <Trash2 size={12} />
             </button>
@@ -693,7 +742,13 @@ function InlineDiagramRender({ mermaidCode }) {
             .edgePath path, .flowchart-link { stroke: #5c5c66 !important; }
             .edgeLabel rect { fill: #16161a !important; }
           </style>`);
-          setSvg(fixedSvg);
+          // Sanitize: strip dangerous elements but keep SVG structure + styles
+          const sanitized = fixedSvg
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/on\w+="[^"]*"/gi, '')
+            .replace(/on\w+='[^']*'/gi, '')
+            .replace(/javascript:/gi, '');
+          setSvg(sanitized);
         }
         else if (!cancelled) setFailed(true);
       } catch (e) {
@@ -779,7 +834,7 @@ function ChatLoadingIndicator() {
 }
 
 /* ── Chat View ── */
-function ChatView({ analysis, messages, loading, query, setQuery, handleSend, suggestions, chatHistory, onSelectHistory, onNewChat, onDeleteHistory, onStopGeneration, onRenameHistory, historyLoaded, setHistoryLoaded, onNavigateToFile, activeChatId }) {
+function ChatView({ analysis, messages, loading, query, setQuery, handleSend, suggestions, chatHistory, onSelectHistory, onNewChat, onDeleteHistory, onStopGeneration, onRenameHistory, onShareHistory, sharingChatId, historyLoaded, setHistoryLoaded, onNavigateToFile, activeChatId }) {
   const scrollRef = useRef(null);
 
   // Scroll to bottom when user sends or when history is loaded
@@ -803,7 +858,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
   return (
     <div className="flex-1 flex min-h-0">
       {!historyCollapsed && (
-        <ChatHistorySidebar history={chatHistory} onSelect={onSelectHistory} onNewChat={onNewChat} onDelete={onDeleteHistory} onRename={onRenameHistory} onCollapse={() => setHistoryCollapsed(true)} activeChatId={activeChatId} />
+        <ChatHistorySidebar history={chatHistory} onSelect={onSelectHistory} onNewChat={onNewChat} onDelete={onDeleteHistory} onRename={onRenameHistory} onShare={onShareHistory} sharingChatId={sharingChatId} onCollapse={() => setHistoryCollapsed(true)} activeChatId={activeChatId} />
       )}
 
       <div className="flex-1 flex flex-col min-h-0 bg-vb-chat relative">
@@ -820,14 +875,18 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                 <span className="text-[18px] font-semibold tracking-tight text-vb-ink select-none">vi<span className="text-vb-accent">b</span>o</span>
               </div>
               <p className="text-[14px] text-vb-ink3 mb-6">What's confusing you today?</p>
-              <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-lg">
+              <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mb-10">
                 {suggestions.map((s, i) => (
                   <button key={i} onClick={() => handleSend(s)}
-                    className="group/chip relative inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[13px] text-vb-ink2 transition-all duration-200 ease-out overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.14] hover:text-vb-ink">
+                    className="group/chip relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[12px] text-vb-ink3 transition-all duration-200 ease-out overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.14] hover:text-vb-ink">
                     <span className="absolute bottom-0 left-1/2 h-[1px] w-0 bg-vb-accent/40 transition-all duration-300 ease-out group-hover/chip:w-3/4 group-hover/chip:left-[12.5%] rounded-full" />
                     {s}
                   </button>
                 ))}
+              </div>
+              {/* Input directly below chips when chat is empty */}
+              <div className="w-full max-w-[680px]">
+                <ChatInputComponent query={query} setQuery={setQuery} onSend={handleSend} loading={loading} onStop={onStopGeneration} fileTree={analysis?.file_tree || []} />
               </div>
             </div>
           ) : (
@@ -898,8 +957,10 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
           )}
         </div>
 
-        {/* Chat bar with @ mention support */}
-        <ChatInputComponent query={query} setQuery={setQuery} onSend={handleSend} loading={loading} onStop={onStopGeneration} fileTree={analysis?.file_tree || []} />
+        {/* Chat bar — only show at bottom when there are messages */}
+        {messages.length > 0 && (
+          <ChatInputComponent query={query} setQuery={setQuery} onSend={handleSend} loading={loading} onStop={onStopGeneration} fileTree={analysis?.file_tree || []} />
+        )}
       </div>
     </div>
   );
@@ -1019,6 +1080,11 @@ export default function DashboardLayout() {
   const [chatLoading, setChatLoading] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [activeChatId, setActiveChatId] = useState(() => crypto.randomUUID());
+  const [userPlan, setUserPlan] = useState('free');
+  const [sharingChatId, setSharingChatId] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [reanalyzing, setReanalyzing] = useState(false);
+  const { plan: fetchedPlan } = usePlan();
   const leftPanel = useResizable({ defaultWidth: 240, minWidth: 180, maxWidth: 400, storageKey: 'vibo-left-panel' });
   const rightPanel = useResizableRight({ defaultWidth: 240, minWidth: 180, maxWidth: 360, storageKey: 'vibo-right-panel' });
   const abortRef = useRef(null);
@@ -1034,18 +1100,33 @@ export default function DashboardLayout() {
   const queryClient = useQueryClient();
   const error = analysisError?.message || '';
 
+  // Sync plan from hook
+  useEffect(() => {
+    if (fetchedPlan) setUserPlan(fetchedPlan);
+  }, [fetchedPlan]);
+
   // Dynamic suggestions based on the analyzed codebase
   const suggestions = useMemo(() => {
-    // First 2 chips are always present, last 2 are codebase-specific
     const fixed = ['I\'m new here', 'Guide me through something'];
     if (!analysis) return [...fixed, 'Show architecture diagram', 'Explain the tech stack'];
     const arch = analysis.architecture || analysis.results || {};
     const hasApi = (arch.apiEndpoints || []).length > 0;
-    const hasAuth = (analysis.file_tree || []).some(f => /auth|login|session/i.test(f.path));
-    const hasDb = (analysis.file_tree || []).some(f => /database|schema|model|migration/i.test(f.path));
+    const hasAuth = (analysis.file_tree || []).some(f => /auth|login|session|middleware/i.test(f.path));
+    const hasDb = (analysis.file_tree || []).some(f => /database|schema|model|migration|drizzle|prisma/i.test(f.path));
     const hasFrontend = (analysis.file_tree || []).some(f => /components?\/|pages\/|app\//i.test(f.path));
     const hasML = (analysis.file_tree || []).some(f => /model|train|inference|pipeline/i.test(f.path));
+    const hasTests = (analysis.file_tree || []).some(f => /test|spec|__test/i.test(f.path));
+    const hasConfig = (analysis.file_tree || []).some(f => /config|\.env|docker/i.test(f.path));
     const dynamic = [];
+    if (hasApi) dynamic.push(`How do the ${analysis.repo_name} API routes work?`);
+    if (hasAuth) dynamic.push('Walk me through the auth flow');
+    if (hasDb) dynamic.push('Explain the data model');
+    if (hasFrontend && !hasApi) dynamic.push('How is the UI structured?');
+    if (hasML) dynamic.push('Explain the ML pipeline');
+    if (hasTests && dynamic.length < 2) dynamic.push('What\'s the test coverage like?');
+    if (hasConfig && dynamic.length < 2) dynamic.push('How do I set this up locally?');
+    if (dynamic.length === 0) dynamic.push(`What does ${analysis.repo_name} do?`);
+    if (dynamic.length < 2) dynamic.push('Show me the architecture diagram');
     if (hasApi) dynamic.push('Walk me through the API routes');
     if (hasAuth) dynamic.push('Explain the auth flow');
     if (hasDb) dynamic.push('How does the database layer work?');
@@ -1096,6 +1177,7 @@ export default function DashboardLayout() {
 
     // Stream response from AI
     abortRef.current = new AbortController();
+    const streamChatId = activeChatId; // Capture current chat ID to detect stale streams
     // Add a placeholder message that we'll update with streamed tokens
     const placeholderIdx = messages.length + 1; // +1 because we just added user msg
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
@@ -1110,7 +1192,11 @@ export default function DashboardLayout() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: 'system', content: data.error || 'Error' }; return copy; });
+        const isGateError = data.code === 'QUERY_LIMIT_REACHED' || data.code === 'TOKEN_BUDGET_EXCEEDED' || data.code === 'PRO_FEATURE_ONLY';
+        const errorMsg = isGateError
+          ? `${data.error}\n\n[Upgrade your plan →](/?scrollTo=pricing)`
+          : data.error || 'Something went wrong';
+        setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: 'system', content: errorMsg }; return copy; });
         if (res.status === 429) showToast(getRateLimitMessage(30), 'error');
         setChatLoading(false);
         return;
@@ -1133,14 +1219,19 @@ export default function DashboardLayout() {
             const data = JSON.parse(line.slice(6));
             if (data.token) {
               accumulated += data.token;
-              setMessages(prev => {
-                const copy = [...prev];
-                copy[copy.length - 1] = { role: 'assistant', content: accumulated };
-                return copy;
-              });
+              // Only update if we're still on the same chat
+              if (activeChatId === streamChatId) {
+                setMessages(prev => {
+                  const copy = [...prev];
+                  copy[copy.length - 1] = { role: 'assistant', content: accumulated };
+                  return copy;
+                });
+              }
             }
             if (data.error) {
-              setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: 'system', content: data.error }; return copy; });
+              if (activeChatId === streamChatId) {
+                setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: 'system', content: data.error }; return copy; });
+              }
             }
           } catch { /* skip */ }
         }
@@ -1149,13 +1240,17 @@ export default function DashboardLayout() {
       if (err.name === 'AbortError') {
         // User stopped — keep what we have so far
       } else {
-        setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: 'system', content: err.message }; return copy; });
-        showToast('Network error', 'error');
+        const isNetworkError = err instanceof TypeError || /fetch|network|connection/i.test(err.message);
+        const errorMsg = isNetworkError
+          ? 'Connection lost. Check your network and try again.'
+          : err.message || 'Something went wrong';
+        setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: 'system', content: errorMsg }; return copy; });
+        if (isNetworkError) showToast('No internet connection', 'error');
       }
     }
     setChatLoading(false);
-    // Refresh chat history cache so new chat appears in sidebar
-    setTimeout(() => queryClient.invalidateQueries({ queryKey: ['chatHistory', analysisId] }), 500);
+    // Refresh chat history immediately so new chat appears in sidebar
+    queryClient.invalidateQueries({ queryKey: ['chatHistory', analysisId] });
   };
 
   const handleStopGeneration = () => {
@@ -1199,6 +1294,12 @@ export default function DashboardLayout() {
   };
 
   const handleSelectHistory = async (item) => {
+    // Abort any in-progress stream before switching
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setChatLoading(false);
     setActiveChatId(item.id);
     // Load all messages in this conversation
     try {
@@ -1211,12 +1312,73 @@ export default function DashboardLayout() {
       setMessages(msgs);
       setHistoryLoaded(true);
     } catch {
-      // Fallback: show just the title
       setMessages([{ role: 'user', content: item.title }]);
       setHistoryLoaded(true);
     }
   };
-  const handleNewChat = () => { setMessages([]); setQuery(''); setChatLoading(false); setHistoryLoaded(false); setActiveChatId(crypto.randomUUID()); };
+  const handleNewChat = () => {
+    // Abort any in-progress stream before switching
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setMessages([]);
+    setQuery('');
+    setChatLoading(false);
+    setHistoryLoaded(false);
+    setActiveChatId(crypto.randomUUID());
+  };
+
+  const handleShareHistory = async (item) => {
+    if (!item?.id || !analysisId) return;
+    setSharingChatId(item.id);
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: item.id, analysisId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        await navigator.clipboard.writeText(data.url);
+        showToast('Share link copied to clipboard', 'success');
+      } else if (data.code === 'SHARE_LIMIT_REACHED') {
+        setShowUpgradeModal(true);
+        showToast(data.error, 'error');
+      } else {
+        showToast(data.error || 'Could not create share link', 'error');
+      }
+    } catch {
+      showToast('Could not create share link', 'error');
+    }
+    setSharingChatId(null);
+  };
+
+  const handleReanalyze = async () => {
+    if (!analysis?.repo_url) return;
+    setReanalyzing(true);
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoUrl: analysis.repo_url, repoName: analysis.repo_name, force: true }),
+      });
+      const data = await res.json();
+      if (res.status === 403 && data.code === 'REANALYZE_LIMIT_REACHED') {
+        setShowUpgradeModal(true);
+        showToast(data.error, 'error');
+      } else if (res.ok && data.id) {
+        showToast('Re-analysis started', 'success');
+        queryClient.invalidateQueries({ queryKey: ['analysis', analysisId] });
+        router.push(`/dashboard?id=${data.id}`);
+      } else {
+        showToast(data.error || data.message || 'Re-analysis failed', 'error');
+      }
+    } catch {
+      showToast('Could not re-analyze. Try again.', 'error');
+    }
+    setReanalyzing(false);
+  };
 
   const score = analysis ? healthScore(analysis) : 0;
 
@@ -1225,6 +1387,10 @@ export default function DashboardLayout() {
   }
   if (clerkLoaded && !isSignedIn) {
     router.replace(`/sign-in?redirect_url=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+    return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>;
+  }
+  if (!analysisId) {
+    router.replace('/');
     return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>;
   }
   if (loading) {
@@ -1247,21 +1413,27 @@ export default function DashboardLayout() {
       {/* Center */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar */}
-        <div className="h-[64px] border-b border-white/[0.06] flex items-center px-4 flex-shrink-0">
-          <div className="flex items-center gap-2 text-[13px]">
+        <div className="h-[64px] border-b border-white/[0.06] flex items-center px-3 md:px-4 flex-shrink-0 overflow-hidden">
+          <div className="flex items-center gap-2 text-[13px] min-w-0">
             {leftPanel.collapsed && (
-              <button onClick={() => leftPanel.setCollapsed(false)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors mr-1" title="Show file explorer">
+              <button onClick={() => leftPanel.setCollapsed(false)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors mr-1 hidden md:block" title="Show file explorer">
                 <PanelLeftOpen size={15} />
               </button>
             )}
-            <a href="/" className="flex items-center gap-1.5 mr-2 hover:opacity-90 transition-opacity" title="Vibo Home">
+            <a href="/" className="flex items-center gap-1.5 mr-2 hover:opacity-90 transition-opacity flex-shrink-0" title="Vibo Home">
               <ViboMark size={18} />
-              <span className="text-[15px] font-semibold tracking-tight text-vb-ink select-none">vi<span className="text-vb-accent">b</span>o</span>
+              <span className="text-[15px] font-semibold tracking-tight text-vb-ink select-none hidden sm:inline">vi<span className="text-vb-accent">b</span>o</span>
             </a>
-            <span className="text-vb-ink4 text-[11px]">/</span>
-            <span className="text-vb-ink2">{user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'vibo'}</span>
-            <span className="text-vb-ink4">›</span>
-            <span className="text-vb-ink font-medium">{analysis?.repo_name || '...'}</span>
+            <span className="text-vb-ink4 text-[11px] hidden sm:inline">/</span>
+            <span className="text-vb-ink2 hidden sm:inline">{user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'vibo'}</span>
+            <span className="text-vb-ink4 hidden sm:inline">›</span>
+            <span className="text-vb-ink font-medium truncate max-w-[100px] sm:max-w-none">{analysis?.repo_name || '...'}</span>
+            {analysis?.updated_at && (
+              <button onClick={handleReanalyze} disabled={reanalyzing} className="ml-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] text-vb-ink3 hover:text-vb-accent bg-white/[0.03] hover:bg-vb-accent/[0.06] border border-white/[0.06] hover:border-vb-accent/20 transition-all" title={`Last analyzed ${timeAgo(analysis.updated_at)} — click to re-analyze`}>
+                {reanalyzing ? <Loader2 size={12} className="animate-spin text-vb-accent" /> : <RefreshCw size={12} />}
+                <span className="hidden md:inline">{reanalyzing ? 'Re-analyzing...' : timeAgo(analysis.updated_at)}</span>
+              </button>
+            )}
           </div>
 
           {/* Tabs — use flex-1 + justify-center so they center within the available space */}
@@ -1284,8 +1456,18 @@ export default function DashboardLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/profile')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150 mr-1" title="Profile & Settings">
+          <div className="flex items-center gap-2">
+            {/* Plan badge + upgrade CTA for free users */}
+            {userPlan === 'free' ? (
+              <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium text-vb-ink3 bg-white/[0.03] border border-white/[0.06] hover:border-vb-accent/20 hover:text-vb-accent transition-all hidden sm:flex" title="Upgrade plan">
+                <Zap size={10} className="text-vb-accent" /> Upgrade
+              </button>
+            ) : (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-vb-accent/10 text-vb-accent border border-vb-accent/20 hidden sm:flex">
+                {userPlan === 'team' ? 'Team' : 'Pro'}
+              </span>
+            )}
+            <button onClick={() => router.push('/profile')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="Profile & Settings">
               <UserCircle size={13} />
               <span className="hidden sm:inline">Profile</span>
             </button>
@@ -1301,9 +1483,9 @@ export default function DashboardLayout() {
           </div>
         </div>
 
-        {activeTab === 'chat' && <ChatView analysis={analysis} messages={messages} loading={chatLoading} query={query} setQuery={setQuery} handleSend={handleSend} suggestions={suggestions} chatHistory={chatHistory} onSelectHistory={handleSelectHistory} onNewChat={handleNewChat} onDeleteHistory={handleDeleteHistory} onStopGeneration={handleStopGeneration} onRenameHistory={handleRenameHistory} historyLoaded={historyLoaded} setHistoryLoaded={setHistoryLoaded} onNavigateToFile={handleNavigateToFile} activeChatId={activeChatId} />}
+        {activeTab === 'chat' && <ChatView analysis={analysis} messages={messages} loading={chatLoading} query={query} setQuery={setQuery} handleSend={handleSend} suggestions={suggestions} chatHistory={chatHistory} onSelectHistory={handleSelectHistory} onNewChat={handleNewChat} onDeleteHistory={handleDeleteHistory} onStopGeneration={handleStopGeneration} onRenameHistory={handleRenameHistory} onShareHistory={handleShareHistory} sharingChatId={sharingChatId} historyLoaded={historyLoaded} setHistoryLoaded={setHistoryLoaded} onNavigateToFile={handleNavigateToFile} activeChatId={activeChatId} />}
         {activeTab === 'explore' && <ExploreView analysis={analysis} selectedFile={selectedFile} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveChatId(crypto.randomUUID()); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
-        {activeTab === 'system' && <SystemTabComponent analysisId={analysisId} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveChatId(crypto.randomUUID()); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
+        {activeTab === 'system' && <SystemTabComponent analysisId={analysisId} userPlan={userPlan} onUpgrade={() => setShowUpgradeModal(true)} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveChatId(crypto.randomUUID()); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
       </main>
 
       {/* Right sidebar — hidden on small screens */}
@@ -1317,12 +1499,13 @@ export default function DashboardLayout() {
                 <PanelRightClose size={13} />
               </button>
             </div>
-            <RightPanel analysis={analysis} selectedFile={selectedFile} activeTab={activeTab} />
+            <RightPanel analysis={analysis} selectedFile={selectedFile} activeTab={activeTab} userPlan={userPlan} activeChatId={activeChatId} sharingChatId={sharingChatId} onShareChat={() => handleShareHistory({ id: activeChatId })} />
           </aside>
         </>
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={dismissToast} />}
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} currentPlan={userPlan} />
     </div>
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 import { useState } from 'react';
 import { useSystemData } from '../hooks/useApi';
-import { Layers, FileText, Terminal, Download, ChevronRight, Package, Settings, Server } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
+import { Layers, FileText, Terminal, Download, ChevronRight, Package, Settings, Server, Lock, Zap } from 'lucide-react';
 import { LOADING_MESSAGES, getHealthMessage } from '../lib/personality';
+import { UpgradeInline, UpgradeBanner } from './UpgradeCTA';
 
 function Section({ title, icon: Icon, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -87,11 +89,12 @@ function IssueCard({ cat, items, onHowToFix }) {
   );
 }
 
-export default function SystemTab({ analysisId, onContinueInChat }) {
+export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'free', onUpgrade }) {
   const { data, isLoading, error } = useSystemData(analysisId);
   const [reportOpen, setReportOpen] = useState(false);
   const [fixExplanation, setFixExplanation] = useState(null);
   const [fixCache, setFixCache] = useState({}); // cache fixes by category
+  const canExportPdf = userPlan !== 'free';
 
   const handleHowToFix = async (cat, items) => {
     if (fixCache[cat]) {
@@ -181,10 +184,17 @@ export default function SystemTab({ analysisId, onContinueInChat }) {
                   <span className="text-vb-ink4">|</span>
                   <span className="text-[13px] text-vb-ink2">Security Report</span>
                 </div>
-                <button onClick={() => downloadReport(securityReport)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
-                  <Download size={11} />
-                  PDF
-                </button>
+                {canExportPdf ? (
+                  <button onClick={() => downloadReport(securityReport)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+                    <Download size={11} />
+                    PDF
+                  </button>
+                ) : (
+                  <button onClick={onUpgrade} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+                    <Download size={11} />
+                    PDF
+                  </button>
+                )}
               </div>
 
               {/* Report content */}
@@ -213,13 +223,72 @@ export default function SystemTab({ analysisId, onContinueInChat }) {
                   </p>
                 </div>
 
-                {/* Issues */}
+                {/* Issues — gated for free users */}
                 {(() => {
                   const grouped = {};
                   securityReport.issues.forEach(i => { const k = i.title || 'Other'; if (!grouped[k]) grouped[k] = []; grouped[k].push(i); });
-                  return Object.entries(grouped).map(([cat, items]) => (
-                    <IssueCard key={cat} cat={cat} items={items} onHowToFix={handleHowToFix} />
-                  ));
+                  const entries = Object.entries(grouped);
+                  const isGated = securityReport.gated;
+                  
+                  if (!isGated) {
+                    return entries.map(([cat, items]) => (
+                      <IssueCard key={cat} cat={cat} items={items} onHowToFix={handleHowToFix} />
+                    ));
+                  }
+
+                  return (
+                    <>
+                      {/* First issue — fully visible */}
+                      {entries.length > 0 && (
+                        <IssueCard cat={entries[0][0]} items={entries[0][1]} onHowToFix={handleHowToFix} />
+                      )}
+
+                      {/* Locked section — second issue title + blurred content as one unified block */}
+                      <div className="relative rounded-xl overflow-hidden">
+                        {/* Content that's partially visible / blurred */}
+                        <div className="pointer-events-none select-none">
+                          {/* Second issue — title visible, content blurred */}
+                          {entries.length > 1 && (
+                            <div className="bg-[#222226] rounded-t-lg border border-white/[0.06] border-b-0">
+                              <div className="flex items-center justify-between px-5 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${entries[1][1][0]?.severity === 'high' ? 'bg-red-500' : 'bg-yellow-500'}`} />
+                                  <h3 className="text-[14px] text-vb-ink font-medium">{entries[1][0]}</h3>
+                                </div>
+                                <span className="text-[11px] text-vb-ink3">{entries[1][1].length} found</span>
+                              </div>
+                            </div>
+                          )}
+                          {/* Blurred area — looks like more content behind */}
+                          <div className="blur-[5px] opacity-50 space-y-3 px-5 pb-5 pt-2 bg-[#222226] border-x border-white/[0.06]">
+                            <div className="h-3 w-3/4 rounded bg-white/[0.06]" />
+                            <div className="h-9 rounded bg-white/[0.04]" />
+                            <div className="h-9 rounded bg-white/[0.04]" />
+                          </div>
+                          <div className="blur-[7px] opacity-40 space-y-4 p-4">
+                            <div className="bg-[#222226] rounded-lg border border-white/[0.06] p-5 space-y-2">
+                              <div className="h-3.5 w-36 rounded bg-white/[0.06]" />
+                              <div className="h-3 w-2/3 rounded bg-white/[0.04]" />
+                              <div className="h-8 rounded bg-white/[0.03]" />
+                            </div>
+                          </div>
+                        </div>
+                        {/* Overlay — positioned to cover from the blurred content area */}
+                        <div className="absolute inset-0 top-12 flex items-start justify-center pt-10 bg-gradient-to-b from-[#1a1a1e]/20 via-[#1a1a1e]/60 to-[#1a1a1e]/90">
+                          <div className="text-center space-y-2.5">
+                            <div className="w-10 h-10 mx-auto rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center">
+                              <Lock size={16} className="text-vb-ink3" />
+                            </div>
+                            <p className="text-[12px] text-vb-ink3">{securityReport.gatedIssueCount - entries.length} more issues hidden</p>
+                            <button onClick={onUpgrade}
+                              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-[12px] font-medium bg-vb-accent text-vb-bg hover:bg-vb-accent-bright transition-all shadow-[0_4px_12px_rgba(224,252,16,0.12)]">
+                              <Zap size={12} /> Unlock full report
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
                 })()}
 
                 {/* Fix explanation panel — right side overlay */}

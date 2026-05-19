@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { getAnalysisRecord } from "../../../lib/analysis-store";
 import { getCurrentSession, getSessionOwner } from "../../../lib/server-session";
+import { getUserPlan } from "../../../lib/subscription-gate";
 
 /**
  * System analysis endpoint — computes all System tab data server-side.
@@ -41,6 +42,16 @@ export async function GET(request) {
 
     // ── 5. Database Models ──
     const database = analyzeDatabase(filePaths, files);
+
+    // Gate security issues for free users at the API level (can't bypass with devtools)
+    const plan = await getUserPlan(session.userId);
+    if (plan === 'free' && securityReport.issues?.length > 2) {
+      securityReport.gatedIssueCount = securityReport.issues.length;
+      // Keep first 2 issues fully visible, show only titles for the rest
+      const visibleIssues = securityReport.issues.slice(0, 2);
+      securityReport.issues = visibleIssues;
+      securityReport.gated = true;
+    }
 
     return NextResponse.json({ techStack, entryPoints, conventions, securityReport, database });
   } catch (error) {

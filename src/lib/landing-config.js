@@ -9,14 +9,14 @@ export const SITE_CONFIG = {
   hero: {
     tagline: 'Understand any codebase instantly.',
     taglineAccent: 'codebase', // word highlighted in accent color
-    subtitle: 'Paste a GitHub link. Get architecture maps, AI-powered insights, security audits, and a chat that actually knows the code.',
-    inputPlaceholder: 'https://github.com/owner/repo',
+    subtitle: 'Drop a GitHub link or upload your code. In seconds, get a full architecture breakdown, security audit, and an AI that can answer anything about the codebase.',
+    inputPlaceholder: 'https://github.com/owner/repository',
     analyzeButton: 'Analyze',
-    suggestedRepos: ['facebook/react', 'vercel/next.js', 'denoland/deno'],
+    suggestedRepos: ['shadcn-ui/ui', 'pmndrs/zustand', 'hono-js/hono', 't3-oss/create-t3-app', 'colinhacks/zod'],
     stats: [
       { value: '40+', label: 'languages' },
       { value: '< 30s', label: 'analysis time' },
-      { value: 'Free', label: 'for public repos' },
+      { value: 'Free', label: 'to start' },
     ],
   },
 
@@ -70,10 +70,12 @@ export const SITE_CONFIG = {
     label: 'See it in action',
     title: 'A complete intelligence dashboard',
     items: [
-      { src: '/screenshots/dashboard-chat.png', alt: 'AI Chat — ask anything about the codebase', caption: 'AI Chat' },
-      { src: '/screenshots/dashboard-explore.png', alt: 'File explorer with syntax highlighting', caption: 'Code Explorer' },
-      { src: '/screenshots/dashboard-architecture.png', alt: 'Architecture map with dependency flows', caption: 'Architecture' },
-      { src: '/screenshots/dashboard-security.png', alt: 'Security audit with severity tags', caption: 'Security Audit' },
+      { src: '/screenshots/screenshot-1.png', alt: 'AI Chat — ask anything about the codebase', caption: 'AI Chat' },
+      { src: '/screenshots/screenshot-2.png', alt: 'File explorer with syntax highlighting', caption: 'Code Explorer' },
+      { src: '/screenshots/screenshot-3.png', alt: 'Architecture map with dependency flows', caption: 'Architecture' },
+      { src: '/screenshots/screenshot-4.png', alt: 'Security audit with severity tags', caption: 'Security Audit' },
+      { src: '/screenshots/screenshot-5.png', alt: 'System overview with health score', caption: 'System' },
+
     ],
   },
 
@@ -96,7 +98,7 @@ export const SITE_CONFIG = {
     title: 'What people are saying',
     items: [
       { quote: 'Dropped a legacy codebase I inherited into Vibo and understood the whole thing in 10 minutes. Would have taken me a week otherwise.', name: 'Marcus R.', role: 'Senior Engineer', avatar: 'MR' },
-      { quote: 'The security audit caught a hardcoded API key in a repo we were about to acquire. That alone justified the tool.', name: 'Sofia L.', role: 'CTO, Seed-stage startup', avatar: 'SL' },
+      { quote: 'The security audit caught a hardcoded API key in a codebase we were about to acquire. That alone justified the tool.', name: 'Sofia L.', role: 'CTO, Seed-stage startup', avatar: 'SL' },
       { quote: 'I use Vibo every time I start at a new client. The architecture map makes it trivially easy to explain the codebase to stakeholders.', name: 'Ananya K.', role: 'Freelance Engineer', avatar: 'AK' },
     ],
   },
@@ -105,35 +107,54 @@ export const SITE_CONFIG = {
   pricing: {
     label: 'Pricing',
     title: 'Simple, transparent pricing',
-    subtitle: 'Start free. Upgrade when you need private repos and unlimited AI.',
+    subtitle: 'Start free. Upgrade when you need more repositories, queries, or advanced features.',
     plans: [
       {
+        id: 'free',
         name: 'Free',
         price: '$0',
         period: 'forever',
         cta: 'Get started free',
         featured: false,
         features: [
-          'Public repos only',
-          'Unlimited analyses',
-          'Full dashboard access',
-          'AI chat — 20 queries/day',
+          '2 repositories',
+          '20 AI queries/day',
+          'Basic health report',
+          'Code explorer',
+          'Architecture diagrams',
           'Markdown export',
         ],
       },
       {
+        id: 'pro',
         name: 'Pro',
         price: '$12',
         period: '/month',
-        cta: 'Subscribe for $12/mo',
+        cta: 'Upgrade to Pro',
         featured: true,
         features: [
-          'Everything in Free',
-          'Private repos',
-          'Unlimited AI chat',
-          'PDF export & sharing',
+          '5 repositories',
+          '150 AI queries/day',
+          'Full security report',
+          'PDF export',
+          'Private repositories',
+          'Unlimited diagrams',
+        ],
+      },
+      {
+        id: 'team',
+        name: 'Team',
+        price: '$30',
+        period: '/month',
+        cta: 'Go Team',
+        featured: false,
+        features: [
+          'Everything in Pro',
+          '1,000 AI queries/day',
+          '10 repositories',
+          'Large codebase support',
           'Priority analysis queue',
-          'Health badge for README',
+          'Priority support',
         ],
       },
     ],
@@ -142,7 +163,7 @@ export const SITE_CONFIG = {
   // CTA section
   cta: {
     title: 'Ready to try it?',
-    subtitle: 'Free for public repos. No credit card. No install. Just paste a GitHub URL and see what Vibo finds.',
-    button: 'Analyze a repo',
+    subtitle: 'Free to start. No credit card. No install. Just paste a GitHub URL and see what Vibo finds.',
+    button: 'Analyze a codebase',
   },
 };

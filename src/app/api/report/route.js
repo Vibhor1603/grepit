@@ -57,13 +57,15 @@ export async function GET(request) {
   const ownerEmail = await getSessionOwner(session);
 
   const rlKey = rateLimitKey("report", ip, ownerEmail);
-  const limit = rateLimit(rlKey, 10, 60_000);
+  const limit = await rateLimit(rlKey, 10, 60_000);
   if (!limit.success) return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
 
   try {
     const url    = new URL(request.url);
     const id     = url.searchParams.get("id");
     const format = url.searchParams.get("format") || "markdown";
+
+    console.log("[report] GET id:", id, "format:", format);
 
     if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
@@ -76,6 +78,7 @@ export async function GET(request) {
     const pro = session.userId ? await isUserPro(session.userId) : false;
 
     if (format === "pdf" && !pro) {
+      console.log("[report] PDF gated for non-pro user");
       return NextResponse.json({ error: "PDF export is a Pro feature.", code: "PRO_FEATURE_ONLY" }, { status: 403 });
     }
 

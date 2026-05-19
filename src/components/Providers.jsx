@@ -3,6 +3,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "./ThemeProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import PostHogProviderWrapper from "./PostHogProvider";
+import CookieConsent from "./CookieConsent";
 
 export default function Providers({ children }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -69,7 +71,10 @@ export default function Providers({ children }) {
     >
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          {children}
+          <PostHogProviderWrapper>
+            {children}
+            <CookieConsent />
+          </PostHogProviderWrapper>
         </ThemeProvider>
       </QueryClientProvider>
     </ClerkProvider>

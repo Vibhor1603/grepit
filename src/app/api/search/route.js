@@ -37,10 +37,12 @@ export async function POST(request) {
   const ownerEmail = await getSessionOwner(session);
 
   const rlKey = rateLimitKey("search", ip, ownerEmail);
-  const limit = rateLimit(rlKey, 20, 60_000);
+  const limit = await rateLimit(rlKey, 20, 60_000);
   if (!limit.success) {
     return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
   }
+
+  console.log("[search] query:", q.slice(0, 50), "analysisId:", analysisId);
 
   try {
     const analysis = await getAnalysisRecord(analysisId);

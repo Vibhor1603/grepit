@@ -60,7 +60,7 @@ export async function GET(request) {
   const accessToken = await getGithubAccessToken(session);
 
   const rlKey = rateLimitKey("file-get", ip, ownerEmail);
-  const limit = rateLimit(rlKey, 60, 60_000);
+  const limit = await rateLimit(rlKey, 60, 60_000);
   if (!limit.success) return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
 
   try {
@@ -101,7 +101,7 @@ export async function POST(request) {
   const accessToken = await getGithubAccessToken(session);
 
   const rlKey = rateLimitKey("file-insight", ip, ownerEmail);
-  const limit = rateLimit(rlKey, 20, 60_000);
+  const limit = await rateLimit(rlKey, 20, 60_000);
   if (!limit.success) return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
 
   let body;

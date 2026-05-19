@@ -67,12 +67,16 @@ export async function GET(request) {
     });
 
     if (resumeRepo) {
+      // Special case: if connecting from profile page, redirect back there
+      if (resumeRepo === '__profile__') {
+        return NextResponse.redirect(new URL("/profile?github=connected", request.url));
+      }
       const redirect = new URL("/", request.url);
       redirect.searchParams.set("resume", resumeRepo);
       return NextResponse.redirect(redirect);
     }
 
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/profile?github=connected", request.url));
   } catch (err) {
     console.error("[github-callback]", err);
     return NextResponse.redirect(new URL("/?github_error=internal", request.url));

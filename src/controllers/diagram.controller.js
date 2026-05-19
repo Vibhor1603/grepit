@@ -33,7 +33,7 @@ export async function handleDiagramPost(request) {
   const ownerEmail = await getSessionOwner(session);
 
   const rlKey = rateLimitKey("diagram", ip, ownerEmail);
-  const limit = rateLimit(rlKey, 5, 60_000);
+  const limit = await rateLimit(rlKey, 5, 60_000);
   if (!limit.success) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   if (!isAIConfigured()) return NextResponse.json({ error: "AI not configured" }, { status: 503 });

@@ -9,7 +9,7 @@ export function normalizeGitHubRepoUrl(input) {
   const match = trimmed.match(GITHUB_REPO_REGEX);
 
   if (!match) {
-    throw new Error("Enter a valid GitHub URL like https://github.com/owner/repo.");
+    throw new Error("Enter a valid GitHub URL like https://github.com/owner/repository.");
   }
 
   return {

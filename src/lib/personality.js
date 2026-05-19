@@ -79,7 +79,7 @@ export const RATE_LIMIT_MESSAGES = [
 ];
 
 export const EMPTY_STATES = {
-  noFiles: "No files to explore. Upload a repo to get started.",
+  noFiles: "No files to explore. Upload a codebase to get started.",
   noHistory: "No chats yet. Ask something to get started.",
   noIssues: "No security issues detected. Your code is looking good.",
   noEntryPoints: "No entry points detected in this codebase.",
