@@ -1,0 +1,11 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /sso-callback
+
+Sitemap: https://grepit.co/sitemap.xml

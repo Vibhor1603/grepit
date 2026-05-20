@@ -180,7 +180,7 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
                   <svg width="7" height="7" viewBox="0 0 10 10" className="opacity-0 group-hover/close:opacity-100 transition-opacity"><path d="M2 2L8 8M8 2L2 8" stroke="#4a0000" strokeWidth="1.8" strokeLinecap="round"/></svg>
                 </button>
                 <div className="flex-1 flex items-center justify-center gap-2">
-                  <span className="text-[14px] font-semibold text-vb-ink">vi<span className="text-vb-accent">b</span>o</span>
+                  <span className="text-[14px] font-semibold text-vb-ink">grep<span className="text-vb-accent">it</span></span>
                   <span className="text-vb-ink4">|</span>
                   <span className="text-[13px] text-vb-ink2">Security Report</span>
                 </div>
@@ -323,7 +323,7 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
                 <div className="flex items-center justify-between pt-4">
                   <p className="text-[11px] text-vb-ink4">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   <div className="text-right">
-                    <span className="text-[12px] text-vb-accent font-medium">✓ Vibo Certified</span>
+                    <span className="text-[12px] text-vb-accent font-medium">✓ Grepit Certified</span>
                     <p className="text-[10px] text-vb-ink4">Automated security analysis</p>
                   </div>
                 </div>

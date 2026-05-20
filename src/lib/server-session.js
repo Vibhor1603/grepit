@@ -130,9 +130,8 @@ export async function getUserPrivateMetadata(userId) {
 export async function getUserSubscriptionData(userId) {
   const metadata = await getUserPrivateMetadata(userId);
   return {
-    stripeCustomerId: metadata.stripeCustomerId || null,
-    stripeSubscriptionId: metadata.stripeSubscriptionId || null,
-    stripePriceId: metadata.stripePriceId || null,
+    razorpayPaymentId: metadata.razorpayPaymentId || null,
+    razorpayOrderId: metadata.razorpayOrderId || null,
     subscriptionStatus: metadata.subscriptionStatus || null,
     plan: metadata.plan || "free",
   };
@@ -141,16 +140,15 @@ export async function getUserSubscriptionData(userId) {
 export async function isUserPro(userId) {
   if (!userId) return false;
   const data = await getUserSubscriptionData(userId);
-  return data.plan === "pro" && data.subscriptionStatus === "active";
+  return (data.plan === "basic" || data.plan === "pro") && data.subscriptionStatus === "active";
 }
 
 export async function saveSubscriptionToMetadata(userId, data) {
   const existing = await getUserPrivateMetadata(userId);
   await updateUserPrivateMetadata(userId, {
     ...existing,
-    stripeCustomerId: data.stripeCustomerId ?? existing.stripeCustomerId,
-    stripeSubscriptionId: data.stripeSubscriptionId ?? existing.stripeSubscriptionId,
-    stripePriceId: data.stripePriceId ?? existing.stripePriceId,
+    razorpayPaymentId: data.razorpayPaymentId ?? existing.razorpayPaymentId,
+    razorpayOrderId: data.razorpayOrderId ?? existing.razorpayOrderId,
     subscriptionStatus: data.subscriptionStatus ?? existing.subscriptionStatus,
     plan: data.plan ?? existing.plan ?? "free",
   });

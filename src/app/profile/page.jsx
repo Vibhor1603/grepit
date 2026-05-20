@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, Trash2, ChevronRight, Clock, CheckCircle, AlertCircle, Loader2, Crown, Zap } from "lucide-react";
+import { ArrowLeft, Trash2, ChevronRight, Clock, CheckCircle, AlertCircle, Loader2, Crown, Zap } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import UpgradeModal from "../../components/UpgradeModal";
 
@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
@@ -58,15 +59,46 @@ export default function ProfilePage() {
       toast.success('Subscription activated! Welcome aboard.');
       window.history.replaceState({}, '', '/profile');
     }
+    if (params.get('plan_change') === 'scheduled') {
+      toast.success('Plan change scheduled. You will switch at the end of your billing period.');
+      window.history.replaceState({}, '', '/profile');
+    }
   }, [isLoaded, isSignedIn]);
 
   const handleManageBilling = async () => {
+    setShowCancelModal(true);
+  };
+
+  const handleUndoCancel = async () => {
     try {
-      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const res = await fetch("/api/razorpay/undo-cancel", { method: "POST" });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else toast.error("Could not open billing portal");
-    } catch { toast.error("Could not open billing portal"); }
+      if (data.success) {
+        toast.success('Cancellation undone. Your subscription will continue as normal.');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        toast.error(data.error || 'Could not undo cancellation');
+      }
+    } catch {
+      toast.error('Could not undo cancellation. Contact support.');
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setShowCancelModal(false);
+    try {
+      const res = await fetch("/api/razorpay/cancel-subscription", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        const endDate = data.currentPeriodEnd ? new Date(data.currentPeriodEnd).toLocaleDateString() : 'the end of your billing period';
+        toast.success(`Subscription cancelled. You can still use your plan until ${endDate}.`);
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        toast.error(data.error || "Could not cancel subscription");
+      }
+    } catch {
+      toast.error("Could not cancel subscription. Contact support.");
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -134,10 +166,10 @@ export default function ProfilePage() {
     );
   }
 
+  const isBasic = subData?.plan === "basic" && subData?.status === "active";
   const isPro = subData?.plan === "pro" && subData?.status === "active";
-  const isTeam = subData?.plan === "team" && subData?.status === "active";
-  const isPaid = isPro || isTeam;
-  const planLabel = isTeam ? "Team" : isPro ? "Pro" : "Free";
+  const isPaid = isBasic || isPro;
+  const planLabel = isPro ? "Pro" : isBasic ? "Basic" : "Free";
 
   return (
     <div className="min-h-screen bg-vb-bg text-vb-ink">
@@ -147,14 +179,17 @@ export default function ProfilePage() {
         error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
       }} />
       <header className="h-16 bg-vb-bg/70 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-6 sticky top-0 z-50">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-vb-ink3 hover:text-vb-accent transition-colors">
+        <div className="cursor-pointer flex items-center gap-2.5" onClick={() => router.push('/')}>
+          <span className="text-[20px] font-semibold tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
+        </div>
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-vb-ink3 hover:text-vb-accent transition-colors ml-6">
           <ArrowLeft size={16} /> <span className="text-[13px]">Back</span>
         </button>
         <div className="ml-auto flex items-center gap-3">
           <button onClick={() => router.push("/")} className="text-[12px] font-medium text-vb-bg bg-vb-accent px-4 py-2 rounded-lg hover:bg-vb-accent-bright transition-all">
             New Analysis
           </button>
-          <SignOutButton><button className="text-[12px] text-vb-ink4 hover:text-vb-accent px-3 py-1.5 rounded-lg border border-white/[0.06] hover:border-vb-accent/20 transition-all">Sign out</button></SignOutButton>
+          <SignOutButton><button className="text-[12px] text-vb-ink2 hover:text-vb-accent px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-vb-accent/20 transition-all">Sign out</button></SignOutButton>
         </div>
       </header>
 
@@ -176,24 +211,33 @@ export default function ProfilePage() {
             <h2 className="text-[11px] text-vb-ink4 uppercase tracking-wider font-medium mb-3">Subscription</h2>
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[15px] font-semibold">{planLabel}</span>
-                  {isPaid && subData?.cancelAtPeriodEnd && <span className="text-[10px] text-vb-ink4 bg-white/[0.04] px-2 py-0.5 rounded-full">Cancels at period end</span>}
-                </div>
-                <p className="text-[12px] text-vb-ink3">
+                <span className="text-[15px] font-semibold">{planLabel}</span>
+                <p className="text-[12px] text-vb-ink3 mt-0.5">
                   {isPaid
-                    ? subData?.currentPeriodEnd ? `Renews ${new Date(subData.currentPeriodEnd).toLocaleDateString()}` : `${isTeam ? '$30' : '$12'}/month`
-                    : "3 repositories · 20 AI queries/day"}
+                    ? subData?.scheduledChange === 'downgrade'
+                      ? `Switching to ${subData.scheduledChangePlan?.charAt(0).toUpperCase() + subData.scheduledChangePlan?.slice(1)} on ${subData?.entitlementEndsAt ? new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'next cycle'}`
+                      : subData?.cancelAtPeriodEnd
+                        ? `Cancels ${subData?.entitlementEndsAt ? new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'at period end'}`
+                        : subData?.entitlementEndsAt ? `Renews ${new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : `${isPro ? '$30' : '$12'}/month`
+                    : "2 repositories · 15 AI queries/day"}
                 </p>
               </div>
               {isPaid ? (
                 <div className="flex items-center gap-2">
-                  <button onClick={handleManageBilling} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors border border-white/[0.06] rounded-lg px-3 py-1.5">
-                    Manage <ExternalLink size={11} />
-                  </button>
-                  <button onClick={handleManageBilling} className="flex items-center gap-1.5 text-[11px] text-vb-ink4 hover:text-vb-red transition-colors border border-white/[0.06] hover:border-vb-red/20 rounded-lg px-3 py-1.5">
-                    Cancel
-                  </button>
+                  {subData?.scheduledChange ? (
+                    <button onClick={handleUndoCancel} className="flex items-center gap-1.5 text-[11px] text-vb-accent hover:text-vb-accent-bright transition-colors border border-vb-accent/20 hover:border-vb-accent/40 rounded-lg px-3 py-1.5">
+                      Undo {subData.scheduledChange === 'cancel' ? 'cancellation' : 'plan change'}
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors border border-white/[0.06] hover:border-vb-accent/20 rounded-lg px-3 py-1.5">
+                        Change plan
+                      </button>
+                      <button onClick={handleManageBilling} className="flex items-center gap-1.5 text-[11px] text-vb-ink2 hover:text-red-400 transition-colors border border-white/[0.08] hover:border-red-400/20 rounded-lg px-3 py-1.5">
+                        Cancel
+                      </button>
+                    </>
+                  )}
                 </div>
               ) : (
                 <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 text-[11px] font-medium bg-vb-accent text-vb-bg px-3 py-1.5 rounded-lg hover:bg-vb-accent-bright transition-all">
@@ -359,16 +403,46 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Cancel Subscription Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowCancelModal(false)}>
+          <div className="w-full max-w-[380px] bg-[#111113] border border-white/[0.08] rounded-xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)]" onClick={e => e.stopPropagation()}>
+            <h3 className="text-[15px] font-semibold text-vb-ink mb-2">Cancel subscription?</h3>
+            <p className="text-[12px] text-vb-ink3 leading-relaxed mb-1">
+              Your <span className="text-vb-ink font-medium">{planLabel}</span> plan will remain active until{' '}
+              <span className="text-vb-accent font-medium">
+                {subData?.currentPeriodEnd
+                  ? new Date(subData.currentPeriodEnd).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                  : 'the end of your billing period'}
+              </span>.
+            </p>
+            <p className="text-[11px] text-vb-ink4 mb-5">
+              After that, you'll be moved to the Free plan. No further charges will be made.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowCancelModal(false)}
+                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+                Keep plan
+              </button>
+              <button onClick={handleCancelSubscription}
+                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-red-400 border border-red-400/20 bg-red-400/[0.06] hover:bg-red-400/[0.12] transition-colors">
+                Cancel subscription
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer className="border-t border-white/[0.06] py-6 px-6">
 
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} currentPlan={subData?.plan || 'free'} />
         <div className="max-w-[900px] mx-auto flex items-center justify-between">
-          <span className="text-[11px] text-vb-ink3">© {new Date().getFullYear()} Vibo</span>
+          <span className="text-[11px] text-vb-ink3">© {new Date().getFullYear()} Grepit</span>
           <div className="flex items-center gap-4">
             <a href="/privacy" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Privacy</a>
             <a href="/terms" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Terms</a>
-            <a href="mailto:hello@vibo.dev" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Contact</a>
+            <a href="mailto:support@grepit.co" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Contact</a>
           </div>
         </div>
       </footer>

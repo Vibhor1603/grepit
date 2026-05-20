@@ -9,7 +9,7 @@ export const PLANS = {
     name: 'Free',
     price: '$0',
     period: '/month',
-    stripe_price_id: null,
+    amount_paise: 0,
 
     // Limits
     maxRepos: 2,
@@ -49,11 +49,11 @@ export const PLANS = {
     ],
   },
 
-  pro: {
-    name: 'Pro',
+  basic: {
+    name: 'Basic',
     price: '$12',
     period: '/month',
-    stripe_price_id: process.env.STRIPE_PRO_PRICE_ID || null,
+    amount_paise: 1200,
 
     // Limits
     maxRepos: 5,
@@ -82,7 +82,7 @@ export const PLANS = {
     },
 
     // Display
-    cta: 'Upgrade to Pro',
+    cta: 'Upgrade to Basic',
     featured: true,
     features: [
       '5 repositories',
@@ -94,11 +94,11 @@ export const PLANS = {
     ],
   },
 
-  team: {
-    name: 'Team',
+  pro: {
+    name: 'Pro',
     price: '$30',
     period: '/month',
-    stripe_price_id: process.env.STRIPE_TEAM_PRICE_ID || null,
+    amount_paise: 3000,
 
     // Limits
     maxRepos: 15,
@@ -127,10 +127,10 @@ export const PLANS = {
     },
 
     // Display
-    cta: 'Go Team',
+    cta: 'Go Pro',
     featured: false,
     features: [
-      'Everything in Pro',
+      'Everything in Basic',
       '500 AI queries/day',
       '15 repositories',
       'Large codebase support',
@@ -148,18 +148,12 @@ export function getPlan(planName) {
 }
 
 /**
- * Resolve plan name from a Stripe price ID.
+ * Resolve plan name from plan identifier.
  */
 export function getPlanByPriceId(priceId) {
   if (!priceId) return 'free';
-  // Check config first
-  for (const [key, plan] of Object.entries(PLANS)) {
-    if (plan.stripe_price_id && plan.stripe_price_id === priceId) return key;
-  }
-  // Fallback: check env vars directly (in case config was loaded before env was available)
-  if (priceId === process.env.STRIPE_PRO_PRICE_ID) return 'pro';
-  if (priceId === process.env.STRIPE_TEAM_PRICE_ID) return 'team';
-  console.warn(`[plans] getPlanByPriceId: no match for priceId=${priceId}, PRO=${process.env.STRIPE_PRO_PRICE_ID}, TEAM=${process.env.STRIPE_TEAM_PRICE_ID}`);
+  // Direct plan name match
+  if (PLANS[priceId]) return priceId;
   return 'free';
 }
 

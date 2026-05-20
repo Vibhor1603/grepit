@@ -45,12 +45,42 @@ export const query_history = pgTable(
   ],
 );
 
+/**
+ * Subscriptions table — production billing state machine.
+ * 
+ * This table combines:
+ * 1. Billing state (what Razorpay thinks)
+ * 2. Entitlement state (what features user can access)
+ * 3. Scheduled change intent (what user wants next)
+ * 
+ * Access check uses: entitlement_plan + entitlement_ends_at
+ * NOT razorpay_status.
+ */
 export const subscriptions = pgTable(
   "subscriptions",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     user_id: text("user_id").notNull().unique(),
     owner_email: text("owner_email"),
+
+    // ─── Razorpay billing state ───
+    razorpay_subscription_id: text("razorpay_subscription_id"),
+    razorpay_payment_id: text("razorpay_payment_id"),
+    razorpay_status: text("razorpay_status"), // created|authenticated|active|pending|halted|cancelled|completed|expired
+    payment_method: text("payment_method"), // card|upi|emandate|null
+    auto_renew: boolean("auto_renew").notNull().default(true),
+
+    // ─── Entitlement state (source of truth for access) ───
+    entitlement_plan: text("entitlement_plan").notNull().default("free"), // free|pro|team
+    entitlement_starts_at: timestamp("entitlement_starts_at", { withTimezone: true, mode: "string" }),
+    entitlement_ends_at: timestamp("entitlement_ends_at", { withTimezone: true, mode: "string" }),
+
+    // ─── Scheduled change intent ───
+    scheduled_change_type: text("scheduled_change_type"), // downgrade|cancel|upgrade|null
+    scheduled_change_plan: text("scheduled_change_plan"), // target plan (pro|team|free|null)
+    scheduled_change_at: timestamp("scheduled_change_at", { withTimezone: true, mode: "string" }),
+
+    // ─── Legacy columns (kept for backward compat with existing data) ───
     stripe_customer_id: text("stripe_customer_id"),
     stripe_subscription_id: text("stripe_subscription_id"),
     stripe_price_id: text("stripe_price_id"),
@@ -58,13 +88,36 @@ export const subscriptions = pgTable(
     plan: text("plan").notNull().default("free"),
     current_period_end: timestamp("current_period_end", { withTimezone: true, mode: "string" }),
     cancel_at_period_end: boolean("cancel_at_period_end").notNull().default(false),
+
+    // ─── Metadata ───
     created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
     updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => [
     index("subscriptions_user_id_idx").on(table.user_id),
     index("subscriptions_email_idx").on(table.owner_email),
-    index("subscriptions_status_idx").on(table.status),
+    index("subscriptions_entitlement_idx").on(table.entitlement_plan),
+  ],
+);
+
+/**
+ * Webhook events — for idempotency and audit trail.
+ * Stores raw Razorpay webhook payloads to prevent duplicate processing.
+ */
+export const webhook_events = pgTable(
+  "webhook_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    provider: text("provider").notNull().default("razorpay"),
+    provider_event_id: text("provider_event_id").notNull().unique(),
+    event_type: text("event_type").notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    processed: boolean("processed").notNull().default(false),
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("webhook_events_provider_event_id_idx").on(table.provider_event_id),
+    index("webhook_events_event_type_idx").on(table.event_type),
   ],
 );
 
@@ -91,11 +144,11 @@ export const shared_chats = pgTable(
     token: text("token").notNull().unique(),
     conversation_id: uuid("conversation_id").notNull(),
     analysis_id: uuid("analysis_id").references(() => analyses.id, { onDelete: "cascade" }),
-    shared_by: text("shared_by").notNull(), // user_id of who shared
+    shared_by: text("shared_by").notNull(),
     repo_name: text("repo_name"),
     title: text("title"),
     created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-    expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }), // null = never expires
+    expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     index("shared_chats_token_idx").on(table.token),

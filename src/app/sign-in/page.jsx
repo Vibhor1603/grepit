@@ -276,7 +276,7 @@ function SignInContent() {
 
         <div className="flex items-center gap-2.5 mb-8">
           <ViboMark size={22} />
-          <span className="text-[17px] font-semibold text-[#eaeaec] tracking-tight">vi<span className="text-[#E0FC10]">b</span>o</span>
+          <span className="text-[17px] font-semibold text-[#eaeaec] tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
         </div>
 
         <h1 className="text-[24px] font-semibold text-[#eaeaec] tracking-tight mb-1">

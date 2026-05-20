@@ -3,13 +3,12 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getDb } from "../../../../lib/db";
 import { analyses, query_history, subscriptions, usage_logs, shared_chats } from "../../../../db/schema";
 import { eq } from "drizzle-orm";
-import { getStripe } from "../../../../lib/stripe";
 import { getSubscription } from "../../../../lib/subscription-gate";
 
 /**
  * DELETE /api/profile/delete-account
  * Permanently deletes the user's account and all associated data.
- * - Cancels active Stripe subscription
+ * - Marks subscription as cancelled
  * - Deletes all analyses, query history, shared chats, usage logs
  * - Deletes subscription record
  * - Deletes Clerk user account
@@ -26,15 +25,22 @@ export async function DELETE() {
     const user = await client.users.getUser(userId);
     const ownerEmail = user.emailAddresses?.[0]?.emailAddress;
 
-    // 1. Cancel active Stripe subscription if exists
+    // 1. Cancel subscription on Razorpay and in DB
     const sub = await getSubscription(userId);
-    if (sub?.stripe_subscription_id && sub?.status === 'active') {
-      try {
-        const stripe = getStripe();
-        await stripe.subscriptions.cancel(sub.stripe_subscription_id);
-      } catch (err) {
-        console.warn('[delete-account] Failed to cancel Stripe subscription:', err.message);
+    if (sub) {
+      const razorpaySubId = sub.razorpay_subscription_id || sub.stripe_subscription_id;
+      if (razorpaySubId) {
+        try {
+          const { cancelSubscription } = await import("../../../../lib/razorpay");
+          await cancelSubscription(razorpaySubId, false); // immediate cancel
+        } catch (err) {
+          console.warn('[delete-account] Failed to cancel on Razorpay:', err?.error?.description || err?.message);
+        }
       }
+      await db.update(subscriptions)
+        .set({ status: 'cancelled', entitlement_plan: 'free', razorpay_status: 'cancelled', updated_at: new Date().toISOString() })
+        .where(eq(subscriptions.user_id, userId))
+        .catch((err) => console.warn('[delete-account] Failed to update subscription:', err.message));
     }
 
     // 2. Delete all user data from database

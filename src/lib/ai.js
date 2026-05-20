@@ -27,7 +27,7 @@ export function getAIHeaders() {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       "Content-Type": "application/json",
       "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
-      "X-Title": "Vibo Code Analyst",
+      "X-Title": "Grepit Code Analyst",
     };
   }
   return {
@@ -59,7 +59,7 @@ export async function aiFetch(body, maxAttempts = 2) {
             Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
             "Content-Type": "application/json",
             "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
-            "X-Title": "Vibo Code Analyst",
+            "X-Title": "Grepit Code Analyst",
           },
           body: JSON.stringify(requestBody),
           signal: controller.signal,
@@ -67,11 +67,22 @@ export async function aiFetch(body, maxAttempts = 2) {
         clearTimeout(timeout);
 
         if (res.status === 429 && attempt < maxAttempts - 1) {
+          console.warn("[ai] OpenRouter rate limited, retrying...");
           await new Promise((r) => setTimeout(r, 2000));
           continue;
         }
 
         if (res.ok || res.status === 429) return res;
+
+        // Check for credit exhaustion (402 = payment required)
+        if (res.status === 402) {
+          const err = new Error("OpenRouter credits exhausted");
+          Sentry.captureException(err, { 
+            level: "fatal",
+            tags: { source: "ai-provider", provider: "openrouter", reason: "credits_exhausted" },
+          });
+          console.error("[ai] CRITICAL: OpenRouter credits exhausted!");
+        }
 
         // Non-retryable error from OpenRouter — fall through to Groq
         console.log(`[ai] OpenRouter error ${res.status}, falling back to Groq...`);
@@ -114,6 +125,7 @@ export async function aiFetch(body, maxAttempts = 2) {
 
         if (res.status === 429 || res.status === 413) {
           console.log(`[ai] Groq model ${model} rate-limited (${res.status}), trying next...`);
+          Sentry.addBreadcrumb({ message: `Groq ${model} rate-limited (${res.status})`, level: "warning" });
           break;
         }
 
@@ -136,7 +148,11 @@ export async function aiFetch(body, maxAttempts = 2) {
     }
   }
   const finalError = lastError || new Error("All AI providers failed");
-  Sentry.captureException(finalError, { tags: { source: "ai-provider" } });
+  Sentry.captureException(finalError, { 
+    level: "error",
+    tags: { source: "ai-provider", reason: "all_providers_failed" },
+    extra: { errorMessage: lastError?.message },
+  });
   throw finalError;
 }
 

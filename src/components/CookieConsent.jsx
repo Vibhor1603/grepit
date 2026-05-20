@@ -12,7 +12,7 @@ export default function CookieConsent() {
   useEffect(() => {
     // Only show in production and if not already consented
     if (process.env.NEXT_PUBLIC_APP_ENV !== 'prod') return;
-    const consent = localStorage.getItem('vibo-cookie-consent');
+    const consent = localStorage.getItem('grepit-cookie-consent');
     if (!consent) {
       // Delay showing to not interrupt initial page load
       setTimeout(() => setVisible(true), 2000);
@@ -20,7 +20,7 @@ export default function CookieConsent() {
   }, []);
 
   const accept = () => {
-    localStorage.setItem('vibo-cookie-consent', 'accepted');
+    localStorage.setItem('grepit-cookie-consent', 'accepted');
     setVisible(false);
     // Initialize PostHog now that user consented
     try {
@@ -33,7 +33,7 @@ export default function CookieConsent() {
   };
 
   const decline = () => {
-    localStorage.setItem('vibo-cookie-consent', 'declined');
+    localStorage.setItem('grepit-cookie-consent', 'declined');
     setVisible(false);
     // Opt out of PostHog if it was somehow initialized
     try {

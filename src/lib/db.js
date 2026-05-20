@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { getDatabaseUrl, isDatabaseConfigured } from "./env";
@@ -18,8 +19,17 @@ export function getDb() {
   // Reuse existing instance if URL hasn't changed (handles hot-reload in dev)
   if (_db && _dbUrl === url) return _db;
 
-  const sql = neon(url);
-  _db = drizzle(sql);
-  _dbUrl = url;
-  return _db;
+  try {
+    const sql = neon(url);
+    _db = drizzle(sql);
+    _dbUrl = url;
+    return _db;
+  } catch (error) {
+    Sentry.captureException(error, {
+      level: "fatal",
+      tags: { source: "database" },
+      extra: { configured: isDatabaseConfigured() },
+    });
+    throw error;
+  }
 }

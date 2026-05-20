@@ -557,7 +557,8 @@ export async function handleAnalyzePost(request) {
       );
     }
     Sentry.captureException(error, {
-      tags: { route: "analyze" },
+      level: "error",
+      tags: { source: "analysis", route: "analyze" },
       extra: { repoUrl: body?.repoUrl, ownerEmail },
     });
     console.error("[analyze] error:", error);

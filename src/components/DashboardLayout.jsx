@@ -509,7 +509,7 @@ function RightPanel({ analysis, selectedFile, activeTab, userPlan, onShareChat, 
             <div className="flex items-center justify-center gap-4">
               <a href="/privacy" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Privacy</a>
               <a href="/terms" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Terms</a>
-              <a href="mailto:hello@vibo.dev" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Contact</a>
+              <a href="mailto:support@grepit.co" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Contact</a>
             </div>
           </div>
         </>
@@ -872,7 +872,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
             <div className="h-full flex flex-col items-center justify-center">
               <div className="flex items-center gap-2 mb-3">
                 <ViboMark size={22} />
-                <span className="text-[18px] font-semibold tracking-tight text-vb-ink select-none">vi<span className="text-vb-accent">b</span>o</span>
+                <span className="text-[18px] font-semibold tracking-tight text-vb-ink select-none">grep<span className="text-vb-accent">it</span></span>
               </div>
               <p className="text-[14px] text-vb-ink3 mb-6">What's confusing you today?</p>
               <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mb-10">
@@ -1085,8 +1085,8 @@ export default function DashboardLayout() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
   const { plan: fetchedPlan } = usePlan();
-  const leftPanel = useResizable({ defaultWidth: 240, minWidth: 180, maxWidth: 400, storageKey: 'vibo-left-panel' });
-  const rightPanel = useResizableRight({ defaultWidth: 240, minWidth: 180, maxWidth: 360, storageKey: 'vibo-right-panel' });
+  const leftPanel = useResizable({ defaultWidth: 240, minWidth: 180, maxWidth: 400, storageKey: 'grepit-left-panel' });
+  const rightPanel = useResizableRight({ defaultWidth: 240, minWidth: 180, maxWidth: 360, storageKey: 'grepit-right-panel' });
   const abortRef = useRef(null);
   const { toast, show: showToast, dismiss: dismissToast } = useToast();
   const router = useRouter();
@@ -1394,7 +1394,7 @@ export default function DashboardLayout() {
     return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>;
   }
   if (loading) {
-    return <div className="min-h-screen bg-vb-bg flex flex-col items-center justify-center gap-4"><div className="flex items-center gap-2"><ViboMark size={22} /><span className="text-[18px] font-semibold tracking-tight text-vb-ink select-none">vi<span className="text-vb-accent">b</span>o</span></div><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg><p className="text-[13px] text-vb-ink3">{LOADING_MESSAGES[Math.floor(Date.now() / 3000) % LOADING_MESSAGES.length]}</p></div>;
+    return <div className="min-h-screen bg-vb-bg flex flex-col items-center justify-center gap-4"><div className="flex items-center gap-2"><ViboMark size={22} /><span className="text-[18px] font-semibold tracking-tight text-vb-ink select-none">grep<span className="text-vb-accent">it</span></span></div><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg><p className="text-[13px] text-vb-ink3">{LOADING_MESSAGES[Math.floor(Date.now() / 3000) % LOADING_MESSAGES.length]}</p></div>;
   }
   if (error) return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><div className="text-center space-y-3"><p className="text-vb-red text-[14px]">{getRandomMessage(ERROR_MESSAGES)}</p><p className="text-[12px] text-vb-ink4 font-mono">{error}</p><a href="/" className="inline-block mt-2 text-[13px] text-vb-ink3 underline hover:text-vb-ink transition-colors">← Go back</a></div></div>;
 
@@ -1420,12 +1420,12 @@ export default function DashboardLayout() {
                 <PanelLeftOpen size={15} />
               </button>
             )}
-            <a href="/" className="flex items-center gap-1.5 mr-2 hover:opacity-90 transition-opacity flex-shrink-0" title="Vibo Home">
+            <a href="/" className="flex items-center gap-1.5 mr-2 hover:opacity-90 transition-opacity flex-shrink-0" title="Grepit Home">
               <ViboMark size={18} />
-              <span className="text-[15px] font-semibold tracking-tight text-vb-ink select-none hidden sm:inline">vi<span className="text-vb-accent">b</span>o</span>
+              <span className="text-[15px] font-semibold tracking-tight text-vb-ink select-none hidden sm:inline">grep<span className="text-vb-accent">it</span></span>
             </a>
             <span className="text-vb-ink4 text-[11px] hidden sm:inline">/</span>
-            <span className="text-vb-ink2 hidden sm:inline">{user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'vibo'}</span>
+            <span className="text-vb-ink2 hidden sm:inline">{user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'grepit'}</span>
             <span className="text-vb-ink4 hidden sm:inline">›</span>
             <span className="text-vb-ink font-medium truncate max-w-[100px] sm:max-w-none">{analysis?.repo_name || '...'}</span>
             {analysis?.updated_at && (

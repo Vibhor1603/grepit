@@ -15,7 +15,7 @@ function initPostHog() {
   if (navigator.doNotTrack === "1" || navigator.globalPrivacyControl === true) return;
   
   // Only initialize if user has consented (or hasn't declined)
-  const consent = localStorage.getItem('vibo-cookie-consent');
+  const consent = localStorage.getItem('grepit-cookie-consent');
   if (consent === 'declined') return;
   
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {

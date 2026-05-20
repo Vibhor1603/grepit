@@ -44,7 +44,7 @@ function Section({ children, className = '', delay = 0 }) {
 
 /* ─── MOCK UI COMPONENTS ─── */
 
-function MockWindowChrome({ title = 'vibo' }) {
+function MockWindowChrome({ title = 'grepit' }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06] bg-[#111113]">
       <span className="w-[10px] h-[10px] rounded-full bg-[#ff5f57]" />
@@ -58,7 +58,7 @@ function MockWindowChrome({ title = 'vibo' }) {
 function MockChatUI() {
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-[#111113] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
-      <MockWindowChrome title="vibo — ai chat" />
+      <MockWindowChrome title="grepit — ai chat" />
       <div className="p-5 space-y-4">
         {/* User message */}
         <div className="flex justify-end">
@@ -108,7 +108,7 @@ function MockChatUI() {
 function MockMermaidDiagram() {
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-[#111113] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
-      <MockWindowChrome title="vibo — architecture" />
+      <MockWindowChrome title="grepit — architecture" />
       <div className="p-6 flex items-center justify-center">
         <svg width="420" height="180" viewBox="0 0 420 180" fill="none" className="w-full h-auto">
           {/* Nodes */}
@@ -148,7 +148,7 @@ function MockMermaidDiagram() {
 function MockFileExplorer() {
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-[#111113] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
-      <MockWindowChrome title="vibo — explorer" />
+      <MockWindowChrome title="grepit — explorer" />
       <div className="p-4 font-mono text-[11px] space-y-1">
         {[
           { name: 'src/', type: 'folder', open: true, indent: 0 },
@@ -181,7 +181,7 @@ function MockFileExplorer() {
 function MockSecurityReport() {
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-[#111113] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
-      <MockWindowChrome title="vibo — security audit" />
+      <MockWindowChrome title="grepit — security audit" />
       <div className="p-5">
         {/* Health score */}
         <div className="flex items-center gap-5 mb-5">
@@ -307,7 +307,7 @@ function FeatureDeepDive({ onCta }) {
     <section className="relative z-[1] py-20" id="features">
       <FeatureSpotlight
         heading="AI that actually reads your code"
-        description="Not a generic chatbot. Vibo indexes your entire codebase and answers questions grounded in real files, real functions, real logic. Every response cites the exact source."
+        description="Not a generic chatbot. Grepit indexes your entire codebase and answers questions grounded in real files, real functions, real logic. Every response cites the exact source."
         onCta={onCta}>
         <MockChatUI />
       </FeatureSpotlight>
@@ -387,7 +387,7 @@ function CostComparison() {
     { label: 'Claude Code', cost: 125, color: 'linear-gradient(90deg, #ef4444, #f97316)' },
     { label: 'Cursor (with API keys)', cost: 60, color: 'linear-gradient(90deg, #f97316, #eab308)' },
     { label: 'GitHub Copilot Workspace', cost: 19, color: 'linear-gradient(90deg, #eab308, #a3a3a3)' },
-    { label: 'Vibo', cost: 12, color: 'linear-gradient(90deg, #E0FC10, #b8d00e)' },
+    { label: 'Grepit', cost: 12, color: 'linear-gradient(90deg, #E0FC10, #b8d00e)' },
   ];
 
   return (
@@ -402,7 +402,7 @@ function CostComparison() {
           </motion.h2>
           <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
             className="text-[13px] text-[#787884] max-w-[440px] mx-auto leading-relaxed">
-            Other tools burn 3-5M tokens per session to index and query. Vibo pre-indexes once — each query uses under 5K tokens.
+            Other tools burn 3-5M tokens per session to index and query. Grepit pre-indexes once — each query uses under 5K tokens.
           </motion.p>
         </div>
         {tools.map((tool, i) => (
@@ -423,9 +423,9 @@ function CostComparison() {
   );
 }
 
-/* ─── WHY VIBO — Orbital / Fan Layout ─── */
+/* ─── WHY GREPIT — Orbital / Fan Layout ─── */
 
-function WhyVibo() {
+function WhyGrepit() {
   const items = [
     { icon: Zap, title: 'Instant understanding', desc: 'No setup, no config, paste a link' },
     { icon: MessageSquare, title: 'Grounded answers', desc: 'AI responses cite actual files, not hallucinations' },
@@ -446,7 +446,7 @@ function WhyVibo() {
             className="text-[10px] text-[#E0FC10] tracking-[3px] uppercase mb-3 font-medium">What you get</motion.p>
           <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
             className="text-[30px] md:text-[38px] font-semibold tracking-tight leading-tight">
-            Why teams choose Vibo
+            Why teams choose Grepit
           </motion.h2>
         </div>
 
@@ -562,12 +562,12 @@ function PricingSection({ handlePricingAction, subscribing }) {
       features: ['2 repositories', '15 AI queries/day', 'Basic health report', 'Code explorer', 'Architecture diagrams', 'Markdown export'],
     },
     {
-      name: 'Pro', price: '$12', originalPrice: '$15', period: '/month', cta: 'Upgrade to Pro', featured: true,
+      name: 'Basic', price: '$12', originalPrice: '$15', period: '/month', cta: 'Upgrade to Basic', featured: true,
       features: ['5 repositories', '100 AI queries/day', 'Full security report', 'PDF export', 'Unlimited re-analysis', 'Unlimited sharing'],
     },
     {
-      name: 'Team', price: '$30', period: '/month', cta: 'Go Team', featured: false,
-      features: ['Everything in Pro', '500 AI queries/day', '15 repositories', 'Large codebase support', 'Priority analysis queue', 'Priority support'],
+      name: 'Pro', price: '$30', period: '/month', cta: 'Go Pro', featured: false,
+      features: ['Everything in Basic', '500 AI queries/day', '15 repositories', 'Large codebase support', 'Priority analysis queue', 'Priority support'],
     },
   ];
 
@@ -728,8 +728,8 @@ export default function LandingPage() {
   useEffect(() => {
     const resumeParam = searchParams.get("resume");
     if (resumeParam && isSignedIn) { setRepoUrl(resumeParam); setTimeout(() => handleAnalyze(resumeParam), 1000); return; }
-    const pending = sessionStorage.getItem("vibo-pending-repo");
-    if (pending && isSignedIn) { sessionStorage.removeItem("vibo-pending-repo"); setRepoUrl(pending); setTimeout(() => handleAnalyze(pending), 1500); }
+    const pending = sessionStorage.getItem("grepit-pending-repo");
+    if (pending && isSignedIn) { sessionStorage.removeItem("grepit-pending-repo"); setRepoUrl(pending); setTimeout(() => handleAnalyze(pending), 1500); }
   }, [isSignedIn]); // eslint-disable-line
 
   useEffect(() => {
@@ -746,9 +746,9 @@ export default function LandingPage() {
   }, [searchParams, isSignedIn]);
 
   const saveAndRedirect = (data) => {
-    const saved = JSON.parse(localStorage.getItem('vibo-analyses') || '[]');
+    const saved = JSON.parse(localStorage.getItem('grepit-analyses') || '[]');
     saved.unshift({ id: data.id, name: data.repo_name, url: data.repo_url || 'local upload', date: new Date().toISOString() });
-    localStorage.setItem('vibo-analyses', JSON.stringify(saved.slice(0, 20)));
+    localStorage.setItem('grepit-analyses', JSON.stringify(saved.slice(0, 20)));
     router.push(`/dashboard?id=${data.id}`);
   };
 
@@ -851,16 +851,58 @@ export default function LandingPage() {
     setSubscribing(planName.toLowerCase());
     try {
       trackCheckoutStarted(planName.toLowerCase());
-      const res = await fetch('/api/stripe/checkout', {
+
+      // Load Razorpay script
+      if (!document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
+
+      // Create subscription
+      const res = await fetch('/api/razorpay/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: planName.toLowerCase() }),
       });
       const data = await res.json();
-      if (data.url) { window.location.href = data.url; }
-      else { setError(data.error || 'Something went wrong'); }
+      if (!res.ok) { setError(data.error || 'Something went wrong'); setSubscribing(null); return; }
+
+      // Open Razorpay modal for subscription
+      const options = {
+        key: data.key_id,
+        subscription_id: data.subscription_id,
+        name: 'Grepit',
+        description: `${planName} Plan — Monthly Subscription`,
+        prefill: { name: data.user?.name || '', email: data.user?.email || '' },
+        theme: { color: '#E0FC10' },
+        handler: async function (response) {
+          const verifyRes = await fetch('/api/razorpay/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_subscription_id: response.razorpay_subscription_id,
+              razorpay_signature: response.razorpay_signature,
+              plan: planName.toLowerCase(),
+            }),
+          });
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) { window.location.href = '/profile?checkout=success'; }
+          else { setError(verifyData.error || 'Payment verification failed'); }
+          setSubscribing(null);
+        },
+        modal: { ondismiss: () => setSubscribing(null) },
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (resp) => { setError(`Payment failed: ${resp.error.description}`); setSubscribing(null); });
+      rzp.open();
     } catch { setError('Could not start checkout. Try again.'); }
-    finally { setSubscribing(null); }
+    finally { /* setSubscribing handled in callbacks */ }
   };
 
   const taglineParts = hero.tagline.split(hero.taglineAccent);
@@ -873,7 +915,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 h-16 bg-[#0a0a0c]/70 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-6 md:px-10 z-[100]">
         <div className="cursor-pointer flex items-center gap-2.5" onClick={() => router.push('/')}>
           <ViboMark size={22} />
-          <span className="text-[20px] font-semibold tracking-tight">vi<span className="text-[#E0FC10]">b</span>o</span>
+          <span className="text-[20px] font-semibold tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
         </div>
         <div className="hidden md:flex gap-7 ml-10">
           {[['Features', '#features'], ['How it works', '#how'], ['Pricing', '#pricing']].map(([label, href]) => (
@@ -988,8 +1030,8 @@ export default function LandingPage() {
       {/* COST COMPARISON */}
       <CostComparison />
 
-      {/* WHY VIBO */}
-      <WhyVibo />
+      {/* WHY GREPIT */}
+      <WhyGrepit />
 
       {/* HOW IT WORKS */}
       <HowItWorks />
@@ -1113,16 +1155,16 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
               <ViboMark size={18} />
-              <span className="text-[14px] font-semibold text-[#eaeaec] tracking-tight">vi<span className="text-[#E0FC10]">b</span>o</span>
+              <span className="text-[14px] font-semibold text-[#eaeaec] tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
             </div>
             <div className="flex items-center gap-6">
               <a href="/privacy" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Privacy</a>
               <a href="/terms" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Terms</a>
-              <a href="mailto:hello@vibo.dev" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Contact</a>
+              <a href="mailto:support@grepit.co" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Contact</a>
             </div>
           </div>
           <div className="mt-6 pt-5 border-t border-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-3">
-            <span className="text-[11px] text-[#787884]">© {new Date().getFullYear()} Vibo. All rights reserved.</span>
+            <span className="text-[11px] text-[#787884]">© {new Date().getFullYear()} Grepit. All rights reserved.</span>
             <span className="text-[11px] text-[#787884]">Built for developers who value their time.</span>
           </div>
         </div>

@@ -2,7 +2,7 @@ import "../index.css";
 import Providers from "../components/Providers";
 
 export const metadata = {
-  title: "Vibo — Understand Any Codebase",
+  title: "Grepit — Understand Any Codebase",
   description: "AI-powered codebase intelligence. Architecture analysis, dependency maps, and deep insights for any repository.",
 };
 

@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <p className="text-[13px] text-vb-ink4 mb-10">Last updated: May 19, 2026</p>
 
       <p className="text-[14px] text-vb-ink2 leading-relaxed mb-10">
-        This Privacy Policy describes how Vibo (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;), operated at vibo.dev, collects, uses, shares, and protects your personal information when you use our codebase analysis platform and related services (collectively, the &ldquo;Service&rdquo;). By using the Service, you acknowledge that you have read and understood this Privacy Policy.
+        This Privacy Policy describes how Grepit (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;), operated at grepit.co, collects, uses, shares, and protects your personal information when you use our codebase analysis platform and related services (collectively, the &ldquo;Service&rdquo;). By using the Service, you acknowledge that you have read and understood this Privacy Policy.
       </p>
 
       {/* Section 1 */}
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
         </p>
 
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
-          <strong>Payment Data:</strong> When you subscribe to a paid plan, Stripe collects and processes your payment information (credit/debit card number, billing address, transaction history). We receive only a tokenized reference, last four digits of your card, and subscription status — never your full payment credentials.
+          <strong>Payment Data:</strong> When you subscribe to a paid plan, Razorpay collects and processes your payment information (UPI, credit/debit card, netbanking). We receive only a payment reference ID and subscription status — never your full payment credentials.
         </p>
 
         <p className="text-[14px] text-vb-ink2 leading-relaxed">
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
 
         <ul className="list-disc pl-6 space-y-3 text-[14px] text-vb-ink2 leading-relaxed">
           <li><strong>Clerk</strong> (authentication &amp; user management) — Receives your email, name, profile picture, OAuth tokens, and session data to manage authentication and user identity.</li>
-          <li><strong>Stripe</strong> (payment processing) — Receives your payment method details, billing address, email, and subscription information to process recurring payments and manage subscriptions.</li>
+          <li><strong>Razorpay</strong> (payment processing) — Receives your payment method details and email to process payments and manage subscriptions.</li>
           <li><strong>GitHub API</strong> (repository access) — Receives your OAuth access token to fetch repository metadata and source code content on your behalf. Access is scoped to permissions you explicitly grant.</li>
           <li><strong>OpenRouter</strong> (AI inference) — Receives code snippets and contextual data from your repositories to generate analysis results, answer queries, and produce insights. No personally identifiable information is sent beyond the code content.</li>
           <li><strong>Additional AI providers</strong> (when configured) — Receives the same code analysis data as OpenRouter when used as a fallback inference provider for faster response times.</li>
@@ -155,7 +155,7 @@ export default function PrivacyPage() {
           <li><strong>Right to Lodge a Complaint:</strong> File a complaint with your local data protection authority if you believe your rights have been violated.</li>
         </ul>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3">
-          To exercise any of these rights, contact us at <a href="mailto:privacy@vibo.dev" className="text-vb-accent hover:underline">privacy@vibo.dev</a>. We will respond to verified requests within 30 days (or within the timeframe required by applicable law). We may request additional information to verify your identity before processing your request.
+          To exercise any of these rights, contact us at <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a>. We will respond to verified requests within 30 days (or within the timeframe required by applicable law). We may request additional information to verify your identity before processing your request.
         </p>
 
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3">
@@ -186,7 +186,7 @@ export default function PrivacyPage() {
           <li><strong>Non-Discrimination:</strong> We will not discriminate against you for exercising your CCPA/CPRA rights.</li>
         </ul>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3">
-          To submit a verifiable consumer request, email <a href="mailto:privacy@vibo.dev" className="text-vb-accent hover:underline">privacy@vibo.dev</a> with the subject line &ldquo;CCPA Request.&rdquo; We will verify your identity and respond within 45 days.
+          To submit a verifiable consumer request, email <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a> with the subject line &ldquo;CCPA Request.&rdquo; We will verify your identity and respond within 45 days.
         </p>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-2">
           <strong>Categories of personal information collected in the preceding 12 months:</strong> Identifiers (name, email, IP address), commercial information (subscription history), internet activity (usage data, browsing history within the Service), and professional information (GitHub profile data).
@@ -216,7 +216,7 @@ export default function PrivacyPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">11. Children&apos;s Privacy</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed">
-          The Service is not directed to individuals under the age of 16. We do not knowingly collect personal information from children under 16. If we become aware that we have collected personal data from a child under 16 without parental consent, we will take steps to delete that information promptly. If you believe a child under 16 has provided us with personal information, please contact us at <a href="mailto:privacy@vibo.dev" className="text-vb-accent hover:underline">privacy@vibo.dev</a>.
+          The Service is not directed to individuals under the age of 16. We do not knowingly collect personal information from children under 16. If we become aware that we have collected personal data from a child under 16 without parental consent, we will take steps to delete that information promptly. If you believe a child under 16 has provided us with personal information, please contact us at <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a>.
         </p>
       </section>
 
@@ -265,15 +265,15 @@ export default function PrivacyPage() {
           If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
         </p>
         <ul className="list-none space-y-1 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>Email:</strong> <a href="mailto:privacy@vibo.dev" className="text-vb-accent hover:underline">privacy@vibo.dev</a></li>
-          <li><strong>General Inquiries:</strong> <a href="mailto:hello@vibo.dev" className="text-vb-accent hover:underline">hello@vibo.dev</a></li>
-          <li><strong>Website:</strong> <a href="https://vibo.dev" className="text-vb-accent hover:underline">vibo.dev</a></li>
+          <li><strong>Email:</strong> <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a></li>
+          <li><strong>General Inquiries:</strong> <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a></li>
+          <li><strong>Website:</strong> <a href="https://grepit.co" className="text-vb-accent hover:underline">grepit.co</a></li>
         </ul>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3">
-          <strong>Data Protection Officer (DPO):</strong> For GDPR-related inquiries, you may contact our Data Protection Officer at <a href="mailto:dpo@vibo.dev" className="text-vb-accent hover:underline">dpo@vibo.dev</a>. Our DPO is responsible for overseeing our data protection strategy and ensuring compliance with applicable data protection laws.
+          <strong>Data Protection Officer (DPO):</strong> For GDPR-related inquiries, you may contact our Data Protection Officer at <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a>. Our DPO is responsible for overseeing our data protection strategy and ensuring compliance with applicable data protection laws.
         </p>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3">
-          <strong>EU Representative:</strong> If you are located in the EEA and wish to exercise your rights or have concerns about our processing of your data, you may also contact our EU representative at <a href="mailto:eu-rep@vibo.dev" className="text-vb-accent hover:underline">eu-rep@vibo.dev</a>.
+          <strong>EU Representative:</strong> If you are located in the EEA and wish to exercise your rights or have concerns about our processing of your data, you may also contact our EU representative at <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a>.
         </p>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3">
           We aim to respond to all legitimate inquiries within 30 days. If your request is particularly complex or you have made multiple requests, we may need up to 60 days, in which case we will notify you of the extension and the reasons for it.

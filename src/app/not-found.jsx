@@ -67,7 +67,7 @@ export default function NotFound() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-10">
           <ViboMark size={20} />
-          <span className="text-[16px] font-semibold text-[#eaeaec] tracking-tight">vi<span className="text-[#E0FC10]">b</span>o</span>
+          <span className="text-[16px] font-semibold text-[#eaeaec] tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
         </div>
 
         {/* Terminal-style error */}

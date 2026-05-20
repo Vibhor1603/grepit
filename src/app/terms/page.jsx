@@ -9,7 +9,7 @@ export default function TermsPage() {
       <p className="text-[13px] text-vb-ink4 mb-10">Last updated: May 19, 2026</p>
 
       <p className="text-[14px] text-vb-ink2 leading-relaxed mb-10">
-        These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of Vibo (&ldquo;the Service&rdquo;), operated at vibo.dev by Vibo (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;). Please read these Terms carefully before using the Service.
+        These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of Grepit (&ldquo;the Service&rdquo;), operated at grepit.co by Grepit (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;). Please read these Terms carefully before using the Service.
       </p>
 
       {/* Section 1 */}
@@ -24,7 +24,7 @@ export default function TermsPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">2. Description of Service</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
-          Vibo is a software-as-a-service (SaaS) platform that provides AI-powered codebase analysis tools, including but not limited to:
+          Grepit is a software-as-a-service (SaaS) platform that provides AI-powered codebase analysis tools, including but not limited to:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li><strong>Codebase Analysis:</strong> Automated analysis of GitHub repositories to generate insights about code quality, structure, patterns, and potential issues.</li>
@@ -52,9 +52,9 @@ export default function TermsPage() {
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li><strong>Account Creation:</strong> You must create an account to use the Service. You may register using your email address or through GitHub OAuth.</li>
           <li><strong>Accuracy:</strong> You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate and complete.</li>
-          <li><strong>Security:</strong> You are responsible for safeguarding your account credentials and for all activities that occur under your account. You must notify us immediately at <a href="mailto:hello@vibo.dev" className="text-vb-accent hover:underline">hello@vibo.dev</a> if you suspect unauthorized access to your account.</li>
+          <li><strong>Security:</strong> You are responsible for safeguarding your account credentials and for all activities that occur under your account. You must notify us immediately at <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a> if you suspect unauthorized access to your account.</li>
           <li><strong>One Account Per Person:</strong> Each individual may maintain only one account. Creating multiple accounts to circumvent usage limits or for any other purpose is prohibited.</li>
-          <li><strong>Account Sharing:</strong> You may not share your account credentials with others. Team access is available through our Team subscription tier.</li>
+          <li><strong>Account Sharing:</strong> You may not share your account credentials with others.</li>
         </ul>
       </section>
 
@@ -62,18 +62,18 @@ export default function TermsPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">5. Subscriptions &amp; Billing</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
-          Vibo offers the following subscription tiers:
+          Grepit offers the following subscription tiers:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li><strong>Free Tier:</strong> Limited access to the Service at no cost, subject to the restrictions described in Section 6.</li>
-          <li><strong>Pro Tier:</strong> Enhanced access with higher usage limits, private repository support, and additional features, billed on a recurring monthly or annual basis.</li>
-          <li><strong>Team Tier:</strong> Multi-user access with collaboration features, shared repositories, and administrative controls, billed on a recurring monthly or annual basis per seat.</li>
+          <li><strong>Basic Tier:</strong> Enhanced access with higher usage limits, private repository support, and additional features, billed on a recurring monthly basis.</li>
+          <li><strong>Pro Tier:</strong> Multi-user access with expanded limits, priority queue, large codebase support, and advanced features, billed on a recurring monthly basis.</li>
         </ul>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3 mb-2">
           <strong>Billing Terms:</strong>
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
-          <li>Paid subscriptions are processed through Stripe. By subscribing, you authorize recurring charges to your payment method at the then-current rate.</li>
+          <li>Paid subscriptions are processed through Razorpay. By subscribing, you authorize recurring charges to your payment method at the then-current rate.</li>
           <li>Billing cycles begin on the date of your initial subscription and recur monthly or annually depending on your selected plan.</li>
           <li>All fees are exclusive of applicable taxes, which will be added where required by law.</li>
           <li><strong>Cancellation:</strong> You may cancel your subscription at any time through your account billing portal. Cancellation takes effect at the end of the current billing period. You will retain access to paid features until the end of your paid period.</li>
@@ -113,7 +113,7 @@ export default function TermsPage() {
           <li>Reverse engineer, decompile, disassemble, or otherwise attempt to derive the source code, algorithms, or underlying architecture of the Service.</li>
           <li>Scrape, crawl, or use automated means to extract data from the Service beyond what is provided through our intended interfaces.</li>
           <li>Circumvent, disable, or interfere with rate limits, usage quotas, security features, or access controls.</li>
-          <li>Use the Service to compete with Vibo or to build a substantially similar product or service.</li>
+          <li>Use the Service to compete with Grepit or to build a substantially similar product or service.</li>
           <li>Impersonate any person or entity, or falsely state or misrepresent your affiliation with any person or entity.</li>
           <li>Transmit spam, chain letters, or other unsolicited communications through the Service.</li>
           <li>Interfere with or disrupt the integrity or performance of the Service or its underlying infrastructure.</li>
@@ -130,7 +130,7 @@ export default function TermsPage() {
         <h2 className="text-[18px] font-semibold mb-3">8. Intellectual Property</h2>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li><strong>Your Code:</strong> You retain all ownership rights to the source code and repositories you submit for analysis. Nothing in these Terms transfers ownership of your code to us.</li>
-          <li><strong>Our Service:</strong> Vibo retains all rights, title, and interest in and to the Service, including all software, algorithms, user interfaces, designs, trademarks, service marks, and other intellectual property embodied in or associated with the Service. These Terms do not grant you any right to use our trademarks or branding.</li>
+          <li><strong>Our Service:</strong> Grepit retains all rights, title, and interest in and to the Service, including all software, algorithms, user interfaces, designs, trademarks, service marks, and other intellectual property embodied in or associated with the Service. These Terms do not grant you any right to use our trademarks or branding.</li>
           <li><strong>Generated Reports:</strong> Analysis reports, insights, diagrams, and other outputs generated by the Service based on your code are licensed to you for your personal or internal business use. You may share, distribute, or incorporate these outputs as you see fit. We retain no ownership claim over the content of generated reports specific to your code.</li>
           <li><strong>Feedback:</strong> If you provide feedback, suggestions, or ideas about the Service, you grant us a non-exclusive, royalty-free, perpetual, irrevocable, worldwide license to use, modify, and incorporate such feedback into the Service without obligation to you.</li>
         </ul>
@@ -206,7 +206,7 @@ export default function TermsPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">14. Indemnification</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed">
-          You agree to indemnify, defend, and hold harmless Vibo, its officers, directors, employees, agents, and affiliates from and against any and all claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys&apos; fees) arising out of or related to: (a) your use of the Service; (b) your violation of these Terms; (c) your violation of any third-party rights, including intellectual property rights; (d) your analysis of repositories you did not have authorization to access; or (e) any content or data you submit to the Service. This indemnification obligation survives termination of these Terms and your use of the Service.
+          You agree to indemnify, defend, and hold harmless Grepit, its officers, directors, employees, agents, and affiliates from and against any and all claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys&apos; fees) arising out of or related to: (a) your use of the Service; (b) your violation of these Terms; (c) your violation of any third-party rights, including intellectual property rights; (d) your analysis of repositories you did not have authorization to access; or (e) any content or data you submit to the Service. This indemnification obligation survives termination of these Terms and your use of the Service.
         </p>
       </section>
 
@@ -228,7 +228,7 @@ export default function TermsPage() {
           <strong>Governing Law:</strong> These Terms shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law provisions.
         </p>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
-          <strong>Informal Resolution:</strong> Before initiating any formal dispute resolution, you agree to first contact us at <a href="mailto:legal@vibo.dev" className="text-vb-accent hover:underline">legal@vibo.dev</a> and attempt to resolve the dispute informally for at least 30 days.
+          <strong>Informal Resolution:</strong> Before initiating any formal dispute resolution, you agree to first contact us at <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a> and attempt to resolve the dispute informally for at least 30 days.
         </p>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
           <strong>Arbitration:</strong> If informal resolution fails, any dispute, controversy, or claim arising out of or relating to these Terms or the Service shall be resolved by binding arbitration in accordance with the Arbitration and Conciliation Act, 1996 of India. The arbitration shall be conducted in English, and the seat of arbitration shall be New Delhi, India. The arbitrator&apos;s decision shall be final and binding.
@@ -253,7 +253,7 @@ export default function TermsPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">18. Entire Agreement</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed">
-          These Terms, together with our Privacy Policy and any other legal notices or agreements published by us on the Service, constitute the entire agreement between you and Vibo regarding your use of the Service. These Terms supersede all prior or contemporaneous communications, proposals, and agreements, whether oral or written, between you and us regarding the Service. No waiver of any provision of these Terms shall be deemed a further or continuing waiver of such provision or any other provision. Our failure to exercise or enforce any right or provision of these Terms shall not constitute a waiver of such right or provision.
+          These Terms, together with our Privacy Policy and any other legal notices or agreements published by us on the Service, constitute the entire agreement between you and Grepit regarding your use of the Service. These Terms supersede all prior or contemporaneous communications, proposals, and agreements, whether oral or written, between you and us regarding the Service. No waiver of any provision of these Terms shall be deemed a further or continuing waiver of such provision or any other provision. Our failure to exercise or enforce any right or provision of these Terms shall not constitute a waiver of such right or provision.
         </p>
       </section>
 
@@ -272,9 +272,9 @@ export default function TermsPage() {
           If you have questions about these Terms of Service, please contact us:
         </p>
         <ul className="list-none space-y-1 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>General:</strong> <a href="mailto:hello@vibo.dev" className="text-vb-accent hover:underline">hello@vibo.dev</a></li>
-          <li><strong>Legal:</strong> <a href="mailto:legal@vibo.dev" className="text-vb-accent hover:underline">legal@vibo.dev</a></li>
-          <li><strong>Website:</strong> <a href="https://vibo.dev" className="text-vb-accent hover:underline">vibo.dev</a></li>
+          <li><strong>General:</strong> <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a></li>
+          <li><strong>Legal:</strong> <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a></li>
+          <li><strong>Website:</strong> <a href="https://grepit.co" className="text-vb-accent hover:underline">grepit.co</a></li>
         </ul>
       </section>
     </div>

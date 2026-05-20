@@ -62,7 +62,7 @@ export async function POST(request) {
     .limit(1);
 
   if (existing) {
-    const origin = request.headers.get("origin") || process.env.NEXTAUTH_URL || "https://vibo.dev";
+    const origin = request.headers.get("origin") || process.env.NEXTAUTH_URL || "https://grepit.co";
     return NextResponse.json({ token: existing.token, url: `${origin}/share/${existing.token}` });
   }
 
@@ -82,7 +82,7 @@ export async function POST(request) {
   // Log usage for gating (free users have limited shares)
   logUsage(userId, "chat_share", { conversation_id: conversationId }).catch(() => {});
 
-  const origin = request.headers.get("origin") || process.env.NEXTAUTH_URL || "https://vibo.dev";
+  const origin = request.headers.get("origin") || process.env.NEXTAUTH_URL || "https://grepit.co";
   console.log("[share] Created token:", token, "for conversation:", conversationId);
   return NextResponse.json({ token, url: `${origin}/share/${token}` });
 }

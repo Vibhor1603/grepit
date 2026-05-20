@@ -6,6 +6,7 @@
  * Falls back silently if not configured (no errors, just skips).
  */
 
+import * as Sentry from "@sentry/nextjs";
 import { Resend } from 'resend';
 
 let _resend = null;
@@ -18,7 +19,7 @@ function getResend() {
   return _resend;
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Vibo <notifications@vibo.dev>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Grepit <notifications@grepit.co>';
 
 /**
  * Send a plan upgrade confirmation email.
@@ -31,11 +32,11 @@ export async function sendPlanUpgradeEmail({ to, name, plan, price }) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Welcome to Vibo ${plan} 🎉`,
+      subject: `Welcome to Grepit ${plan} 🎉`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a;">
           <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="font-size: 24px; font-weight: 600; margin: 0;">vi<span style="color: #E0FC10;">b</span>o</h1>
+            <h1 style="font-size: 24px; font-weight: 600; margin: 0;">grep<span style="color: #E0FC10;">it</span></h1>
           </div>
           <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">You're on ${plan} now!</h2>
           <p style="color: #555; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
@@ -58,14 +59,19 @@ export async function sendPlanUpgradeEmail({ to, name, plan, price }) {
             </ul>
           </div>
           <p style="color: #555; font-size: 13px; line-height: 1.6;">
-            Manage your subscription anytime from your <a href="https://vibo.dev/profile" style="color: #E0FC10; text-decoration: none; font-weight: 500;">profile page</a>.
+            Manage your subscription anytime from your <a href="https://grepit.co/profile" style="color: #E0FC10; text-decoration: none; font-weight: 500;">profile page</a>.
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">Vibo — Understand any codebase instantly.</p>
+          <p style="color: #999; font-size: 11px; text-align: center;">Grepit — Understand any codebase instantly.</p>
         </div>
       `,
     });
   } catch (err) {
+    Sentry.captureException(err, {
+      level: "warning",
+      tags: { source: "email", emailType: "upgrade" },
+      extra: { to, plan },
+    });
     console.warn('[email] Failed to send upgrade email:', err.message);
   }
 }
@@ -81,11 +87,11 @@ export async function sendPlanDowngradeEmail({ to, name, previousPlan }) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Your Vibo ${previousPlan} subscription has ended`,
+      subject: `Your Grepit ${previousPlan} subscription has ended`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a;">
           <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="font-size: 24px; font-weight: 600; margin: 0;">vi<span style="color: #E0FC10;">b</span>o</h1>
+            <h1 style="font-size: 24px; font-weight: 600; margin: 0;">grep<span style="color: #E0FC10;">it</span></h1>
           </div>
           <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Subscription ended</h2>
           <p style="color: #555; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
@@ -100,14 +106,19 @@ export async function sendPlanDowngradeEmail({ to, name, previousPlan }) {
             </ul>
           </div>
           <p style="color: #555; font-size: 13px; line-height: 1.6;">
-            Your existing analyses are still accessible. You can <a href="https://vibo.dev/?scrollTo=pricing" style="color: #E0FC10; text-decoration: none; font-weight: 500;">resubscribe anytime</a>.
+            Your existing analyses are still accessible. You can <a href="https://grepit.co/?scrollTo=pricing" style="color: #E0FC10; text-decoration: none; font-weight: 500;">resubscribe anytime</a>.
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">Vibo — Understand any codebase instantly.</p>
+          <p style="color: #999; font-size: 11px; text-align: center;">Grepit — Understand any codebase instantly.</p>
         </div>
       `,
     });
   } catch (err) {
+    Sentry.captureException(err, {
+      level: "warning",
+      tags: { source: "email", emailType: "downgrade" },
+      extra: { to, previousPlan },
+    });
     console.warn('[email] Failed to send downgrade email:', err.message);
   }
 }
@@ -123,18 +134,18 @@ export async function sendPaymentFailedEmail({ to, name, plan }) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Action needed: Payment failed for Vibo ${plan}`,
+      subject: `Action needed: Payment failed for Grepit ${plan}`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a;">
           <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="font-size: 24px; font-weight: 600; margin: 0;">vi<span style="color: #E0FC10;">b</span>o</h1>
+            <h1 style="font-size: 24px; font-weight: 600; margin: 0;">grep<span style="color: #E0FC10;">it</span></h1>
           </div>
           <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Payment failed</h2>
           <p style="color: #555; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
             Hey ${name || 'there'}, we couldn't process your payment for the ${plan} plan. Please update your payment method to keep your subscription active.
           </p>
           <div style="text-align: center; margin-bottom: 24px;">
-            <a href="https://vibo.dev/profile" style="display: inline-block; background: #E0FC10; color: #0a0a0c; padding: 12px 24px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none;">
+            <a href="https://grepit.co/profile" style="display: inline-block; background: #E0FC10; color: #0a0a0c; padding: 12px 24px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none;">
               Update payment method
             </a>
           </div>
@@ -142,11 +153,16 @@ export async function sendPaymentFailedEmail({ to, name, plan }) {
             If payment isn't resolved within 3 days, your subscription will be cancelled and you'll be moved to the Free plan.
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">Vibo — Understand any codebase instantly.</p>
+          <p style="color: #999; font-size: 11px; text-align: center;">Grepit — Understand any codebase instantly.</p>
         </div>
       `,
     });
   } catch (err) {
+    Sentry.captureException(err, {
+      level: "warning",
+      tags: { source: "email", emailType: "payment_failed" },
+      extra: { to, plan },
+    });
     console.warn('[email] Failed to send payment failed email:', err.message);
   }
 }

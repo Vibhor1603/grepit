@@ -1,4 +1,4 @@
-# Vibo Code Analyst
+# Grepit Code Analyst
 
 Next.js frontend and API routes for repository analysis, with:
 

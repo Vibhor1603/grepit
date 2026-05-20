@@ -97,9 +97,9 @@ export const SITE_CONFIG = {
     label: 'Trusted by developers',
     title: 'What people are saying',
     items: [
-      { quote: 'Dropped a legacy codebase I inherited into Vibo and understood the whole thing in 10 minutes. Would have taken me a week otherwise.', name: 'Marcus R.', role: 'Senior Engineer', avatar: 'MR' },
+      { quote: 'Dropped a legacy codebase I inherited into Grepit and understood the whole thing in 10 minutes. Would have taken me a week otherwise.', name: 'Marcus R.', role: 'Senior Engineer', avatar: 'MR' },
       { quote: 'The security audit caught a hardcoded API key in a codebase we were about to acquire. That alone justified the tool.', name: 'Sofia L.', role: 'CTO, Seed-stage startup', avatar: 'SL' },
-      { quote: 'I use Vibo every time I start at a new client. The architecture map makes it trivially easy to explain the codebase to stakeholders.', name: 'Ananya K.', role: 'Freelance Engineer', avatar: 'AK' },
+      { quote: 'I use Grepit every time I start at a new client. The architecture map makes it trivially easy to explain the codebase to stakeholders.', name: 'Ananya K.', role: 'Freelance Engineer', avatar: 'AK' },
     ],
   },
 
@@ -126,15 +126,15 @@ export const SITE_CONFIG = {
         ],
       },
       {
-        id: 'pro',
-        name: 'Pro',
+        id: 'basic',
+        name: 'Basic',
         price: '$12',
         period: '/month',
-        cta: 'Upgrade to Pro',
+        cta: 'Upgrade to Basic',
         featured: true,
         features: [
           '5 repositories',
-          '150 AI queries/day',
+          '100 AI queries/day',
           'Full security report',
           'PDF export',
           'Private repositories',
@@ -142,16 +142,16 @@ export const SITE_CONFIG = {
         ],
       },
       {
-        id: 'team',
-        name: 'Team',
+        id: 'pro',
+        name: 'Pro',
         price: '$30',
         period: '/month',
-        cta: 'Go Team',
+        cta: 'Go Pro',
         featured: false,
         features: [
-          'Everything in Pro',
-          '1,000 AI queries/day',
-          '10 repositories',
+          'Everything in Basic',
+          '500 AI queries/day',
+          '15 repositories',
           'Large codebase support',
           'Priority analysis queue',
           'Priority support',
@@ -163,7 +163,7 @@ export const SITE_CONFIG = {
   // CTA section
   cta: {
     title: 'Ready to try it?',
-    subtitle: 'Free to start. No credit card. No install. Just paste a GitHub URL and see what Vibo finds.',
+    subtitle: 'Free to start. No credit card. No install. Just paste a GitHub URL and see what Grepit finds.',
     button: 'Analyze a codebase',
   },
 };

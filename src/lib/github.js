@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+
 const GITHUB_REPO_REGEX = /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git|\/)?$/i;
 
 export function normalizeGitHubRepoUrl(input) {
@@ -23,7 +25,7 @@ export function normalizeGitHubRepoUrl(input) {
 export async function githubRequest(pathname, accessToken) {
   const headers = {
     Accept: "application/vnd.github+json",
-    "User-Agent": "Vibo-Code-Analyst",
+    "User-Agent": "Grepit-Code-Analyst",
     "X-GitHub-Api-Version": "2022-11-28",
   };
 
@@ -54,6 +56,11 @@ export async function fetchGitHubRepository(repoPath, accessToken) {
   if (repoResponse.status === 401) {
     const error = new Error("GitHub access token is invalid or expired.");
     error.code = "TOKEN_INVALID";
+    Sentry.captureException(error, {
+      level: "warning",
+      tags: { source: "github", reason: "auth_failure" },
+      extra: { repoPath, status: 401 },
+    });
     throw error;
   }
 
@@ -66,10 +73,21 @@ export async function fetchGitHubRepository(repoPath, accessToken) {
   if (repoResponse.status === 403 && accessToken) {
     const rateLimitRemaining = repoResponse.headers.get("x-ratelimit-remaining");
     if (rateLimitRemaining === "0") {
-      throw new Error("GitHub API rate limit exceeded. Try again later.");
+      const error = new Error("GitHub API rate limit exceeded. Try again later.");
+      Sentry.captureException(error, {
+        level: "warning",
+        tags: { source: "github", reason: "rate_limit" },
+        extra: { repoPath, rateLimitRemaining },
+      });
+      throw error;
     }
     const error = new Error("Access forbidden. The token may not have sufficient permissions.");
     error.code = "TOKEN_INVALID";
+    Sentry.captureException(error, {
+      level: "warning",
+      tags: { source: "github", reason: "auth_failure" },
+      extra: { repoPath, status: 403 },
+    });
     throw error;
   }
 

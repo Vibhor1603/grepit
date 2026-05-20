@@ -59,7 +59,7 @@ export default function SharedChatPage() {
           <h1 className="text-[20px] font-semibold text-vb-ink">Chat not found</h1>
           <p className="text-[13px] text-vb-ink3">{error}</p>
           <button onClick={() => router.push('/')} className="text-[12px] font-medium text-vb-bg bg-vb-accent px-4 py-2 rounded-lg hover:bg-vb-accent-bright transition-all">
-            Go to Vibo
+            Go to Grepit
           </button>
         </div>
       </div>
@@ -72,7 +72,7 @@ export default function SharedChatPage() {
       <header className="h-14 border-b border-white/[0.06] flex items-center px-5 flex-shrink-0 bg-vb-bg1 z-50">
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => router.push('/')}>
           <ViboMark size={18} />
-          <span className="text-[15px] font-semibold tracking-tight">vi<span className="text-vb-accent">b</span>o</span>
+          <span className="text-[15px] font-semibold tracking-tight">grep<span className="text-vb-accent">it</span></span>
         </div>
         <div className="ml-4 flex items-center gap-2">
           <span className="text-[11px] text-vb-ink4 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.06]">Shared</span>
