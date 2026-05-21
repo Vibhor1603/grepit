@@ -158,7 +158,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
 
       // India: Razorpay modal checkout
       const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) { toast.error('Failed to load payment gateway.'); setLoading(null); return; }
+      if (!scriptLoaded) { toast.error('Payment gateway could not load. Check your connection and try again.'); setLoading(null); return; }
 
       const res = await fetch('/api/razorpay/create-subscription', {
         method: 'POST',
@@ -185,7 +185,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
             const verifyData = await verifyRes.json();
             if (verifyData.success) { window.location.href = '/profile?checkout=success'; }
             else { toast.error(verifyData.error || 'Payment verification failed'); }
-          } catch { toast.error('Payment verification failed. Contact support.'); }
+          } catch { toast.error('Payment verification failed. If you were charged, contact support@grepit.co'); }
           setLoading(null);
         },
         modal: { ondismiss: () => setLoading(null) },
@@ -194,7 +194,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
       rzp.on('payment.failed', (r) => { toast.error(`Payment failed: ${r.error.description}`); setLoading(null); });
       rzp.open();
     } catch {
-      toast.error('Could not process plan change. Try again.');
+      toast.error('Something went wrong. Check your connection and try again.');
       setLoading(null);
     }
   };

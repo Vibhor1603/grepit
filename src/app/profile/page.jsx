@@ -80,7 +80,7 @@ export default function ProfilePage() {
         toast.error(data.error || 'Could not undo cancellation');
       }
     } catch {
-      toast.error('Could not undo cancellation. Contact support.');
+      toast.error('Could not undo cancellation. Please try again or contact support@grepit.co');
     }
   };
 
@@ -97,7 +97,7 @@ export default function ProfilePage() {
         toast.error(data.error || "Could not cancel subscription");
       }
     } catch {
-      toast.error("Could not cancel subscription. Contact support.");
+      toast.error("Could not cancel subscription. Please try again or contact support@grepit.co");
     }
   };
 

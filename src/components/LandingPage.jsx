@@ -889,9 +889,9 @@ export default function LandingPage() {
           body: JSON.stringify({ plan: planName.toLowerCase() }),
         });
         const data = await res.json();
-        if (!res.ok) { setError(data.error || 'Something went wrong'); setSubscribing(null); return; }
+        if (!res.ok) { setError(data.error || 'Could not start checkout. Please try again or contact support@grepit.co'); setSubscribing(null); return; }
         if (data.url) { window.location.href = data.url; }
-        else { setError('Could not create checkout'); setSubscribing(null); }
+        else { setError('Checkout could not be created. Please try again.'); setSubscribing(null); }
         return;
       }
 
@@ -936,15 +936,15 @@ export default function LandingPage() {
           });
           const verifyData = await verifyRes.json();
           if (verifyData.success) { window.location.href = '/profile?checkout=success'; }
-          else { setError(verifyData.error || 'Payment verification failed'); }
+          else { setError('Payment could not be verified. If you were charged, contact support@grepit.co'); }
           setSubscribing(null);
         },
         modal: { ondismiss: () => setSubscribing(null) },
       };
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', (resp) => { setError(`Payment failed: ${resp.error.description}`); setSubscribing(null); });
+      rzp.on('payment.failed', (resp) => { setError(`Payment failed: ${resp.error.description}. Try a different payment method or contact support@grepit.co`); setSubscribing(null); });
       rzp.open();
-    } catch { setError('Could not start checkout. Try again.'); }
+    } catch { setError('Could not start checkout. Check your connection and try again.'); }
     finally { /* setSubscribing handled in callbacks */ }
   };
 
