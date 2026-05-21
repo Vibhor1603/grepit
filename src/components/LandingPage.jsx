@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useUser, SignOutButton } from '@clerk/nextjs';
 import { ViboMark } from './ViboLogo';
 import { SITE_CONFIG } from '../lib/landing-config';
@@ -559,15 +560,15 @@ function PricingSection({ handlePricingAction, subscribing }) {
   const plans = [
     {
       name: 'Free', price: '$0', period: 'forever', cta: 'Get started free', featured: false,
-      features: ['2 repositories', '15 AI queries/day', 'Basic health report', 'Code explorer', 'Architecture diagrams', 'Markdown export'],
+      features: ['1 repository', '15 AI queries/day', 'Basic health report', 'Code explorer', 'Architecture diagrams', 'Markdown export'],
     },
     {
       name: 'Basic', price: '$12', originalPrice: '$15', period: '/month', cta: 'Upgrade to Basic', featured: true,
-      features: ['5 repositories', '100 AI queries/day', 'Full security report', 'PDF export', 'Unlimited re-analysis', 'Unlimited sharing'],
+      features: ['3 repositories', '100 AI queries/day', 'Full security report', 'PDF export', 'Unlimited re-analysis', 'Unlimited sharing'],
     },
     {
       name: 'Pro', price: '$30', period: '/month', cta: 'Go Pro', featured: false,
-      features: ['Everything in Basic', '500 AI queries/day', '15 repositories', 'Large codebase support', 'Priority analysis queue', 'Priority support'],
+      features: ['Everything in Basic', '500 AI queries/day', '7 repositories', 'Large codebase support', 'Priority analysis queue', 'Priority support'],
     },
   ];
 
@@ -872,7 +873,29 @@ export default function LandingPage() {
     try {
       trackCheckoutStarted(planName.toLowerCase());
 
-      // Load Razorpay script
+      // Detect payment provider based on geo
+      let paymentProvider = 'lemonsqueezy';
+      try {
+        const providerRes = await fetch('/api/billing/provider');
+        const providerData = await providerRes.json();
+        paymentProvider = providerData.provider;
+      } catch {}
+
+      if (paymentProvider === 'lemonsqueezy') {
+        // International: redirect to LemonSqueezy
+        const res = await fetch('/api/lemonsqueezy/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: planName.toLowerCase() }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setError(data.error || 'Something went wrong'); setSubscribing(null); return; }
+        if (data.url) { window.location.href = data.url; }
+        else { setError('Could not create checkout'); setSubscribing(null); }
+        return;
+      }
+
+      // India: Razorpay modal
       if (!document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
@@ -1103,17 +1126,17 @@ export default function LandingPage() {
               </div>
               <div className="p-5 text-center border-l border-white/[0.06] bg-[#E0FC10]/[0.03] relative">
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E0FC10]/60 to-transparent" />
-                <span className="text-[14px] text-[#E0FC10] font-bold">Pro</span>
+                <span className="text-[14px] text-[#E0FC10] font-bold">Basic</span>
                 <p className="text-[11px] text-[#E0FC10]/60 mt-0.5">$12/mo</p>
               </div>
               <div className="p-5 text-center border-l border-white/[0.06]">
-                <span className="text-[14px] text-[#b0b0b8] font-semibold">Team</span>
+                <span className="text-[14px] text-[#b0b0b8] font-semibold">Pro</span>
                 <p className="text-[11px] text-[#4a4a54] mt-0.5">$30/mo</p>
               </div>
             </div>
             {/* Rows */}
             {[
-              { feature: 'Repositories', free: '2', pro: '5', team: '15' },
+              { feature: 'Repositories', free: '1', pro: '3', team: '7' },
               { feature: 'AI queries per day', free: '15', pro: '100', team: '500' },
               { feature: 'Token budget per day', free: '50K', pro: '400K', team: '2M' },
               { feature: 'Messages per chat', free: '12', pro: '30', team: '80' },
@@ -1178,8 +1201,10 @@ export default function LandingPage() {
               <span className="text-[14px] font-semibold text-[#eaeaec] tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
             </div>
             <div className="flex items-center gap-6">
-              <a href="/privacy" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Privacy</a>
-              <a href="/terms" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Terms</a>
+              <Link href="/privacy" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Privacy</Link>
+              <Link href="/terms" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Terms</Link>
+              <Link href="/refund" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Refunds</Link>
+              <Link href="/faq" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">FAQ</Link>
               <a href="mailto:support@grepit.co" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Contact</a>
             </div>
           </div>

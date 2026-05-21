@@ -68,7 +68,7 @@ function SignInContent() {
 
   const signIn = signInState?.signIn;
   const signUp = signUpState?.signUp;
-  const setActive = signInState?.setActive || signUpState?.setActive;
+  const setActive = clerk?.setActive || signInState?.setActive || signUpState?.setActive;
 
   // Autofocus email on mount
   useEffect(() => {
@@ -126,27 +126,64 @@ function SignInContent() {
 
   const handleEmailSignIn = async (e) => {
     e.preventDefault();
-    if (!signIn || !email || !password) return;
+    if (!email || !password) return;
+    if (!signIn) { toast.error('Auth not ready. Try refreshing.'); return; }
     clearFieldErrors();
     setLoading(true);
     try {
+      console.log('[signin] Attempting sign in for:', email);
       const result = await signIn.create({ identifier: email, password });
-      if (result.status === 'complete') {
+      const status = result?.status || signIn?.status;
+      console.log('[signin] Result status:', status, 'raw:', JSON.stringify(result?.status));
+      if (status === 'complete') {
         setSuccess(true);
-        await setActive({ session: result.createdSessionId });
+        const sessionId = result?.createdSessionId || signIn?.createdSessionId;
+        await setActive({ session: sessionId });
         setTimeout(() => router.replace(redirectUrl), 400);
+      } else if (status === 'needs_second_factor') {
+        // Clerk requires email verification for untrusted devices
+        try {
+          const activeSignIn = clerk.client.signIn;
+          await activeSignIn.prepareSecondFactor({ strategy: 'email_code' });
+          setVerificationEmail(email);
+          setPendingVerification(true);
+          setResendCooldown(30);
+          setMode('signin_verify');
+        } catch (sfErr) {
+          console.error('[signin] prepareSecondFactor error:', sfErr?.errors || sfErr?.message || sfErr);
+          // Show verification UI anyway — Clerk may have already sent the code
+          setVerificationEmail(email);
+          setPendingVerification(true);
+          setMode('signin_verify');
+        }
+      } else {
+        // Try to check signIn object directly
+        console.log('[signin] signIn.status:', signIn?.status);
+        if (signIn?.status === 'needs_second_factor') {
+          try {
+            await signIn.prepareSecondFactor({ strategy: 'email_code' });
+            setVerificationEmail(email);
+            setPendingVerification(true);
+            setResendCooldown(30);
+            setMode('signin_verify');
+          } catch {
+            setFieldErrors({ password: 'Verification required. Try signing in with GitHub instead.' });
+          }
+        } else {
+          setFieldErrors({ password: 'Sign in requires additional verification. Try GitHub sign-in.' });
+        }
       }
     } catch (err) {
       const clerkErr = err?.errors?.[0];
       const code = clerkErr?.code;
       if (code === 'form_identifier_not_found') {
-        // Auto-switch to signup mode if user doesn't have an account
-        setMode('signup');
-        toast('No account found. Creating one for you...', { icon: '👋' });
+        // No account with this email — show error, let user switch to signup manually
+        setFieldErrors({ email: 'No account with this email. Try signing up.' });
       } else if (code === 'form_password_incorrect') {
         setFieldErrors({ password: 'Incorrect password' });
       } else {
-        toast.error(clerkErr?.longMessage || clerkErr?.message || 'Sign in failed');
+        const msg = clerkErr?.longMessage || clerkErr?.message || 'Sign in failed';
+        setFieldErrors({ password: msg });
       }
     }
     setLoading(false);
@@ -214,12 +251,19 @@ function SignInContent() {
 
   const handleVerification = async (e) => {
     e.preventDefault();
-    if (!signUp) return;
     clearFieldErrors();
     setLoading(true);
     try {
-      const result = await clerk.client.signUp.attemptEmailAddressVerification({ code: verificationCode });
-      console.log('[verify] result status:', result?.status, 'createdSessionId:', result?.createdSessionId);
+      let result;
+      if (mode === 'signin_verify') {
+        // Second factor verification for sign-in
+        const activeSignIn = clerk.client.signIn;
+        result = await activeSignIn.attemptSecondFactor({ strategy: 'email_code', code: verificationCode });
+      } else {
+        // Email verification for sign-up
+        result = await clerk.client.signUp.attemptEmailAddressVerification({ code: verificationCode });
+      }
+      console.log('[verify] result status:', result?.status);
       if (result?.status === 'complete') {
         clearFieldErrors();
         setSuccess(true);

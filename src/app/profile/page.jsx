@@ -442,6 +442,8 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4">
             <a href="/privacy" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Privacy</a>
             <a href="/terms" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Terms</a>
+            <a href="/refund" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Refunds</a>
+            <a href="/faq" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">FAQ</a>
             <a href="mailto:support@grepit.co" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Contact</a>
           </div>
         </div>

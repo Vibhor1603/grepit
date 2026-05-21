@@ -31,6 +31,7 @@ export async function GET() {
     status: sub?.status || "inactive",
     entitlementEndsAt,
     autoRenew: sub?.auto_renew ?? true,
+    paymentMethod: sub?.payment_method || null,
     scheduledChange: sub?.scheduled_change_type || null,
     scheduledChangePlan: sub?.scheduled_change_plan || null,
     scheduledChangeAt: sub?.scheduled_change_at || null,

@@ -26,8 +26,8 @@ async function main() {
     interval: 1,
     item: {
       name: 'Grepit Basic',
-      amount: 1200,
-      currency: 'USD',
+      amount: 99900,
+      currency: 'INR',
       description: 'Basic plan - 5 repos, 100 AI queries/day',
     },
   });
@@ -38,8 +38,8 @@ async function main() {
     interval: 1,
     item: {
       name: 'Grepit Pro',
-      amount: 3000,
-      currency: 'USD',
+      amount: 249900,
+      currency: 'INR',
       description: 'Pro plan - 15 repos, 500 AI queries/day',
     },
   });

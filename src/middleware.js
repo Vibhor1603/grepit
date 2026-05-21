@@ -9,11 +9,15 @@ const isPublicRoute = createRouteMatcher([
   '/sso-callback(.*)',
   '/api/auth(.*)',
   '/api/razorpay/webhook(.*)',
+  '/api/lemonsqueezy/webhook(.*)',
+  '/api/billing/provider(.*)',
   '/api/admin(.*)',
   '/api/share/(.*)',
   '/share/(.*)',
   '/terms',
   '/privacy',
+  '/refund',
+  '/faq',
 ]);
 
 // ── IP-based global rate limit (edge-compatible) ──

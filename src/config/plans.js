@@ -12,7 +12,7 @@ export const PLANS = {
     amount_paise: 0,
 
     // Limits
-    maxRepos: 2,
+    maxRepos: 1,
     maxAiQueriesPerDay: 15,
     maxDiagramsPerHour: 10,
     maxFileViewsPerHour: 30,
@@ -41,7 +41,7 @@ export const PLANS = {
     cta: 'Get started free',
     featured: false,
     features: [
-      '2 repositories',
+      '1 repository',
       '15 AI queries/day',
       'Basic health report',
       'Code explorer',
@@ -56,7 +56,7 @@ export const PLANS = {
     amount_paise: 1200,
 
     // Limits
-    maxRepos: 5,
+    maxRepos: 3,
     maxAiQueriesPerDay: 100,
     maxDiagramsPerHour: 50,
     maxFileViewsPerHour: 200,
@@ -85,7 +85,7 @@ export const PLANS = {
     cta: 'Upgrade to Basic',
     featured: true,
     features: [
-      '5 repositories',
+      '3 repositories',
       '100 AI queries/day',
       'Full security report',
       'PDF export',
@@ -101,7 +101,7 @@ export const PLANS = {
     amount_paise: 3000,
 
     // Limits
-    maxRepos: 15,
+    maxRepos: 7,
     maxAiQueriesPerDay: 500,
     maxDiagramsPerHour: 100,
     maxFileViewsPerHour: 1000,
@@ -132,7 +132,7 @@ export const PLANS = {
     features: [
       'Everything in Basic',
       '500 AI queries/day',
-      '15 repositories',
+      '7 repositories',
       'Large codebase support',
       'Priority analysis queue',
       'Priority support',

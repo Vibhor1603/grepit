@@ -117,7 +117,7 @@ export const SITE_CONFIG = {
         cta: 'Get started free',
         featured: false,
         features: [
-          '2 repositories',
+          '1 repository',
           '20 AI queries/day',
           'Basic health report',
           'Code explorer',
@@ -133,7 +133,7 @@ export const SITE_CONFIG = {
         cta: 'Upgrade to Basic',
         featured: true,
         features: [
-          '5 repositories',
+          '3 repositories',
           '100 AI queries/day',
           'Full security report',
           'PDF export',
@@ -151,7 +151,7 @@ export const SITE_CONFIG = {
         features: [
           'Everything in Basic',
           '500 AI queries/day',
-          '15 repositories',
+          '7 repositories',
           'Large codebase support',
           'Priority analysis queue',
           'Priority support',

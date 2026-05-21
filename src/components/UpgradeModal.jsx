@@ -1,13 +1,25 @@
 "use client";
-import { useState } from 'react';
-import { X, Zap, Check, ArrowRight, ArrowDown, Crown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Check, ArrowRight, ArrowDown, Crown } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 /**
- * Plan management modal — handles upgrades and downgrades via Razorpay.
- * Use from anywhere in the dashboard when a feature is gated or from profile.
+ * Plan management modal — handles upgrades and downgrades.
+ * Routes to Razorpay (India) or LemonSqueezy (international) based on geo.
  */
 export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) {
   const [loading, setLoading] = useState(null);
+  const [provider, setProvider] = useState(null); // "razorpay" | "lemonsqueezy"
+
+  // Detect payment provider on mount
+  useEffect(() => {
+    if (isOpen && !provider) {
+      fetch('/api/billing/provider')
+        .then(r => r.json())
+        .then(d => setProvider(d.provider))
+        .catch(() => setProvider('lemonsqueezy')); // Default to LS if detection fails
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -17,14 +29,14 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
       name: 'Basic',
       price: '$12',
       period: '/mo',
-      features: ['5 repositories', '100 AI queries/day', 'Full security report', 'PDF export', 'Private repos'],
+      features: ['3 repositories', '100 AI queries/day', 'Full security report', 'PDF export', 'Private repos'],
     },
     {
       id: 'pro',
       name: 'Pro',
       price: '$30',
       period: '/mo',
-      features: ['15 repositories', '500 AI queries/day', 'Priority queue', 'Large codebase support'],
+      features: ['7 repositories', '500 AI queries/day', 'Priority queue', 'Large codebase support'],
     },
   ];
 
@@ -54,9 +66,20 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
   const handleUpgrade = async (planId) => {
     setLoading(planId);
     try {
+      // ─── Existing subscriber: use change-plan API ───
       if (currentPlan !== 'free') {
-        // ─── Existing subscriber: use Update Subscription API (no checkout needed) ───
-        const res = await fetch('/api/razorpay/change-plan', {
+        // Determine which provider the user is on by checking their subscription
+        let changePlanEndpoint = '/api/razorpay/change-plan';
+        try {
+          const subRes = await fetch('/api/profile/subscription');
+          const subData = await subRes.json();
+          // If user subscribed via LemonSqueezy, use LS change-plan
+          if (subData?.paymentMethod === 'lemonsqueezy') {
+            changePlanEndpoint = '/api/lemonsqueezy/change-plan';
+          }
+        } catch {}
+
+        const res = await fetch(changePlanEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ plan: planId }),
@@ -64,65 +87,78 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
         const data = await res.json();
 
         if (!res.ok) {
-          alert(data.error || 'Failed to change plan');
+          toast.error(data.error || 'Failed to change plan');
           setLoading(null);
           return;
         }
 
-        // UPI fallback: Razorpay can't update UPI subs, so we get a new subscription_id for checkout
+        // Fallback: needs new checkout (UPI/cancelled sub)
         if (data.requiresCheckout) {
-          const scriptLoaded = await loadRazorpayScript();
-          if (!scriptLoaded) { alert('Failed to load payment gateway.'); setLoading(null); return; }
+          if (provider === 'lemonsqueezy') {
+            // Redirect to LemonSqueezy
+            const lsRes = await fetch('/api/lemonsqueezy/create-checkout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ plan: planId }),
+            });
+            const lsData = await lsRes.json();
+            if (lsData.url) { window.location.href = lsData.url; }
+            else { toast.error(lsData.error || 'Failed to create checkout'); setLoading(null); }
+            return;
+          }
 
+          // Razorpay fallback checkout
+          const scriptLoaded = await loadRazorpayScript();
+          if (!scriptLoaded) { toast.error('Failed to load payment gateway.'); setLoading(null); return; }
           const options = {
             key: data.key_id,
             subscription_id: data.subscription_id,
             name: 'Grepit',
-            description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan — Monthly Subscription`,
+            description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan`,
             theme: { color: '#E0FC10' },
             handler: async function (response) {
-              try {
-                const verifyRes = await fetch('/api/razorpay/verify-payment', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_subscription_id: response.razorpay_subscription_id,
-                    razorpay_signature: response.razorpay_signature,
-                    plan: planId,
-                  }),
-                });
-                const verifyData = await verifyRes.json();
-                if (verifyData.success) { window.location.href = '/profile?checkout=success'; }
-                else { alert(verifyData.error || 'Payment verification failed'); }
-              } catch { alert('Payment verification failed. Contact support.'); }
+              const verifyRes = await fetch('/api/razorpay/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ razorpay_payment_id: response.razorpay_payment_id, razorpay_subscription_id: response.razorpay_subscription_id, razorpay_signature: response.razorpay_signature, plan: planId }),
+              });
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) { window.location.href = '/profile?checkout=success'; }
+              else { toast.error(verifyData.error || 'Payment verification failed'); }
               setLoading(null);
             },
             modal: { ondismiss: () => setLoading(null) },
           };
           const rzp = new window.Razorpay(options);
-          rzp.on('payment.failed', (r) => { alert(`Payment failed: ${r.error.description}`); setLoading(null); });
+          rzp.on('payment.failed', (r) => { toast.error(`Payment failed: ${r.error.description}`); setLoading(null); });
           rzp.open();
           return;
         }
 
-        // Success — reload to reflect changes
-        if (data.type === 'upgrade') {
-          window.location.href = '/profile?checkout=success';
-        } else {
-          // Downgrade scheduled at cycle end
-          window.location.href = '/profile?plan_change=scheduled';
-        }
+        // Direct success (upgrade via Update API or downgrade scheduled)
+        if (data.type === 'upgrade') { window.location.href = '/profile?checkout=success'; }
+        else { window.location.href = '/profile?plan_change=scheduled'; }
         return;
       }
 
-      // ─── New subscriber (free → paid): open Razorpay checkout ───
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        alert('Failed to load payment gateway. Please try again.');
-        setLoading(null);
+      // ─── New subscriber (free → paid) ───
+      if (provider === 'lemonsqueezy') {
+        // International: redirect to LemonSqueezy checkout
+        const res = await fetch('/api/lemonsqueezy/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: planId }),
+        });
+        const data = await res.json();
+        if (!res.ok) { toast.error(data.error || 'Failed to create checkout'); setLoading(null); return; }
+        if (data.url) { window.location.href = data.url; }
+        else { toast.error('No checkout URL returned'); setLoading(null); }
         return;
       }
+
+      // India: Razorpay modal checkout
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) { toast.error('Failed to load payment gateway.'); setLoading(null); return; }
 
       const res = await fetch('/api/razorpay/create-subscription', {
         method: 'POST',
@@ -130,64 +166,35 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
         body: JSON.stringify({ plan: planId }),
       });
       const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Failed to create subscription'); setLoading(null); return; }
 
-      if (!res.ok) {
-        alert(data.error || 'Failed to create subscription');
-        setLoading(null);
-        return;
-      }
-
-      // Open Razorpay checkout modal for new subscription
       const options = {
         key: data.key_id,
         subscription_id: data.subscription_id,
         name: 'Grepit',
-        description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan — Monthly Subscription`,
-        prefill: {
-          name: data.user?.name || '',
-          email: data.user?.email || '',
-        },
-        theme: {
-          color: '#E0FC10',
-        },
+        description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan — Monthly`,
+        prefill: { name: data.user?.name || '', email: data.user?.email || '' },
+        theme: { color: '#E0FC10' },
         handler: async function (response) {
           try {
             const verifyRes = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_subscription_id: response.razorpay_subscription_id,
-                razorpay_signature: response.razorpay_signature,
-                plan: planId,
-              }),
+              body: JSON.stringify({ razorpay_payment_id: response.razorpay_payment_id, razorpay_subscription_id: response.razorpay_subscription_id, razorpay_signature: response.razorpay_signature, plan: planId }),
             });
             const verifyData = await verifyRes.json();
-            if (verifyData.success) {
-              window.location.href = '/profile?checkout=success';
-            } else {
-              alert(verifyData.error || 'Payment verification failed');
-            }
-          } catch {
-            alert('Payment verification failed. Contact support if amount was deducted.');
-          }
+            if (verifyData.success) { window.location.href = '/profile?checkout=success'; }
+            else { toast.error(verifyData.error || 'Payment verification failed'); }
+          } catch { toast.error('Payment verification failed. Contact support.'); }
           setLoading(null);
         },
-        modal: {
-          ondismiss: function () {
-            setLoading(null);
-          },
-        },
+        modal: { ondismiss: () => setLoading(null) },
       };
-
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response) {
-        alert(`Payment failed: ${response.error.description}`);
-        setLoading(null);
-      });
+      rzp.on('payment.failed', (r) => { toast.error(`Payment failed: ${r.error.description}`); setLoading(null); });
       rzp.open();
     } catch {
-      alert('Could not process plan change. Try again.');
+      toast.error('Could not process plan change. Try again.');
       setLoading(null);
     }
   };
