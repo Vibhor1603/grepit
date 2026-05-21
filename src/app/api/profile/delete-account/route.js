@@ -25,18 +25,9 @@ export async function DELETE() {
     const user = await client.users.getUser(userId);
     const ownerEmail = user.emailAddresses?.[0]?.emailAddress;
 
-    // 1. Cancel subscription on Razorpay and in DB
+    // 1. Cancel subscription on payment provider and in DB
     const sub = await getSubscription(userId);
     if (sub) {
-      const razorpaySubId = sub.razorpay_subscription_id || sub.stripe_subscription_id;
-      if (razorpaySubId) {
-        try {
-          const { cancelSubscription } = await import("../../../../lib/razorpay");
-          await cancelSubscription(razorpaySubId, false); // immediate cancel
-        } catch (err) {
-          console.warn('[delete-account] Failed to cancel on Razorpay:', err?.error?.description || err?.message);
-        }
-      }
       await db.update(subscriptions)
         .set({ status: 'cancelled', entitlement_plan: 'free', razorpay_status: 'cancelled', updated_at: new Date().toISOString() })
         .where(eq(subscriptions.user_id, userId))

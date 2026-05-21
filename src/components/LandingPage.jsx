@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useUser, SignOutButton } from '@clerk/nextjs';
 import { ViboMark } from './ViboLogo';
 import { SITE_CONFIG } from '../lib/landing-config';
+import { getAllPlans, PLANS } from '../config/plans';
 import { MessageSquare, Code2, Shield, Zap, Lock, ArrowRight, Check, X, Sparkles, Terminal, BarChart3, Layers, ArrowUpRight, UserCircle } from 'lucide-react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import dynamic from 'next/dynamic';
@@ -557,20 +558,14 @@ function HowItWorks() {
 /* ─── PRICING — Stacked Depth Cards ─── */
 
 function PricingSection({ handlePricingAction, subscribing }) {
-  const plans = [
-    {
-      name: 'Free', price: '$0', period: 'forever', cta: 'Get started free', featured: false,
-      features: ['1 repository', '15 AI queries/day', 'Basic health report', 'Code explorer', 'Architecture diagrams', 'Markdown export'],
-    },
-    {
-      name: 'Basic', price: '$12', originalPrice: '$15', period: '/month', cta: 'Upgrade to Basic', featured: true,
-      features: ['3 repositories', '100 AI queries/day', 'Full security report', 'PDF export', 'Unlimited re-analysis', 'Unlimited sharing'],
-    },
-    {
-      name: 'Pro', price: '$30', period: '/month', cta: 'Go Pro', featured: false,
-      features: ['Everything in Basic', '500 AI queries/day', '7 repositories', 'Large codebase support', 'Priority analysis queue', 'Priority support'],
-    },
-  ];
+  const plans = getAllPlans().map(p => ({
+    name: p.name,
+    price: p.price,
+    period: p.id === 'free' ? 'forever' : p.period,
+    cta: p.cta,
+    featured: p.featured,
+    features: p.features,
+  }));
 
   return (
     <section className="relative z-[1] py-28 px-6 md:px-8" id="pricing">
@@ -873,79 +868,30 @@ export default function LandingPage() {
     try {
       trackCheckoutStarted(planName.toLowerCase());
 
-      // Detect payment provider based on geo
-      let paymentProvider = 'lemonsqueezy';
-      try {
-        const providerRes = await fetch('/api/billing/provider');
-        const providerData = await providerRes.json();
-        paymentProvider = providerData.provider;
-      } catch {}
-
-      if (paymentProvider === 'lemonsqueezy') {
-        // International: redirect to LemonSqueezy
-        const res = await fetch('/api/lemonsqueezy/create-checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: planName.toLowerCase() }),
-        });
-        const data = await res.json();
-        if (!res.ok) { setError(data.error || 'Could not start checkout. Please try again or contact support@grepit.co'); setSubscribing(null); return; }
-        if (data.url) { window.location.href = data.url; }
-        else { setError('Checkout could not be created. Please try again.'); setSubscribing(null); }
-        return;
-      }
-
-      // India: Razorpay modal
-      if (!document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.body.appendChild(script);
-        });
-      }
-
-      // Create subscription
-      const res = await fetch('/api/razorpay/create-subscription', {
+      // Single provider: Dodo Payments (handles both INR and USD)
+      const res = await fetch('/api/dodo/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: planName.toLowerCase() }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Something went wrong'); setSubscribing(null); return; }
 
-      // Open Razorpay modal for subscription
-      const options = {
-        key: data.key_id,
-        subscription_id: data.subscription_id,
-        name: 'Grepit',
-        description: `${planName} Plan — Monthly Subscription`,
-        prefill: { name: data.user?.name || '', email: data.user?.email || '' },
-        theme: { color: '#E0FC10' },
-        handler: async function (response) {
-          const verifyRes = await fetch('/api/razorpay/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_subscription_id: response.razorpay_subscription_id,
-              razorpay_signature: response.razorpay_signature,
-              plan: planName.toLowerCase(),
-            }),
-          });
-          const verifyData = await verifyRes.json();
-          if (verifyData.success) { window.location.href = '/profile?checkout=success'; }
-          else { setError('Payment could not be verified. If you were charged, contact support@grepit.co'); }
-          setSubscribing(null);
-        },
-        modal: { ondismiss: () => setSubscribing(null) },
-      };
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', (resp) => { setError(`Payment failed: ${resp.error.description}. Try a different payment method or contact support@grepit.co`); setSubscribing(null); });
-      rzp.open();
-    } catch { setError('Could not start checkout. Check your connection and try again.'); }
-    finally { /* setSubscribing handled in callbacks */ }
+      if (!res.ok) {
+        setError(data.error || 'Could not start checkout. Please try again or contact support@grepit.co');
+        setSubscribing(null);
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError('Checkout could not be created. Please try again.');
+        setSubscribing(null);
+      }
+    } catch {
+      setError('Could not start checkout. Check your connection and try again.');
+      setSubscribing(null);
+    }
   };
 
   const taglineParts = hero.tagline.split(hero.taglineAccent);
@@ -1127,26 +1073,26 @@ export default function LandingPage() {
               <div className="p-5 text-center border-l border-white/[0.06] bg-[#E0FC10]/[0.03] relative">
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E0FC10]/60 to-transparent" />
                 <span className="text-[14px] text-[#E0FC10] font-bold">Basic</span>
-                <p className="text-[11px] text-[#E0FC10]/60 mt-0.5">$12/mo</p>
+                <p className="text-[11px] text-[#E0FC10]/60 mt-0.5">{PLANS.basic.price}/mo</p>
               </div>
               <div className="p-5 text-center border-l border-white/[0.06]">
                 <span className="text-[14px] text-[#b0b0b8] font-semibold">Pro</span>
-                <p className="text-[11px] text-[#4a4a54] mt-0.5">$30/mo</p>
+                <p className="text-[11px] text-[#4a4a54] mt-0.5">{PLANS.pro.price}/mo</p>
               </div>
             </div>
             {/* Rows */}
             {[
-              { feature: 'Repositories', free: '1', pro: '3', team: '7' },
-              { feature: 'AI queries per day', free: '15', pro: '100', team: '500' },
+              { feature: 'Repositories', free: String(PLANS.free.maxRepos), pro: String(PLANS.basic.maxRepos), team: String(PLANS.pro.maxRepos) },
+              { feature: 'AI queries per day', free: String(PLANS.free.maxAiQueriesPerDay), pro: String(PLANS.basic.maxAiQueriesPerDay), team: String(PLANS.pro.maxAiQueriesPerDay) },
               { feature: 'Token budget per day', free: '50K', pro: '400K', team: '2M' },
-              { feature: 'Messages per chat', free: '12', pro: '30', team: '80' },
+              { feature: 'Messages per chat', free: String(PLANS.free.maxMessagesPerChat), pro: String(PLANS.basic.maxMessagesPerChat), team: String(PLANS.pro.maxMessagesPerChat) },
               { feature: 'Re-analysis frequency', free: '1 / week', pro: 'Unlimited', team: 'Unlimited' },
               { feature: 'Chat sharing', free: '2 total', pro: 'Unlimited', team: 'Unlimited' },
-              { feature: 'Private repositories', free: true, pro: true, team: true },
-              { feature: 'Full security report', free: false, pro: true, team: true },
-              { feature: 'PDF export', free: false, pro: true, team: true },
+              { feature: 'Private repositories', free: PLANS.free.privateRepos, pro: PLANS.basic.privateRepos, team: PLANS.pro.privateRepos },
+              { feature: 'Full security report', free: PLANS.free.fullSecurityReport, pro: PLANS.basic.fullSecurityReport, team: PLANS.pro.fullSecurityReport },
+              { feature: 'PDF export', free: PLANS.free.pdfExport, pro: PLANS.basic.pdfExport, team: PLANS.pro.pdfExport },
               { feature: 'Large codebase support', free: false, pro: false, team: true },
-              { feature: 'Priority analysis queue', free: false, pro: false, team: true },
+              { feature: 'Priority analysis queue', free: PLANS.free.priorityQueue, pro: PLANS.basic.priorityQueue, team: PLANS.pro.priorityQueue },
               { feature: 'Priority support', free: false, pro: false, team: true },
             ].map((row, i) => (
               <div key={i} className={`grid grid-cols-[1.8fr_1fr_1fr_1fr] transition-colors hover:bg-white/[0.02] ${i % 2 === 0 ? 'bg-white/[0.01]' : ''} ${i < 10 ? 'border-b border-white/[0.04]' : ''}`}>

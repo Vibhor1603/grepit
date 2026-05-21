@@ -2,10 +2,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Trash2, ChevronRight, Clock, CheckCircle, AlertCircle, Loader2, Crown, Zap } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import UpgradeModal from "../../components/UpgradeModal";
+import { PLANS } from "../../config/plans";
 
 function Github({ size = 18, className = "" }) {
   return (
@@ -18,6 +19,7 @@ function Github({ size = 18, className = "" }) {
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
+  const queryClient = useQueryClient();
 
   const [disconnecting, setDisconnecting] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
@@ -56,14 +58,40 @@ export default function ProfilePage() {
       window.history.replaceState({}, '', '/profile');
     }
     if (params.get('checkout') === 'success') {
-      toast.success('Subscription activated! Welcome aboard.');
+      toast.success('Payment received! Activating your plan...');
       window.history.replaceState({}, '', '/profile');
+      // Verify checkout — fallback in case webhook was missed
+      verifyCheckout();
     }
     if (params.get('plan_change') === 'scheduled') {
-      toast.success('Plan change scheduled. You will switch at the end of your billing period.');
       window.history.replaceState({}, '', '/profile');
     }
   }, [isLoaded, isSignedIn]);
+
+  // Verify checkout with Dodo directly (fallback when webhook is missed)
+  const verifyCheckout = async (attempt = 1) => {
+    try {
+      const res = await fetch("/api/dodo/verify-checkout", { method: "POST" });
+      const data = await res.json();
+
+      if (data.verified && data.plan !== "free") {
+        toast.success(`${data.plan.charAt(0).toUpperCase() + data.plan.slice(1)} plan activated! Welcome aboard.`);
+        queryClient.invalidateQueries({ queryKey: ['profile-subscription'] });
+        return;
+      }
+
+      // Not verified yet — retry up to 5 times with increasing delay
+      if (attempt < 5) {
+        setTimeout(() => verifyCheckout(attempt + 1), attempt * 3000);
+      } else {
+        toast.error("Plan activation is taking longer than expected. Please refresh in a minute.");
+      }
+    } catch {
+      if (attempt < 5) {
+        setTimeout(() => verifyCheckout(attempt + 1), attempt * 3000);
+      }
+    }
+  };
 
   const handleManageBilling = async () => {
     setShowCancelModal(true);
@@ -71,23 +99,23 @@ export default function ProfilePage() {
 
   const handleUndoCancel = async () => {
     try {
-      const res = await fetch("/api/razorpay/undo-cancel", { method: "POST" });
+      const res = await fetch("/api/dodo/undo-cancel", { method: "POST" });
       const data = await res.json();
       if (data.success) {
-        toast.success('Cancellation undone. Your subscription will continue as normal.');
+        toast.success(data.message || 'Change undone. Your subscription will continue as normal.', { duration: 5000 });
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        toast.error(data.error || 'Could not undo cancellation');
+        toast.error(data.error || 'Could not undo change', { duration: 5000 });
       }
     } catch {
-      toast.error('Could not undo cancellation. Please try again or contact support@grepit.co');
+      toast.error('Could not undo change. Please try again or contact support@grepit.co', { duration: 5000 });
     }
   };
 
   const handleCancelSubscription = async () => {
     setShowCancelModal(false);
     try {
-      const res = await fetch("/api/razorpay/cancel-subscription", { method: "POST" });
+      const res = await fetch("/api/dodo/cancel", { method: "POST" });
       const data = await res.json();
       if (data.success) {
         const endDate = data.currentPeriodEnd ? new Date(data.currentPeriodEnd).toLocaleDateString() : 'the end of your billing period';
@@ -218,8 +246,8 @@ export default function ProfilePage() {
                       ? `Switching to ${subData.scheduledChangePlan?.charAt(0).toUpperCase() + subData.scheduledChangePlan?.slice(1)} on ${subData?.entitlementEndsAt ? new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'next cycle'}`
                       : subData?.cancelAtPeriodEnd
                         ? `Cancels ${subData?.entitlementEndsAt ? new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'at period end'}`
-                        : subData?.entitlementEndsAt ? `Renews ${new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : `${isPro ? '$30' : '$12'}/month`
-                    : "2 repositories · 15 AI queries/day"}
+                        : subData?.entitlementEndsAt ? `Renews ${new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : `${PLANS[subData?.plan || 'basic']?.price || '$12'}/month`
+                    : `${PLANS.free.maxRepos} ${PLANS.free.maxRepos === 1 ? 'repository' : 'repositories'} · ${PLANS.free.maxAiQueriesPerDay} AI queries/day`}
                 </p>
               </div>
               {isPaid ? (

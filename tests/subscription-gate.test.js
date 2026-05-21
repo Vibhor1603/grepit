@@ -11,6 +11,7 @@ vi.mock("../src/lib/db", () => ({ getDb: () => mockDb }));
 describe("subscription-gate", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.resetModules();
   });
 
   describe("isUserPro", () => {
@@ -49,7 +50,7 @@ describe("subscription-gate", () => {
         from: () => ({
           where: () => ({
             limit: () =>
-              Promise.resolve([{ user_id: "user_123", plan: "pro", status: "cancelled" }]),
+              Promise.resolve([{ user_id: "user_123", plan: "pro", status: "cancelled", entitlement_plan: "free", entitlement_ends_at: null }]),
           }),
         }),
       });
@@ -99,7 +100,7 @@ describe("subscription-gate", () => {
   describe("FREE_LIMITS", () => {
     it("defines expected free tier limits", async () => {
       const { FREE_LIMITS } = await import("../src/lib/subscription-gate");
-      expect(FREE_LIMITS.maxRepos).toBe(2);
+      expect(FREE_LIMITS.maxRepos).toBe(1);
       expect(FREE_LIMITS.maxAiQueriesPerDay).toBe(15);
       expect(FREE_LIMITS.maxChatConversations).toBe(5);
       expect(FREE_LIMITS.pdfExport).toBe(false);

@@ -156,6 +156,9 @@ function SignInContent() {
           setPendingVerification(true);
           setMode('signin_verify');
         }
+      } else if (status === 'needs_identifier' || status === 'needs_first_factor') {
+        // Account doesn't exist or sign-in wasn't completed
+        setFieldErrors({ email: 'No account with this email. Try signing up.' });
       } else {
         // Try to check signIn object directly
         console.log('[signin] signIn.status:', signIn?.status);
@@ -167,10 +170,14 @@ function SignInContent() {
             setResendCooldown(30);
             setMode('signin_verify');
           } catch {
-            setFieldErrors({ password: 'Verification required. Try signing in with GitHub instead.' });
+            setVerificationEmail(email);
+            setPendingVerification(true);
+            setMode('signin_verify');
           }
         } else {
-          setFieldErrors({ password: 'Sign in requires additional verification. Try GitHub sign-in.' });
+          // Unknown status — guide user to try OAuth or sign up
+          console.warn('[signin] Unexpected status:', status, 'signIn.status:', signIn?.status);
+          setFieldErrors({ email: 'Could not sign in with these credentials. Try signing in with GitHub or create a new account.' });
         }
       }
     } catch (err) {
