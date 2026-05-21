@@ -140,7 +140,9 @@ function SignInContent() {
       const clerkErr = err?.errors?.[0];
       const code = clerkErr?.code;
       if (code === 'form_identifier_not_found') {
-        setFieldErrors({ email: 'No account with this email' });
+        // Auto-switch to signup mode if user doesn't have an account
+        setMode('signup');
+        toast('No account found. Creating one for you...', { icon: '👋' });
       } else if (code === 'form_password_incorrect') {
         setFieldErrors({ password: 'Incorrect password' });
       } else {
@@ -195,7 +197,9 @@ function SignInContent() {
       const clerkErr = err?.errors?.[0];
       const code = clerkErr?.code;
       if (code === 'form_identifier_exists') {
-        setFieldErrors({ email: 'An account with this email already exists. Try signing in instead.' });
+        // Auto-switch to signin mode if account already exists
+        setMode('signin');
+        toast('Account already exists. Sign in instead.', { icon: '👋' });
       } else if (code?.startsWith('form_password')) {
         setFieldErrors({ password: clerkErr?.longMessage || clerkErr?.message || 'Password does not meet requirements.' });
       } else if (code === 'session_exists') {
@@ -285,7 +289,7 @@ function SignInContent() {
         <p className="text-[13px] text-[#787884] mb-7">
           {pendingVerification
             ? `We sent a code to ${verificationEmail}`
-            : 'Sign in to analyze any codebase.'}
+            : mode === 'signin' ? 'Sign in to analyze any codebase.' : 'Create your account to get started.'}
         </p>
 
         {/* OAuth buttons — only when not verifying */}

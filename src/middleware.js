@@ -74,6 +74,8 @@ export default clerkMiddleware(async (auth, request) => {
 
 export const config = {
   matcher: [
+    // Clerk proxy path for production vercel.app domain
+    '/__clerk/(.*)',
     // Exclude monitoring tunnel route, Next.js internals, and static files
     '/((?!monitoring|_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     '/(api|trpc)(.*)',

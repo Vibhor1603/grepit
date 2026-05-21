@@ -729,7 +729,13 @@ export default function LandingPage() {
     const resumeParam = searchParams.get("resume");
     if (resumeParam && isSignedIn) { setRepoUrl(resumeParam); setTimeout(() => handleAnalyze(resumeParam), 1000); return; }
     const pending = sessionStorage.getItem("grepit-pending-repo");
-    if (pending && isSignedIn) { sessionStorage.removeItem("grepit-pending-repo"); setRepoUrl(pending); setTimeout(() => handleAnalyze(pending), 1500); }
+    if (pending && isSignedIn) { sessionStorage.removeItem("grepit-pending-repo"); setRepoUrl(pending); setTimeout(() => handleAnalyze(pending), 1500); return; }
+    const pendingUpload = sessionStorage.getItem("grepit-pending-upload");
+    if (pendingUpload && isSignedIn) {
+      sessionStorage.removeItem("grepit-pending-upload");
+      // Scroll to input and show message to re-upload
+      setTimeout(() => { scrollToInput(); setError("You're signed in! Please re-select your file to start the analysis."); }, 500);
+    }
   }, [isSignedIn]); // eslint-disable-line
 
   useEffect(() => {
@@ -755,7 +761,12 @@ export default function LandingPage() {
   const handleAnalyze = async (url) => {
     const target = url || repoUrl.trim();
     if (!target) return;
-    if (!isSignedIn) { router.push('/sign-in'); return; }
+    if (!isSignedIn) {
+      // Save pending repo so it auto-triggers after sign-in
+      sessionStorage.setItem("grepit-pending-repo", target);
+      router.push('/sign-in');
+      return;
+    }
     if (!target.match(/^https?:\/\/(www\.)?github\.com\/[\w.-]+\/[\w.-]+/)) { setError('Enter a valid GitHub URL (https://github.com/owner/repository)'); return; }
     setLoading(true); setError('');
     try {
@@ -785,7 +796,12 @@ export default function LandingPage() {
 
   const handleUpload = async (file) => {
     if (!file) return;
-    if (!isSignedIn) { router.push('/sign-in'); return; }
+    if (!isSignedIn) {
+      // Can't persist file across navigation, but save intent
+      sessionStorage.setItem("grepit-pending-upload", "true");
+      router.push('/sign-in');
+      return;
+    }
     if (!file.name.endsWith('.zip')) { setError('Please upload a .zip file'); return; }
     if (file.size > 50 * 1024 * 1024) { setError('File too large (max 50MB)'); return; }
     setLoading(true); setError('');
@@ -799,7 +815,11 @@ export default function LandingPage() {
   };
 
   const handleFolderUpload = async (dataTransferItems) => {
-    if (!isSignedIn) { router.push('/sign-in'); return; }
+    if (!isSignedIn) {
+      sessionStorage.setItem("grepit-pending-upload", "true");
+      router.push('/sign-in');
+      return;
+    }
     setLoading(true); setError('');
     try {
       const files = [];
