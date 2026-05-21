@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { analyses, query_history } from "../db/schema";
 import { getDb } from "./db";
+import { cached, invalidate } from "./cache";
 
 function notFound(message) {
   const error = new Error(message);
@@ -37,6 +38,9 @@ export async function updateAnalysisRecord(id, payload) {
   try {
     const [data] = await db.update(analyses).set(payload).where(eq(analyses.id, id)).returning();
     if (!data) throw notFound("Analysis not found.");
+    // Invalidate cache
+    await invalidate(`analysis:${id}`);
+    if (data.owner_email) await invalidate(`analyses:${data.owner_email}`);
     return serializeAnalysisRecord(data);
   } catch (err) {
     if (err.status !== 404) Sentry.captureException(err, { tags: { db_op: "updateAnalysisRecord" }, extra: { id } });
@@ -45,20 +49,22 @@ export async function updateAnalysisRecord(id, payload) {
 }
 
 export async function getAnalysisRecord(id) {
-  const db = getDb();
-  const [data] = await db.select().from(analyses).where(eq(analyses.id, id)).limit(1);
-
-  if (!data) throw notFound("Analysis not found.");
-  return serializeAnalysisRecord(data);
+  return cached(`analysis:${id}`, 600, async () => {
+    const db = getDb();
+    const [data] = await db.select().from(analyses).where(eq(analyses.id, id)).limit(1);
+    if (!data) throw notFound("Analysis not found.");
+    return serializeAnalysisRecord(data);
+  });
 }
 
 export async function listAnalysisRecords(ownerEmail) {
-  const db = getDb();
-  const rows = ownerEmail
-    ? await db.select().from(analyses).where(eq(analyses.owner_email, ownerEmail)).orderBy(desc(analyses.created_at)).limit(20)
-    : await db.select().from(analyses).where(isNull(analyses.owner_email)).orderBy(desc(analyses.created_at)).limit(20);
-
-  return rows.map(serializeAnalysisRecord);
+  return cached(`analyses:${ownerEmail || 'public'}`, 120, async () => {
+    const db = getDb();
+    const rows = ownerEmail
+      ? await db.select().from(analyses).where(eq(analyses.owner_email, ownerEmail)).orderBy(desc(analyses.created_at)).limit(20)
+      : await db.select().from(analyses).where(isNull(analyses.owner_email)).orderBy(desc(analyses.created_at)).limit(20);
+    return rows.map(serializeAnalysisRecord);
+  });
 }
 
 export async function deleteAnalysisRecord(id) {

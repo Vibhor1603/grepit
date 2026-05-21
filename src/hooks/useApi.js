@@ -13,6 +13,8 @@ export function useAnalysis(analysisId) {
       return Array.isArray(data) ? data[0] : data;
     },
     enabled: Boolean(analysisId),
+    staleTime: Infinity, // Analysis data doesn't change until user re-analyzes
+    gcTime: 30 * 60_000, // Keep in cache for 30 minutes
   });
 }
 
