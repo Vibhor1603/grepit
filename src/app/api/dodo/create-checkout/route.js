@@ -50,7 +50,7 @@ export async function POST(request) {
     const email = user.emailAddresses?.[0]?.emailAddress || "";
     const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || email;
 
-    const origin = process.env.NEXTAUTH_URL || "https://grepit.co";
+    const origin = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` || "https://grepit.co";
     const returnUrl = `${origin}/profile?checkout=success`;
 
     const { checkoutUrl } = await createCheckoutSession({

@@ -6,7 +6,8 @@ import { NextResponse } from "next/server";
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'https://vibo-code-analyst.vercel.app',
-  process.env.NEXTAUTH_URL,
+  'https://grepit.co',
+  process.env.NEXT_PUBLIC_APP_URL,
 ].filter(Boolean);
 
 /**

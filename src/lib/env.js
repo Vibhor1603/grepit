@@ -15,7 +15,10 @@ export function getDatabaseUrl() {
 }
 
 export function getBaseUrl() {
-  return process.env.NEXTAUTH_URL || "http://localhost:3000";
+  // Priority: explicit app URL → Vercel production URL → localhost
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  return "http://localhost:3000";
 }
 
 // ── Environment helpers ────────────────────────────────────────────────────

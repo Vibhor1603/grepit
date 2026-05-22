@@ -26,7 +26,7 @@ export function getAIHeaders() {
     return {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+      "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://grepit.co",
       "X-Title": "Grepit Code Analyst",
     };
   }
@@ -58,7 +58,7 @@ export async function aiFetch(body, maxAttempts = 2) {
           headers: {
             Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://grepit.co",
             "X-Title": "Grepit Code Analyst",
           },
           body: JSON.stringify(requestBody),
