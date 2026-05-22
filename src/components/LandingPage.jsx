@@ -7,7 +7,7 @@ import { ViboMark } from './ViboLogo';
 import { SITE_CONFIG } from '../lib/landing-config';
 import { getAllPlans, PLANS } from '../config/plans';
 import { MessageSquare, Code2, Shield, Zap, Lock, ArrowRight, Check, X, Sparkles, Terminal, BarChart3, Layers, ArrowUpRight, UserCircle } from 'lucide-react';
-import { motion, useScroll, useTransform, useInView } from 'framer-motion';
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { trackAnalysisStarted, trackAnalysisFailed, trackCheckoutStarted, trackUpgradeClicked } from '../lib/analytics';
 
@@ -29,6 +29,15 @@ async function parseJsonResponse(res) {
   if (!raw) return {};
   try { return JSON.parse(raw); }
   catch { throw new Error(`Server returned an invalid response (HTTP ${res.status}).`); }
+}
+
+/* ─── Branded "Grepit" text — matches the logo: Grep in white, it in accent ─── */
+function GrepitText({ className = '' }) {
+  return (
+    <span className={`font-semibold tracking-tight ${className}`}>
+      Grep<span className="text-[#E0FC10]">it</span>
+    </span>
+  );
 }
 
 function Section({ children, className = '', delay = 0 }) {
@@ -230,6 +239,29 @@ function ProductShowcase() {
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end end'] });
   const x = useTransform(scrollYProgress, [0, 1], ['0%', '-75%']);
+  const [showHint, setShowHint] = useState(false);
+  const hintTimerRef = useRef(null);
+
+  // Detect horizontal scroll attempts and show a hint
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      const isHorizontalDominant = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+      if (isHorizontalDominant) {
+        setShowHint(true);
+        clearTimeout(hintTimerRef.current);
+        hintTimerRef.current = setTimeout(() => setShowHint(false), 2500);
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: true });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      clearTimeout(hintTimerRef.current);
+    };
+  }, []);
 
   const panels = [
     { caption: 'AI Chat', subtitle: 'Ask anything about the code. Get grounded answers with file citations.', component: <MockChatUI /> },
@@ -246,7 +278,58 @@ function ProductShowcase() {
           <h2 className="text-[28px] md:text-[36px] font-semibold tracking-tight leading-tight text-[#eaeaec]">
             A complete intelligence<br />dashboard
           </h2>
+          {/* Scroll hint — fades out as user scrolls */}
+          <motion.div
+            style={{ opacity: useTransform(scrollYProgress, [0, 0.15], [1, 0]) }}
+            className="mt-5 flex items-center gap-2.5 text-[12px] text-[#E0FC10]/70 font-medium">
+            <motion.div
+              animate={{ y: [0, 4, 0] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+              className="w-6 h-6 rounded-full border border-[#E0FC10]/30 bg-[#E0FC10]/[0.06] flex items-center justify-center">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 5v14M5 12l7 7 7-7"/>
+              </svg>
+            </motion.div>
+            Scroll to explore
+          </motion.div>
         </div>
+
+        {/* Progress dots */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          {panels.map((_, i) => (
+            <motion.div
+              key={i}
+              style={{
+                opacity: useTransform(
+                  scrollYProgress,
+                  [i / panels.length, (i + 0.5) / panels.length, (i + 1) / panels.length],
+                  [0.3, 1, 0.3]
+                ),
+                scaleX: useTransform(
+                  scrollYProgress,
+                  [i / panels.length, (i + 0.5) / panels.length, (i + 1) / panels.length],
+                  [1, 2.5, 1]
+                ),
+              }}
+              className="h-1 w-4 rounded-full bg-[#E0FC10] origin-left"
+            />
+          ))}
+        </div>
+
+        {/* Horizontal scroll warning */}
+        <motion.div
+          initial={false}
+          animate={{ opacity: showHint ? 1 : 0, y: showHint ? 0 : 8 }}
+          transition={{ duration: 0.25 }}
+          className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#111113] border border-[#E0FC10]/30 shadow-[0_4px_20px_rgba(0,0,0,0.6)] backdrop-blur-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E0FC10" strokeWidth="2" opacity="0.8">
+              <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+            <span className="text-[12px] text-[#E0FC10]/80 font-medium whitespace-nowrap">Scroll down to navigate →</span>
+          </div>
+        </motion.div>
+
         <motion.div className="flex gap-8 pl-[5vw] pt-20" style={{ x }}>
           {panels.map((panel, i) => (
             <motion.div key={i} className="flex-shrink-0 w-[85vw] md:w-[55vw] flex items-center gap-8">
@@ -271,68 +354,571 @@ function ProductShowcase() {
   );
 }
 
-/* ─── FEATURE DEEP-DIVE ─── */
+/* ─── PERSISTENT MEMORY — "Your codebase, on speed dial" ─── */
 
-function FeatureSpotlight({ heading, description, children, reverse = false, onCta }) {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const textY = useTransform(scrollYProgress, [0, 1], [60, -60]);
-  const mockY = useTransform(scrollYProgress, [0, 1], [30, -30]);
+function PersistentMemory({ onCta }) {
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start end', 'end start'] });
+  const leftX = useTransform(scrollYProgress, [0, 0.5, 1], [-60, 0, -20]);
+  const rightX = useTransform(scrollYProgress, [0, 0.5, 1], [60, 0, 20]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
+
+  const withoutGrepit = [
+    { q: 'how does auth work in this codebase?', tokens: '~180K tokens', time: '45s', bad: true },
+    { q: 'wait, what was the middleware again?', tokens: '~180K tokens', time: '45s', bad: true },
+    { q: 'explain the payment flow', tokens: '~180K tokens', time: '45s', bad: true },
+  ];
+
+  const withGrepit = [
+    { q: 'how does auth work?', tokens: '~4K tokens', time: '2s', bad: false },
+    { q: 'what does the middleware do?', tokens: '~4K tokens', time: '2s', bad: false },
+    { q: 'explain the payment flow', tokens: '~4K tokens', time: '2s', bad: false },
+  ];
 
   return (
-    <div ref={ref} className="min-h-[60vh] flex items-center py-20 px-6 md:px-8">
-      <div className={`max-w-[1060px] mx-auto flex flex-col ${reverse ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-12 md:gap-20`}>
-        <motion.div className="flex-1" style={{ y: textY }}>
-          <h3 className="text-[26px] md:text-[32px] font-semibold tracking-tight leading-[1.15] text-[#eaeaec] mb-4">
-            {heading}
-          </h3>
-          <p className="text-[14px] text-[#b0b0b8] leading-[1.7] mb-6 max-w-[400px]">
-            {description}
+    <section ref={containerRef} className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden" id="features">
+      {/* Background glow */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#E0FC10]/[0.02] rounded-full blur-[120px]" />
+      </div>
+
+      <div className="max-w-[1060px] mx-auto">
+        <div className="text-center mb-20">
+          <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-[10px] text-[#E0FC10] tracking-[3px] uppercase mb-3 font-medium">The problem</motion.p>
+          <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+            className="text-[32px] md:text-[48px] font-semibold tracking-tight leading-[1.1] mb-5">
+            Stop re-explaining your<br />codebase every session
+          </motion.h2>
+          <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+            className="text-[15px] text-[#787884] max-w-[520px] mx-auto leading-relaxed">
+            Every time you ask Claude or GPT about your code, it re-reads everything from scratch. 
+            That&apos;s 100K-500K tokens per question. Grepit indexes once, answers forever.
+          </motion.p>
+        </div>
+
+        <motion.div style={{ opacity }} className="grid md:grid-cols-2 gap-6">
+          {/* Without Grepit */}
+          <motion.div style={{ x: leftX }}
+            className="rounded-2xl border border-red-500/20 bg-red-500/[0.03] overflow-hidden">
+            <div className="px-5 py-4 border-b border-red-500/10 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500/60" />
+              <span className="text-[11px] font-medium text-red-400/80 uppercase tracking-wider">Without Grepit</span>
+              <span className="ml-auto text-[10px] text-red-400/40 font-mono">Claude / GPT / Cursor</span>
+            </div>
+            <div className="p-5 space-y-3">
+              {withoutGrepit.map((item, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.15 }}
+                  className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-[11px] text-[#787884] font-mono mt-0.5">›</span>
+                    <span className="text-[12px] text-[#b0b0b8]">{item.q}</span>
+                  </div>
+                  <div className="flex items-center gap-3 pl-4">
+                    <span className="text-[10px] font-mono text-red-400/70 bg-red-500/10 px-2 py-0.5 rounded">{item.tokens}</span>
+                    <span className="text-[10px] text-[#4a4a54]">{item.time} wait</span>
+                    <span className="text-[10px] text-red-400/50 ml-auto">context lost on refresh ↻</span>
+                  </div>
+                </motion.div>
+              ))}
+              <div className="pt-2 flex items-center gap-2">
+                <div className="flex-1 h-px bg-red-500/10" />
+                <span className="text-[10px] text-red-400/50 font-mono">~540K tokens/session · $2-8 per session</span>
+                <div className="flex-1 h-px bg-red-500/10" />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* With Grepit */}
+          <motion.div style={{ x: rightX }}
+            className="rounded-2xl border border-[#E0FC10]/20 bg-[#E0FC10]/[0.02] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#E0FC10]/10 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#E0FC10] animate-pulse" />
+              <span className="text-[11px] font-medium text-[#E0FC10]/80 uppercase tracking-wider">With Grepit</span>
+              <span className="ml-auto text-[10px] text-[#E0FC10]/40 font-mono">indexed once, answers forever</span>
+            </div>
+            <div className="p-5 space-y-3">
+              {withGrepit.map((item, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.15 + 0.1 }}
+                  className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-[11px] text-[#E0FC10]/60 font-mono mt-0.5">›</span>
+                    <span className="text-[12px] text-[#b0b0b8]">{item.q}</span>
+                  </div>
+                  <div className="flex items-center gap-3 pl-4">
+                    <span className="text-[10px] font-mono text-[#E0FC10]/70 bg-[#E0FC10]/10 px-2 py-0.5 rounded">{item.tokens}</span>
+                    <span className="text-[10px] text-[#4a4a54]">{item.time} response</span>
+                    <span className="text-[10px] text-[#E0FC10]/40 ml-auto">permanent memory ✓</span>
+                  </div>
+                </motion.div>
+              ))}
+              <div className="pt-2 flex items-center gap-2">
+                <div className="flex-1 h-px bg-[#E0FC10]/10" />
+                <span className="text-[10px] text-[#E0FC10]/50 font-mono">~12K tokens/session · $0.04 per session</span>
+                <div className="flex-1 h-px bg-[#E0FC10]/10" />
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Bottom CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+          className="text-center mt-14">
+          <p className="text-[14px] text-[#787884] mb-5">
+            Analyze once. Ask anything. Forever. <span className="text-[#E0FC10]">Use your AI tools for actual work.</span>
           </p>
-          <motion.button
-            onClick={onCta}
-            whileHover={{ x: 4 }}
-            className="inline-flex items-center gap-2 text-[13px] font-medium text-[#E0FC10] hover:text-[#eafd60] transition-colors">
-            Try it free <ArrowRight size={14} />
+          <motion.button onClick={onCta} whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.98 }}
+            className="inline-flex items-center gap-2 text-[13px] font-medium bg-[#E0FC10] text-[#0a0a0c] py-3 px-7 rounded-xl hover:bg-[#eafd60] transition-all">
+            Try it free — no credit card <ArrowRight size={14} />
           </motion.button>
         </motion.div>
-        <motion.div className="flex-1 max-w-[500px] w-full" style={{ y: mockY }}>
-          {children}
-        </motion.div>
       </div>
-    </div>
+    </section>
   );
 }
 
-function FeatureDeepDive({ onCta }) {
+/* ─── KNOW WHAT YOU'RE SHIPPING — Outcome stories ─── */
+
+/* ─── USE CASES — Premium tabbed showcase ─── */
+
+function UseCases({ onCta }) {
+  const [activeTab, setActiveTab] = useState(0);
+  const [autoplay, setAutoplay] = useState(true);
+  const tabsRef = useRef(null);
+
+  const features = [
+    {
+      label: 'AI Chat',
+      title: 'Ask anything about your code',
+      desc: 'Grounded answers with file citations. Every response anchored to your actual source — no hallucinations, no generic advice.',
+      mock: <MockChatUI />,
+    },
+    {
+      label: 'Security',
+      title: 'Catch issues before they ship',
+      desc: 'Hardcoded secrets, unsafe patterns, missing validation — all flagged with severity and exact line numbers. Full audit in under a minute.',
+      mock: <MockSecurityReport />,
+    },
+    {
+      label: 'Architecture',
+      title: 'Visualize how your code connects',
+      desc: 'Auto-generated dependency graphs, flow diagrams, and system maps. Always in sync with your code, ready to share with stakeholders.',
+      mock: <MockMermaidDiagram />,
+    },
+    {
+      label: 'Explorer',
+      title: 'Browse like you wrote it',
+      desc: 'Full file tree with syntax highlighting, live search, and inline explanations. Navigate any codebase like you have been in it for years.',
+      mock: <MockFileExplorer />,
+    },
+  ];
+
+  // Autoplay rotation
+  useEffect(() => {
+    if (!autoplay) return;
+    const interval = setInterval(() => {
+      setActiveTab(prev => (prev + 1) % features.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [autoplay, features.length]);
+
+  const active = features[activeTab];
+
   return (
-    <section className="relative z-[1] py-20" id="features">
-      <FeatureSpotlight
-        heading="AI that actually reads your code"
-        description="Not a generic chatbot. Grepit indexes your entire codebase and answers questions grounded in real files, real functions, real logic. Every response cites the exact source."
-        onCta={onCta}>
-        <MockChatUI />
-      </FeatureSpotlight>
-      <FeatureSpotlight
-        heading="Security audit in seconds"
-        description="Hardcoded secrets, unsafe patterns, missing validation — all caught instantly. Severity-tagged, linked to exact lines, with actionable fix suggestions."
-        reverse
-        onCta={onCta}>
-        <MockSecurityReport />
-      </FeatureSpotlight>
-      <FeatureSpotlight
-        heading="Architecture diagrams on demand"
-        description="Generate flow diagrams, dependency graphs, and system maps with a single click. Dark-themed, Mermaid-powered, and always up to date with your code."
-        onCta={onCta}>
-        <MockMermaidDiagram />
-      </FeatureSpotlight>
+    <section className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden" id="features">
+      <div className="max-w-[1100px] mx-auto">
+        <div className="text-center mb-16">
+          <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-[10px] text-[#E0FC10] tracking-[3px] uppercase mb-3 font-medium">What it does</motion.p>
+          <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+            className="text-[34px] md:text-[48px] font-semibold tracking-tight leading-[1.05]">
+            Four tools.<br />One analysis.
+          </motion.h2>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="rounded-2xl bg-[#111113] border border-white/[0.06] overflow-hidden">
+
+          {/* Tab bar — top */}
+          <div ref={tabsRef} className="relative flex border-b border-white/[0.06] bg-[#0d0d0f]">
+            {features.map((f, i) => (
+              <button key={i}
+                onClick={() => { setActiveTab(i); setAutoplay(false); }}
+                onMouseEnter={() => setAutoplay(false)}
+                className={`relative flex-1 px-6 py-4 text-left transition-colors ${
+                  activeTab === i ? 'text-[#eaeaec]' : 'text-[#787884] hover:text-[#b0b0b8]'
+                }`}>
+                <div className="flex items-center gap-2 mb-0.5">
+                  {activeTab === i && (
+                    <motion.div layoutId="active-dot"
+                      className="w-1.5 h-1.5 rounded-full bg-[#E0FC10]"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
+                  )}
+                  {activeTab !== i && <div className="w-1.5 h-1.5 rounded-full bg-white/[0.1]" />}
+                  <span className={`text-[12px] font-medium ${activeTab === i ? 'text-[#eaeaec]' : ''}`}>{f.label}</span>
+                </div>
+                {activeTab === i && autoplay && (
+                  <motion.div
+                    className="absolute bottom-0 left-0 h-px bg-[#E0FC10]"
+                    initial={{ width: '0%' }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 5, ease: 'linear' }}
+                    key={activeTab}
+                  />
+                )}
+                {activeTab === i && !autoplay && (
+                  <div className="absolute bottom-0 left-0 right-0 h-px bg-[#E0FC10]" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Content area */}
+          <div className="grid md:grid-cols-[0.8fr_1.2fr] gap-0 min-h-[460px]">
+            {/* Left: description */}
+            <div className="p-10 md:p-12 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/[0.06]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
+                  <h3 className="text-[24px] md:text-[28px] font-semibold text-[#eaeaec] leading-tight tracking-tight mb-4">
+                    {active.title}
+                  </h3>
+                  <p className="text-[14px] text-[#787884] leading-[1.7] mb-7">
+                    {active.desc}
+                  </p>
+                  <motion.button onClick={onCta} whileHover={{ x: 4 }}
+                    className="inline-flex items-center gap-2 text-[13px] font-medium text-[#E0FC10] hover:text-[#eafd60] transition-colors">
+                    Try it free <ArrowRight size={14} />
+                  </motion.button>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Right: mock preview */}
+            <div className="relative p-8 md:p-10 bg-gradient-to-br from-[#0d0d0f] to-[#0a0a0c] flex items-center justify-center overflow-hidden">
+              {/* Subtle grid background */}
+              <div className="absolute inset-0 opacity-[0.4]" style={{
+                backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.04) 1px, transparent 0)',
+                backgroundSize: '24px 24px'
+              }} />
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96, y: -8 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative w-full max-w-[480px]">
+                  {active.mock}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── TOKEN DRAIN — Live counter ─── */
+
+function TokenDrain() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: false, margin: '-100px' });
+  const [tokens, setTokens] = useState(0);
+  const [cost, setCost] = useState(0);
+  const [running, setRunning] = useState(false);
+  const frameRef = useRef(null);
+  const startRef = useRef(null);
+
+  const TARGET_TOKENS = 180000;
+  const DURATION = 4000;
+
+  const runDrain = () => {
+    if (running) return;
+    setRunning(true);
+    setTokens(0);
+    setCost(0);
+    startRef.current = performance.now();
+
+    const animate = (now) => {
+      const elapsed = now - startRef.current;
+      const progress = Math.min(elapsed / DURATION, 1);
+      const eased = 1 - Math.pow(1 - progress, 2);
+      const t = Math.round(eased * TARGET_TOKENS);
+      setTokens(t);
+      setCost(((t / 1_000_000) * 3).toFixed(4));
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(animate);
+      } else {
+        setRunning(false);
+      }
+    };
+    frameRef.current = requestAnimationFrame(animate);
+  };
+
+  useEffect(() => {
+    if (isInView && !running && tokens === 0) runDrain();
+    return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
+  }, [isInView]); // eslint-disable-line
+
+  return (
+    <section ref={ref} className="relative z-[1] py-28 px-6 md:px-8">
+      <div className="max-w-[800px] mx-auto">
+        <div className="text-center mb-16">
+          <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-[10px] text-[#E0FC10] tracking-[3px] uppercase mb-3 font-medium">The token problem</motion.p>
+          <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+            className="text-[30px] md:text-[42px] font-semibold tracking-tight leading-tight mb-4">
+            This is what happens when you ask<br /><span className="text-red-400">&ldquo;how does auth work?&rdquo;</span>
+          </motion.h2>
+          <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+            className="text-[14px] text-[#787884] max-w-[480px] mx-auto leading-relaxed">
+            Your AI tool reads your entire codebase to answer one question. Every. Single. Time.
+          </motion.p>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="rounded-2xl border border-white/[0.08] bg-[#111113] overflow-hidden">
+          {/* Terminal header */}
+          <div className="px-5 py-3.5 border-b border-white/[0.06] flex items-center gap-2 bg-[#0d0d0f]">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-500/60" />
+              <div className="w-3 h-3 rounded-full bg-amber-500/60" />
+              <div className="w-3 h-3 rounded-full bg-green-500/60" />
+            </div>
+            <span className="ml-2 text-[11px] text-[#4a4a54] font-mono">claude-3-sonnet — context window</span>
+          </div>
+
+          <div className="p-8">
+            {/* Token counter */}
+            <div className="text-center mb-8">
+              <div className="text-[11px] text-[#4a4a54] font-mono mb-2 uppercase tracking-wider">tokens consumed</div>
+              <div className="text-[64px] md:text-[80px] font-bold font-mono leading-none text-red-400 tabular-nums">
+                {tokens.toLocaleString()}
+              </div>
+              <div className="text-[13px] text-[#787884] mt-2 font-mono">
+                ≈ <span className="text-red-400">${cost}</span> for this one question
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-3 rounded-full bg-white/[0.04] overflow-hidden mb-3">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-red-600 to-red-400"
+                style={{ width: `${(tokens / TARGET_TOKENS) * 100}%` }}
+                transition={{ duration: 0.05 }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-[#4a4a54] font-mono mb-8">
+              <span>0</span>
+              <span className="text-red-400/60">reading your entire codebase...</span>
+              <span>180K</span>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-white/[0.06] pt-8">
+              <div className="text-center mb-4">
+                <span className="text-[11px] text-[#4a4a54] uppercase tracking-wider">vs. Grepit</span>
+              </div>
+              <div className="flex items-center justify-center gap-8">
+                <div className="text-center">
+                  <div className="text-[32px] font-bold font-mono text-[#E0FC10]">4K</div>
+                  <div className="text-[11px] text-[#4a4a54]">tokens per query</div>
+                </div>
+                <div className="text-[#4a4a54] text-2xl">vs</div>
+                <div className="text-center">
+                  <div className="text-[32px] font-bold font-mono text-red-400">180K</div>
+                  <div className="text-[11px] text-[#4a4a54]">tokens per query</div>
+                </div>
+              </div>
+              <div className="text-center mt-6">
+                <span className="text-[12px] text-[#E0FC10]/60 font-mono">45× cheaper per question</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.5 }}
+          className="text-center mt-6">
+          <button onClick={runDrain} disabled={running}
+            className="text-[11px] text-[#4a4a54] hover:text-[#787884] transition-colors font-mono disabled:opacity-30">
+            {running ? 'draining...' : '↺ replay'}
+          </button>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── FEATURE DEEP-DIVE (kept for backward compat, now replaced) ─── */
+
+function FeatureDeepDive({ onCta }) {
+  return null; // Replaced by PersistentMemory + KnowWhatYoureShipping
+}
+
+/* ─── POSITIONING — We don't write code ─── */
+
+/* ─── EFFICIENCY — Why Grepit saves you money ─── */
+
+function DivisionOfLabour({ onCta }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: '-80px' });
+
+  return (
+    <section ref={ref} className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden" id="features">
+      <div className="max-w-[1100px] mx-auto">
+        <div className="text-center mb-20">
+          <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-[10px] text-[#E0FC10] tracking-[3px] uppercase mb-3 font-medium">Work smarter</motion.p>
+          <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+            className="text-[34px] md:text-[52px] font-semibold tracking-tight leading-[1.05] mb-5">
+            Your AI tools are expensive<br />at the wrong things.
+          </motion.h2>
+          <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+            className="text-[15px] text-[#787884] max-w-[520px] mx-auto leading-relaxed">
+            Every time you ask your AI about your codebase, it re-reads everything from scratch. That&apos;s hundreds of thousands of tokens — per question. <GrepitText /> indexes once and answers forever.
+          </motion.p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-5">
+          {/* Left card: The expensive way */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="relative rounded-2xl bg-[#111113] border border-white/[0.06] overflow-hidden">
+
+            <div className="p-7 border-b border-white/[0.06]">
+              <div className="text-[10px] font-mono text-[#4a4a54] uppercase tracking-wider mb-3">The expensive way</div>
+              <h3 className="text-[16px] font-medium text-[#eaeaec] leading-snug">
+                Re-read the entire codebase for every question
+              </h3>
+            </div>
+
+            <div className="p-7 bg-[#0d0d0f]">
+              <div className="font-mono text-[11px] space-y-2.5">
+                <motion.div initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : {}} transition={{ delay: 0.4 }}>
+                  <span className="text-[#787884]">$ </span>
+                  <span className="text-[#b0b0b8]">how does the payment flow work?</span>
+                </motion.div>
+                <motion.div initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : {}} transition={{ delay: 0.7 }}
+                  className="flex items-center gap-2 text-[#4a4a54]">
+                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20" />
+                    <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  reading 50K–200K tokens of context...
+                </motion.div>
+                <motion.div initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : {}} transition={{ delay: 1.0 }}
+                  className="text-[#787884] leading-relaxed pl-3 border-l border-white/[0.06]">
+                  the payment flow starts in checkout.js...
+                  <div className="mt-1 text-[#4a4a54] text-[10px]">context lost on next session</div>
+                </motion.div>
+              </div>
+
+              <motion.div initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : {}} transition={{ delay: 1.2 }}
+                className="mt-6 pt-5 border-t border-white/[0.06]">
+                <div className="text-[10px] text-[#4a4a54] font-mono uppercase tracking-wider mb-1">per question</div>
+                <div className="text-[28px] font-semibold text-[#ef4444] leading-none tabular-nums">~$0.15–0.50</div>
+                <div className="text-[11px] text-[#4a4a54] mt-1">adds up fast at 10+ questions/day</div>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Right card: The Grepit way */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+            className="relative rounded-2xl bg-[#111113] border border-[#E0FC10]/15 overflow-hidden shadow-[0_0_60px_rgba(224,252,16,0.04)]">
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#E0FC10]/50 to-transparent" />
+
+            <div className="p-7 border-b border-white/[0.06]">
+              <div className="text-[10px] font-mono text-[#E0FC10]/60 uppercase tracking-wider mb-3">The <GrepitText className="text-[10px]" /> way</div>
+              <h3 className="text-[16px] font-medium text-[#eaeaec] leading-snug">
+                Index once. Query forever. Cite exact files.
+              </h3>
+            </div>
+
+            <div className="p-7 bg-[#0d0d0f]">
+              <div className="font-mono text-[11px] space-y-2.5">
+                <motion.div initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : {}} transition={{ delay: 0.5 }}>
+                  <span className="text-[#787884]">$ </span>
+                  <span className="text-[#b0b0b8]">how does the payment flow work?</span>
+                </motion.div>
+                <motion.div initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : {}} transition={{ delay: 0.7 }}
+                  className="text-[#E0FC10]/60 flex items-center gap-1.5">
+                  <Check size={11} strokeWidth={2.5} />
+                  ~4K tokens · pre-indexed · instant
+                </motion.div>
+                <motion.div initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : {}} transition={{ delay: 0.9 }}
+                  className="text-[#787884] leading-relaxed pl-3 border-l border-[#E0FC10]/15">
+                  the payment flow starts in checkout.js, calls the billing API in...
+                  <div className="mt-1 text-[#4a4a54] text-[10px]">[src/app/api/dodo/create-checkout/route.js:52]</div>
+                </motion.div>
+              </div>
+
+              <motion.div initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : {}} transition={{ delay: 1.2 }}
+                className="mt-6 pt-5 border-t border-white/[0.06]">
+                <div className="text-[10px] text-[#4a4a54] font-mono uppercase tracking-wider mb-1">starts at</div>
+                <div className="text-[28px] font-semibold text-[#E0FC10] leading-none tabular-nums">{PLANS.starter.price}/mo</div>
+                <div className="text-[11px] text-[#4a4a54] mt-1">{PLANS.starter.maxAiQueriesPerDay} queries/day · flat rate</div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Bottom tagline */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="mt-12 text-center">
+          <p className="text-[14px] text-[#787884] mb-5">
+            Let your AI tools focus on writing code. Let <GrepitText /> handle everything else.
+          </p>
+          <motion.button onClick={onCta} whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.98 }}
+            className="inline-flex items-center gap-2 text-[13px] font-medium bg-[#E0FC10] text-[#0a0a0c] py-3 px-7 rounded-xl hover:bg-[#eafd60] transition-all">
+            Try it free — no credit card <ArrowRight size={14} />
+          </motion.button>
+        </motion.div>
+      </div>
     </section>
   );
 }
 
 /* ─── COST COMPARISON ─── */
 
-function AnimatedBar({ label, cost, maxCost, color, delay = 0 }) {
+function AnimatedBar({ label, cost, maxCost, color, delay = 0, branded = false }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-40px' });
   const width = (cost / maxCost) * 100;
@@ -343,7 +929,9 @@ function AnimatedBar({ label, cost, maxCost, color, delay = 0 }) {
       animate={isInView ? { opacity: 1, x: 0 } : {}}
       transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[13px] text-[#b0b0b8] font-medium">{label}</span>
+        <span className="text-[13px] text-[#b0b0b8] font-medium">
+          {branded ? <><GrepitText /> <span className="font-normal">Starter</span></> : label}
+        </span>
         <span className="text-[13px] text-[#787884] font-mono">{cost === 0 ? '$0' : `~$${cost}/mo`}</span>
       </div>
       <div className="h-8 rounded-lg bg-white/[0.03] border border-white/[0.04] overflow-hidden relative">
@@ -386,10 +974,10 @@ function AnimatedCounter({ target }) {
 
 function CostComparison() {
   const tools = [
-    { label: 'Claude Code', cost: 125, color: 'linear-gradient(90deg, #ef4444, #f97316)' },
+    { label: 'Claude Code (heavy use)', cost: 125, color: 'linear-gradient(90deg, #ef4444, #f97316)' },
     { label: 'Cursor (with API keys)', cost: 60, color: 'linear-gradient(90deg, #f97316, #eab308)' },
     { label: 'GitHub Copilot Workspace', cost: 19, color: 'linear-gradient(90deg, #eab308, #a3a3a3)' },
-    { label: 'Grepit', cost: 12, color: 'linear-gradient(90deg, #E0FC10, #b8d00e)' },
+    { label: 'Grepit Starter', cost: 12, color: 'linear-gradient(90deg, #E0FC10, #b8d00e)', branded: true },
   ];
 
   return (
@@ -404,7 +992,7 @@ function CostComparison() {
           </motion.h2>
           <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
             className="text-[13px] text-[#787884] max-w-[440px] mx-auto leading-relaxed">
-            Other tools burn 3-5M tokens per session to index and query. Grepit pre-indexes once — each query uses under 5K tokens.
+            Other tools re-read your entire codebase on every question. <GrepitText /> pre-indexes once — each query uses under 5K tokens.
           </motion.p>
         </div>
         {tools.map((tool, i) => (
@@ -417,7 +1005,7 @@ function CostComparison() {
           transition={{ delay: 0.6 }}
           className="mt-10 text-center">
           <p className="text-[12px] text-[#4a4a54]">
-            Based on average monthly usage. Claude Code estimate: 3-5M tokens/session × daily use.
+            Based on average monthly usage for active developers. Claude Code estimate: 3-5M tokens/session × daily use at Sonnet pricing. Cursor estimate includes personal API key costs.
           </p>
         </motion.div>
       </div>
@@ -448,7 +1036,7 @@ function WhyGrepit() {
             className="text-[10px] text-[#E0FC10] tracking-[3px] uppercase mb-3 font-medium">What you get</motion.p>
           <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
             className="text-[30px] md:text-[38px] font-semibold tracking-tight leading-tight">
-            Why teams choose Grepit
+            Why teams choose <GrepitText />
           </motion.h2>
         </div>
 
@@ -482,7 +1070,7 @@ function WhyGrepit() {
   );
 }
 
-/* ─── HOW IT WORKS — Vertical Timeline ─── */
+/* ─── HOW IT WORKS — Wide layout with rich copy ─── */
 
 function HowItWorks() {
   const containerRef = useRef(null);
@@ -490,60 +1078,90 @@ function HowItWorks() {
   const lineHeight = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
 
   const steps = [
-    { icon: Terminal, title: 'Paste a link', desc: 'GitHub URL or upload a ZIP. Public or private, any language.' },
-    { icon: Sparkles, title: 'Instant analysis', desc: '40+ file types parsed. Architecture, APIs, security — all extracted in seconds.' },
-    { icon: Code2, title: 'AI enrichment', desc: 'LLM-powered summaries, insights, and natural-language explanations layered on top.' },
-    { icon: BarChart3, title: 'Explore & ask', desc: 'Interactive dashboard. Chat with the AI. Export reports. Understand everything.' },
+    {
+      icon: Terminal,
+      title: 'Drop a link or upload your code',
+      desc: 'GitHub URL, private repo, or a ZIP. Public or private, any language, any size. No OAuth dance, no config files, no CLI to install. Just paste and go.',
+      detail: 'Supports 40+ languages · public & private repos · ZIP upload · folder drag-and-drop',
+    },
+    {
+      icon: Sparkles,
+      title: 'We index everything. Once.',
+      desc: 'Your entire codebase — files, functions, dependencies, APIs, secrets — parsed and indexed into a structured intelligence layer. This happens once. Not every time you ask a question.',
+      detail: 'Architecture extraction · dependency mapping · security scanning · AI enrichment',
+    },
+    {
+      icon: MessageSquare,
+      title: 'Ask anything. Get grounded answers.',
+      desc: 'Your codebase is now queryable. Ask how auth works, what a function does, where a bug might be hiding. Every answer cites the exact file and line. No hallucinations. No re-reading the whole repo.',
+      detail: 'File-cited responses · follow-up context · persistent across sessions',
+    },
+    {
+      icon: BarChart3,
+      title: 'Export, share, and keep shipping',
+      desc: 'Generate PDF security reports, share chat links with teammates, export architecture diagrams. Use the right tool for the right job — that\'s the division of labor.',
+      detail: 'PDF export · shareable links · architecture diagrams · security reports',
+    },
   ];
 
   return (
     <section ref={containerRef} className="relative z-[1] py-28 px-6 md:px-8" id="how">
-      <div className="max-w-[600px] mx-auto">
-        <div className="text-center mb-16">
+      <div className="max-w-[900px] mx-auto">
+        <div className="text-center mb-20">
           <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             className="text-[10px] text-[#E0FC10] tracking-[3px] uppercase mb-3 font-medium">How it works</motion.p>
           <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-            className="text-[28px] md:text-[36px] font-semibold tracking-tight leading-tight mb-3">
-            From link to full understanding
+            className="text-[30px] md:text-[42px] font-semibold tracking-tight leading-tight mb-4">
+            From link to full understanding.<br />Under a minute.
           </motion.h2>
           <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-            className="text-[12px] text-[#787884] max-w-[360px] mx-auto leading-relaxed">
-            Four steps. Under a minute. Zero configuration.
+            className="text-[14px] text-[#787884] max-w-[480px] mx-auto leading-relaxed">
+            We don&apos;t write code for you. We make sure you understand the code you&apos;re working with — so your AI tools can focus on what they&apos;re actually good at.
           </motion.p>
         </div>
 
         <div className="relative">
           {/* Background line */}
-          <div className="absolute left-[19px] top-0 bottom-0 w-px bg-white/[0.04]" />
+          <div className="absolute left-[23px] top-0 bottom-0 w-px bg-white/[0.04]" />
           {/* Animated glowing line */}
           <motion.div
-            className="absolute left-[19px] top-0 w-px bg-gradient-to-b from-[#E0FC10] to-[#E0FC10]/20"
+            className="absolute left-[23px] top-0 w-px bg-gradient-to-b from-[#E0FC10] via-[#E0FC10]/60 to-transparent"
             style={{ height: lineHeight }}
           />
 
-          <div className="space-y-12">
+          <div className="space-y-14">
             {steps.map((step, i) => {
               const Icon = step.icon;
               return (
                 <motion.div key={i}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: -24 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: '-40px' }}
-                  transition={{ duration: 0.5, delay: i * 0.1 }}
-                  className="flex items-start gap-6 relative">
+                  viewport={{ once: true, margin: '-60px' }}
+                  transition={{ duration: 0.6, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex items-start gap-8 relative">
                   {/* Node */}
-                  <div className="relative z-10 w-10 h-10 rounded-full bg-[#111113] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
-                    <Icon size={16} className="text-[#E0FC10]" strokeWidth={1.8} />
+                  <div className="relative z-10 w-12 h-12 rounded-full bg-[#111113] border border-white/[0.08] flex items-center justify-center flex-shrink-0 shadow-[0_0_0_4px_#0a0a0c]">
+                    <Icon size={18} className="text-[#E0FC10]" strokeWidth={1.6} />
                     <motion.div
-                      className="absolute inset-0 rounded-full border border-[#E0FC10]/20"
-                      animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
-                      transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.4 }}
+                      className="absolute inset-0 rounded-full border border-[#E0FC10]/15"
+                      animate={{ scale: [1, 1.7, 1], opacity: [0.5, 0, 0.5] }}
+                      transition={{ duration: 3, repeat: Infinity, delay: i * 0.6 }}
                     />
                   </div>
                   {/* Content */}
-                  <div className="pt-1.5">
-                    <h4 className="text-[14px] font-semibold text-[#eaeaec] mb-1">{step.title}</h4>
-                    <p className="text-[12px] text-[#787884] leading-relaxed">{step.desc}</p>
+                  <div className="flex-1 pt-2 pb-2">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-[10px] font-mono text-[#4a4a54]">0{i + 1}</span>
+                      <h4 className="text-[17px] font-semibold text-[#eaeaec] leading-tight">{step.title}</h4>
+                    </div>
+                    <p className="text-[13px] text-[#787884] leading-[1.75] mb-3 max-w-[600px]">{step.desc}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {step.detail.split(' · ').map((tag, j) => (
+                        <span key={j} className="text-[10px] font-mono text-[#4a4a54] px-2.5 py-1 rounded-md bg-white/[0.02] border border-white/[0.04]">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -1012,9 +1630,6 @@ export default function LandingPage() {
 
       {/* PRODUCT SHOWCASE */}
       <ProductShowcase />
-
-      {/* FEATURE DEEP-DIVE */}
-      <FeatureDeepDive onCta={scrollToInput} />
 
       {/* COST COMPARISON */}
       <CostComparison />

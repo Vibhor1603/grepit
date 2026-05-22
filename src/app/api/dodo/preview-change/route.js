@@ -42,14 +42,25 @@ export async function POST(request) {
       return NextResponse.json({ available: false });
     }
 
-    // immediate_charge.summary.total_amount is in smallest currency unit (cents)
+    // immediate_charge.summary.total_amount is in smallest currency unit (cents/paise/etc.)
     const totalAmount = preview.immediate_charge?.summary?.total_amount;
     const currency = preview.new_plan?.currency || "USD";
 
-    // Format amount: cents → dollars (or equivalent)
-    const formattedAmount = totalAmount != null
-      ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(totalAmount / 100)
-      : null;
+    // Format using the currency's native locale so symbols are correct (₹ for INR, $ for USD, etc.)
+    let formattedAmount = null;
+    if (totalAmount != null) {
+      try {
+        // Use undefined locale so Intl picks the best locale for the currency
+        formattedAmount = new Intl.NumberFormat(undefined, {
+          style: 'currency',
+          currency,
+          maximumFractionDigits: currency === 'INR' ? 0 : 2, // INR doesn't use decimals typically
+        }).format(totalAmount / 100);
+      } catch {
+        // Fallback: just show amount with currency code
+        formattedAmount = `${currency} ${(totalAmount / 100).toFixed(2)}`;
+      }
+    }
 
     return NextResponse.json({
       available: true,

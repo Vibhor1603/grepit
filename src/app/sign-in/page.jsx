@@ -316,6 +316,7 @@ function SignInContent() {
       {/* Clerk CAPTCHA widget — must be in DOM before signUp.create() */}
       <div id="clerk-captcha" className="fixed bottom-0 left-0" />
       <Toaster position="top-center" toastOptions={{
+        duration: 7000,
         style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', fontSize: '13px', padding: '12px 16px' },
         success: { iconTheme: { primary: '#E0FC10', secondary: '#0a0a0c' } },
         error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },

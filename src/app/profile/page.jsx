@@ -67,7 +67,7 @@ export default function ProfilePage() {
       window.history.replaceState({}, '', '/profile');
     }
     if (params.get('upgrade') === 'pending') {
-      toast.success('Upgrade initiated. Activating your plan...', { duration: 5000 });
+      toast.success('Upgrade initiated. Activating your plan...');
       window.history.replaceState({}, '', '/profile');
       // Poll until webhook updates the plan
       pollForUpgrade();
@@ -107,7 +107,7 @@ export default function ProfilePage() {
 
       if (data.plan && data.plan !== "free" && data.plan !== "starter") {
         // Plan upgraded
-        toast.success(`${data.plan.charAt(0).toUpperCase() + data.plan.slice(1)} plan activated!`, { duration: 5000 });
+        toast.success(`${data.plan.charAt(0).toUpperCase() + data.plan.slice(1)} plan activated!`);
         queryClient.invalidateQueries({ queryKey: ['profile-subscription'] });
         return;
       }
@@ -134,13 +134,13 @@ export default function ProfilePage() {
       const res = await fetch("/api/dodo/undo-cancel", { method: "POST" });
       const data = await res.json();
       if (data.success) {
-        toast.success(data.message || 'Change undone. Your subscription will continue as normal.', { duration: 5000 });
+        toast.success(data.message || 'Change undone. Your subscription will continue as normal.');
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        toast.error(data.error || 'Could not undo change', { duration: 5000 });
+        toast.error(data.error || 'Could not undo change');
       }
     } catch {
-      toast.error('Could not undo change. Please try again or contact support@grepit.co', { duration: 5000 });
+      toast.error('Could not undo change. Please try again or contact support@grepit.co');
     }
   };
 
@@ -234,6 +234,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-vb-bg text-vb-ink">
       <Toaster position="top-center" toastOptions={{
+        duration: 7000,
         style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', fontSize: '13px', padding: '12px 16px' },
         success: { iconTheme: { primary: '#E0FC10', secondary: '#0a0a0c' } },
         error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
