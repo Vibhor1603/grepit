@@ -22,10 +22,10 @@ export async function POST(request) {
 
     let body = {};
     try { body = await request.json(); } catch {}
-    // Plan IDs match the config keys: "basic" (Starter) and "pro"
-    const requestedPlan = body.plan || "basic";
+    // Plan IDs: "starter" and "pro"
+    const requestedPlan = body.plan || "starter";
 
-    if (!["basic", "pro"].includes(requestedPlan)) {
+    if (!["starter", "pro"].includes(requestedPlan)) {
       console.error("[create-checkout] Invalid plan:", requestedPlan);
       return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
     }

@@ -43,14 +43,14 @@ export const PLANS = {
     features: [
       '1 repository',
       '15 AI queries/day',
-      'starter health report',
+      'Basic health report',
       'Code explorer',
       'Architecture diagrams',
     ],
   },
 
   starter: {
-    name: 'starter',
+    name: 'Starter',
     price: '$12',
     period: '/month',
     amount_paise: 1200,
@@ -130,7 +130,7 @@ export const PLANS = {
     cta: 'Go Pro',
     featured: false,
     features: [
-      'Everything in starter',
+      'Everything in Starter',
       '500 AI queries/day',
       '7 repositories',
       'Large codebase support',

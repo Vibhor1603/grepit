@@ -25,8 +25,8 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
       price: plan.price,
       period: plan.period,
       features: plan.features,
-      isDowngrade: currentPlan === 'pro' && id === 'basic',
-      highlighted: (currentPlan === 'free' && id === 'basic') || (currentPlan === 'basic' && id === 'pro'),
+      isDowngrade: currentPlan === 'pro' && id === 'starter',
+      highlighted: (currentPlan === 'free' && id === 'starter') || (currentPlan === 'starter' && id === 'pro'),
     }));
 
   // Step 1: User clicks upgrade → fetch preview amount
@@ -45,7 +45,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
 
     // Starter → Pro only: fetch prorated preview before confirming
     // Free → any plan: go straight to checkout (Dodo page shows the price)
-    const isStarterToPro = currentPlan === 'basic' && planId === 'pro';
+    const isStarterToPro = currentPlan === 'starter' && planId === 'pro';
     if (isStarterToPro) {
       // If already showing preview for this plan, execute
       if (upgradePreview?.planId === planId) {

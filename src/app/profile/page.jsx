@@ -105,7 +105,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile/subscription");
       const data = await res.json();
 
-      if (data.plan && data.plan !== "free" && data.plan !== "basic") {
+      if (data.plan && data.plan !== "free" && data.plan !== "starter") {
         // Plan upgraded
         toast.success(`${data.plan.charAt(0).toUpperCase() + data.plan.slice(1)} plan activated!`, { duration: 5000 });
         queryClient.invalidateQueries({ queryKey: ['profile-subscription'] });
@@ -226,10 +226,10 @@ export default function ProfilePage() {
     );
   }
 
-  const isstarter = subData?.plan === "starter" && subData?.status === "active";
+  const isStarter = subData?.plan === "starter" && subData?.status === "active";
   const isPro = subData?.plan === "pro" && subData?.status === "active";
-  const isPaid = isstarter || isPro;
-  const planLabel = isPro ? "Pro" : isstarter ? "starter" : "Free";
+  const isPaid = isStarter || isPro;
+  const planLabel = isPro ? "Pro" : isStarter ? "Starter" : "Free";
 
   return (
     <div className="min-h-screen bg-vb-bg text-vb-ink">

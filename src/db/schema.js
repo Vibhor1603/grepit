@@ -69,7 +69,7 @@ export const subscriptions = pgTable(
     auto_renew: boolean("auto_renew").notNull().default(true),
 
     // ─── Entitlement state (source of truth for access) ───
-    entitlement_plan: text("entitlement_plan").notNull().default("free"), // free|basic|pro
+    entitlement_plan: text("entitlement_plan").notNull().default("free"), // free|starter|pro
     entitlement_starts_at: timestamp("entitlement_starts_at", { withTimezone: true, mode: "string" }),
     entitlement_ends_at: timestamp("entitlement_ends_at", { withTimezone: true, mode: "string" }),
 
