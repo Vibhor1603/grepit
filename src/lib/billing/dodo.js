@@ -28,13 +28,13 @@ export function getDodoClient() {
 // ─── Product mapping ───
 
 export function getProductId(plan) {
-  if (plan === "starter") return process.env.DODO_STARTER_PRODUCT_ID || null;
+  if (plan === "basic") return process.env.DODO_STARTER_PRODUCT_ID || null;
   if (plan === "pro") return process.env.DODO_PRO_PRODUCT_ID || null;
   return null;
 }
 
 export function getPlanFromProductId(productId) {
-  if (productId === process.env.DODO_STARTER_PRODUCT_ID) return "starter";
+  if (productId === process.env.DODO_STARTER_PRODUCT_ID) return "basic";
   if (productId === process.env.DODO_PRO_PRODUCT_ID) return "pro";
   return null;
 }
