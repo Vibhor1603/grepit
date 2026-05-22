@@ -35,7 +35,7 @@ export async function POST() {
 
     // Get subscription record from our DB
     const sub = await getSubscription(userId);
-    const dodoSubId = sub?.razorpay_subscription_id;
+    const dodoSubId = sub?.dodo_subscription_id;
 
     if (!dodoSubId) {
       // No subscription ID stored yet — webhook hasn't arrived and we don't have

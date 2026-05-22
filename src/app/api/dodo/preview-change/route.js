@@ -19,7 +19,7 @@ export async function POST(request) {
     const body = await request.json();
     const { plan: targetPlan } = body;
 
-    if (!targetPlan || !["basic", "pro"].includes(targetPlan)) {
+    if (!targetPlan || !["starter", "pro"].includes(targetPlan)) {
       return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
     }
 
@@ -30,7 +30,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Cannot preview this change." }, { status: 400 });
     }
 
-    const dodoSubId = existing?.razorpay_subscription_id;
+    const dodoSubId = existing?.dodo_subscription_id;
     if (!dodoSubId) {
       return NextResponse.json({ error: "No subscription found." }, { status: 400 });
     }
@@ -42,11 +42,19 @@ export async function POST(request) {
       return NextResponse.json({ available: false });
     }
 
+    // immediate_charge.summary.total_amount is in smallest currency unit (cents)
+    const totalAmount = preview.immediate_charge?.summary?.total_amount;
+    const currency = preview.new_plan?.currency || "USD";
+
+    // Format amount: cents → dollars (or equivalent)
+    const formattedAmount = totalAmount != null
+      ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(totalAmount / 100)
+      : null;
+
     return NextResponse.json({
       available: true,
-      immediateCharge: preview.immediate_charge || null,
-      newPlan: preview.new_plan || null,
-      currency: preview.currency || "USD",
+      amount: formattedAmount,
+      currency,
     });
   } catch (err) {
     console.error("[preview-change] error:", err?.message);

@@ -126,30 +126,3 @@ export async function getUserPrivateMetadata(userId) {
     return {};
   }
 }
-
-export async function getUserSubscriptionData(userId) {
-  const metadata = await getUserPrivateMetadata(userId);
-  return {
-    razorpayPaymentId: metadata.razorpayPaymentId || null,
-    razorpayOrderId: metadata.razorpayOrderId || null,
-    subscriptionStatus: metadata.subscriptionStatus || null,
-    plan: metadata.plan || "free",
-  };
-}
-
-export async function isUserPro(userId) {
-  if (!userId) return false;
-  const data = await getUserSubscriptionData(userId);
-  return (data.plan === "basic" || data.plan === "pro") && data.subscriptionStatus === "active";
-}
-
-export async function saveSubscriptionToMetadata(userId, data) {
-  const existing = await getUserPrivateMetadata(userId);
-  await updateUserPrivateMetadata(userId, {
-    ...existing,
-    razorpayPaymentId: data.razorpayPaymentId ?? existing.razorpayPaymentId,
-    razorpayOrderId: data.razorpayOrderId ?? existing.razorpayOrderId,
-    subscriptionStatus: data.subscriptionStatus ?? existing.subscriptionStatus,
-    plan: data.plan ?? existing.plan ?? "free",
-  });
-}

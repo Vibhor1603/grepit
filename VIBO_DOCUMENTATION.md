@@ -5,7 +5,7 @@
 ### subscriptions (billing state machine)
 | Column | Purpose |
 |--------|---------|
-| entitlement_plan | What the user can access RIGHT NOW (free/basic/pro) |
+| entitlement_plan | What the user can access RIGHT NOW (free/starter/pro) |
 | entitlement_starts_at | When current access started |
 | entitlement_ends_at | When current access expires |
 | razorpay_subscription_id | Razorpay sub ID |
@@ -32,20 +32,20 @@ Stores raw Razorpay webhook payloads. Prevents duplicate processing via unique p
 
 ## Billing Flows
 
-### Subscribe (free → basic/pro)
+### Subscribe (free → starter/pro)
 1. Frontend calls create-subscription → gets subscription_id
 2. Opens Razorpay checkout modal
 3. On success, calls verify-payment with signature
 4. verify-payment grants entitlement in DB
 
-### Upgrade (basic → pro)
+### Upgrade (starter → pro)
 1. Frontend calls change-plan with plan: "pro"
 2. Backend calls Razorpay Update Subscription API (schedule_change_at: "now")
 3. Razorpay charges prorated difference
 4. Backend grants new entitlement immediately
 
-### Downgrade (pro → basic)
-1. Frontend calls change-plan with plan: "basic"
+### Downgrade (pro → starter)
+1. Frontend calls change-plan with plan: "starter"
 2. Backend calls Razorpay Update Subscription API (schedule_change_at: "cycle_end")
 3. Backend schedules change in DB
 4. On next renewal webhook, new plan is applied
@@ -67,7 +67,7 @@ Stores raw Razorpay webhook payloads. Prevents duplicate processing via unique p
 RAZORPAY_KEY_ID=rzp_test_xxx (test) / rzp_live_xxx (prod)
 RAZORPAY_KEY_SECRET=secret
 NEXT_PUBLIC_RAZORPAY_KEY_ID=same as RAZORPAY_KEY_ID
-RAZORPAY_BASIC_PLAN_ID=plan_xxx
+RAZORPAY_starter_PLAN_ID=plan_xxx
 RAZORPAY_PRO_PLAN_ID=plan_xxx
 RAZORPAY_WEBHOOK_SECRET=random hex string
 ```

@@ -4,8 +4,8 @@
 AI-powered codebase analysis platform. Upload any GitHub repo (public or private) or ZIP file and get instant architecture diagrams, security reports, AI chat, and code exploration.
 
 ## Plans
-- **Free:** 2 repos, 15 AI queries/day, basic features
-- **Basic ($12/mo):** 5 repos, 100 AI queries/day, PDF export, full security report
+- **Free:** 2 repos, 15 AI queries/day, starter features
+- **starter ($12/mo):** 5 repos, 100 AI queries/day, PDF export, full security report
 - **Pro ($30/mo):** 15 repos, 500 AI queries/day, priority queue, large codebase support
 
 ## Billing

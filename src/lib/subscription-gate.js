@@ -102,23 +102,21 @@ export async function upsertSubscription(data) {
 /**
  * Get the user's current entitled plan.
  * This is the ONLY function that should be used for access control.
- * It checks entitlement_plan + entitlement_ends_at, NOT Razorpay status.
+ * Checks entitlement_plan + entitlement_ends_at.
  */
 export async function getUserPlan(userId) {
   if (!userId) return "free";
   const sub = await getSubscription(userId);
   if (!sub) return "free";
 
-  // Use entitlement fields if populated (new system)
   if (sub.entitlement_plan && sub.entitlement_plan !== "free" && sub.entitlement_ends_at) {
     const endsAt = new Date(sub.entitlement_ends_at);
     if (endsAt > new Date()) {
       return sub.entitlement_plan;
     }
-    // Entitlement expired — apply scheduled change or downgrade to free
+    // Entitlement expired — apply scheduled downgrade or revert to free
     const db = getDb();
     if (sub.scheduled_change_type === "downgrade" && sub.scheduled_change_plan) {
-      // Apply the scheduled downgrade
       await db.update(subscriptions)
         .set({
           entitlement_plan: sub.scheduled_change_plan,
@@ -129,9 +127,10 @@ export async function getUserPlan(userId) {
           updated_at: new Date().toISOString(),
         })
         .where(eq(subscriptions.user_id, userId));
+      await invalidateSubscriptionCache(userId);
       return sub.scheduled_change_plan;
     }
-    // No scheduled change — downgrade to free
+    // No scheduled change — revert to free
     await db.update(subscriptions)
       .set({
         entitlement_plan: "free",
@@ -144,40 +143,26 @@ export async function getUserPlan(userId) {
         updated_at: new Date().toISOString(),
       })
       .where(eq(subscriptions.user_id, userId));
+    await invalidateSubscriptionCache(userId);
     return "free";
   }
 
-  // Fallback: legacy system (status + plan + current_period_end)
-  if (sub.status !== "active" || !sub.plan || sub.plan === "free") return "free";
-
-  if (sub.cancel_at_period_end && sub.current_period_end) {
-    const periodEnd = new Date(sub.current_period_end);
-    if (periodEnd < new Date()) {
-      const db = getDb();
-      await db.update(subscriptions)
-        .set({ status: "cancelled", plan: "free", entitlement_plan: "free", updated_at: new Date().toISOString() })
-        .where(eq(subscriptions.user_id, userId));
-      return "free";
-    }
-  }
-
-  return sub.plan;
+  return "free";
 }
 
 export async function isUserPro(userId) {
   if (!userId) return false;
   const plan = await getUserPlan(userId);
-  return plan === "basic" || plan === "pro";
+  return plan === "starter" || plan === "pro";
 }
 
 // ─── Entitlement management ───
 
 /**
  * Grant entitlement immediately.
- * Called after successful payment verification.
+ * Called by the webhook after payment is confirmed.
  */
-export async function grantEntitlement(userId, { plan, endsAt, razorpaySubscriptionId, razorpayPaymentId, paymentMethod }) {
-  const db = getDb();
+export async function grantEntitlement(userId, { plan, endsAt, razorpaySubscriptionId: dodoSubscriptionId, razorpayPaymentId: dodoPaymentId, paymentMethod }) {
   const now = new Date().toISOString();
 
   await upsertSubscription({
@@ -185,20 +170,15 @@ export async function grantEntitlement(userId, { plan, endsAt, razorpaySubscript
     entitlement_plan: plan,
     entitlement_starts_at: now,
     entitlement_ends_at: endsAt,
-    razorpay_subscription_id: razorpaySubscriptionId || null,
-    razorpay_payment_id: razorpayPaymentId || null,
-    razorpay_status: "active",
+    dodo_subscription_id: dodoSubscriptionId || null,
+    dodo_payment_id: dodoPaymentId || null,
+    dodo_status: "active",
     payment_method: paymentMethod || null,
     auto_renew: true,
-    // Legacy fields for backward compat
     status: "active",
     plan,
-    stripe_subscription_id: razorpaySubscriptionId || null,
-    stripe_customer_id: razorpayPaymentId || null,
-    stripe_price_id: plan,
     current_period_end: endsAt,
     cancel_at_period_end: false,
-    // Clear any scheduled changes
     scheduled_change_type: null,
     scheduled_change_plan: null,
     scheduled_change_at: null,
@@ -252,7 +232,7 @@ export async function extendEntitlement(userId, newEndsAt) {
     .set({
       entitlement_ends_at: newEndsAt,
       current_period_end: newEndsAt,
-      razorpay_status: "active",
+      dodo_status: "active",
       status: "active",
       updated_at: new Date().toISOString(),
     })

@@ -200,7 +200,7 @@ export default function PrivacyPage() {
           We use the following cookies and tracking technologies:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>Essential Cookies:</strong> Required for authentication (Clerk session tokens), security (CSRF protection), and basic Service functionality. These cannot be disabled.</li>
+          <li><strong>Essential Cookies:</strong> Required for authentication (Clerk session tokens), security (CSRF protection), and starter Service functionality. These cannot be disabled.</li>
           <li><strong>Analytics Cookies (PostHog):</strong> Used to collect anonymized usage data including page views, feature interactions, session recordings, and user flows. These help us understand how the Service is used and identify areas for improvement.</li>
           <li><strong>Performance Cookies:</strong> Used to monitor application performance and error rates (Sentry).</li>
         </ul>

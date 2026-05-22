@@ -66,7 +66,7 @@ export default function TermsPage() {
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li><strong>Free Tier:</strong> Limited access to the Service at no cost, subject to the restrictions described in Section 6.</li>
-          <li><strong>Basic Tier:</strong> Enhanced access with higher usage limits, private repository support, and additional features, billed on a recurring monthly basis.</li>
+          <li><strong>starter Tier:</strong> Enhanced access with higher usage limits, private repository support, and additional features, billed on a recurring monthly basis.</li>
           <li><strong>Pro Tier:</strong> Multi-user access with expanded limits, priority queue, large codebase support, and advanced features, billed on a recurring monthly basis.</li>
         </ul>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3 mb-2">
@@ -93,7 +93,7 @@ export default function TermsPage() {
           <li>Maximum of 3 connected repositories at any time.</li>
           <li>Maximum of 20 AI queries per day (resets at midnight UTC).</li>
           <li>Access limited to public repositories only.</li>
-          <li>Basic analysis features only — advanced security audits, architecture diagrams, and export features may be restricted.</li>
+          <li>starter analysis features only — advanced security audits, architecture diagrams, and export features may be restricted.</li>
           <li>No priority support or guaranteed response times.</li>
         </ul>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3">

@@ -66,6 +66,12 @@ export default function ProfilePage() {
     if (params.get('plan_change') === 'scheduled') {
       window.history.replaceState({}, '', '/profile');
     }
+    if (params.get('upgrade') === 'pending') {
+      toast.success('Upgrade initiated. Activating your plan...', { duration: 5000 });
+      window.history.replaceState({}, '', '/profile');
+      // Poll until webhook updates the plan
+      pollForUpgrade();
+    }
   }, [isLoaded, isSignedIn]);
 
   // Verify checkout with Dodo directly (fallback when webhook is missed)
@@ -89,6 +95,32 @@ export default function ProfilePage() {
     } catch {
       if (attempt < 5) {
         setTimeout(() => verifyCheckout(attempt + 1), attempt * 3000);
+      }
+    }
+  };
+
+  // Poll for upgrade confirmation — webhook may take a few seconds to arrive
+  const pollForUpgrade = async (attempt = 1) => {
+    try {
+      const res = await fetch("/api/profile/subscription");
+      const data = await res.json();
+
+      if (data.plan && data.plan !== "free" && data.plan !== "basic") {
+        // Plan upgraded
+        toast.success(`${data.plan.charAt(0).toUpperCase() + data.plan.slice(1)} plan activated!`, { duration: 5000 });
+        queryClient.invalidateQueries({ queryKey: ['profile-subscription'] });
+        return;
+      }
+
+      // Check if plan changed from what it was before
+      if (attempt < 8) {
+        setTimeout(() => pollForUpgrade(attempt + 1), attempt * 2000); // 2s, 4s, 6s...
+      } else {
+        toast.error("Plan activation is taking longer than expected. Please refresh in a minute.", { duration: 6000 });
+      }
+    } catch {
+      if (attempt < 8) {
+        setTimeout(() => pollForUpgrade(attempt + 1), attempt * 2000);
       }
     }
   };
@@ -194,10 +226,10 @@ export default function ProfilePage() {
     );
   }
 
-  const isBasic = subData?.plan === "basic" && subData?.status === "active";
+  const isstarter = subData?.plan === "starter" && subData?.status === "active";
   const isPro = subData?.plan === "pro" && subData?.status === "active";
-  const isPaid = isBasic || isPro;
-  const planLabel = isPro ? "Pro" : isBasic ? "Basic" : "Free";
+  const isPaid = isstarter || isPro;
+  const planLabel = isPro ? "Pro" : isstarter ? "starter" : "Free";
 
   return (
     <div className="min-h-screen bg-vb-bg text-vb-ink">
@@ -246,7 +278,7 @@ export default function ProfilePage() {
                       ? `Switching to ${subData.scheduledChangePlan?.charAt(0).toUpperCase() + subData.scheduledChangePlan?.slice(1)} on ${subData?.entitlementEndsAt ? new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'next cycle'}`
                       : subData?.cancelAtPeriodEnd
                         ? `Cancels ${subData?.entitlementEndsAt ? new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'at period end'}`
-                        : subData?.entitlementEndsAt ? `Renews ${new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : `${PLANS[subData?.plan || 'basic']?.price || '$12'}/month`
+                        : subData?.entitlementEndsAt ? `Renews ${new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : `${PLANS[subData?.plan || 'starter']?.price || '$12'}/month`
                     : `${PLANS.free.maxRepos} ${PLANS.free.maxRepos === 1 ? 'repository' : 'repositories'} · ${PLANS.free.maxAiQueriesPerDay} AI queries/day`}
                 </p>
               </div>

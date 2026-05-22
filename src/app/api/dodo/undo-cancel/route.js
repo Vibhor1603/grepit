@@ -29,9 +29,9 @@ export async function POST() {
       return NextResponse.json({ error: "No pending change to undo." }, { status: 400 });
     }
 
-    const dodoSubId = sub.razorpay_subscription_id;
+    const dodoSubId = sub.dodo_subscription_id;
     if (!dodoSubId) {
-      return NextResponse.json({ error: "Subscription ID not found. Contact support." }, { status: 400 });
+      return NextResponse.json({ error: "Something went wrong. Please contact support." }, { status: 400 });
     }
 
     const changeType = sub.scheduled_change_type;
@@ -63,6 +63,6 @@ export async function POST() {
   } catch (err) {
     Sentry.captureException(err, { tags: { source: "dodo", reason: "undo_cancel_failed" } });
     console.error("[undo-cancel] error:", err?.message || err);
-    return NextResponse.json({ error: "Failed to undo change" }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

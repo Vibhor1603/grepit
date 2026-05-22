@@ -37,7 +37,7 @@ const faqs = [
   {
     question: "What payment methods do you accept?",
     answer:
-      "For users in India, we accept credit/debit cards, UPI, and netbanking via Razorpay. For international users, we accept credit/debit cards and PayPal via LemonSqueezy. All payments are processed securely through these third-party providers.",
+      "We accept credit/debit cards, UPI, and netbanking via Dodo Payments. All payments are processed securely through Dodo's payment infrastructure.",
   },
   {
     question: "Is there a free plan?",

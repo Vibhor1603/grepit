@@ -469,7 +469,7 @@ export async function handleAnalyzePost(request) {
       delete persistedCodebaseIndex.__runtime;
       mergedEndpoints = mergeApiEndpoints(result.architecture.apiEndpoints, codeIntel.files);
     } else {
-      console.log(`[analyze] Timeout — skipping codebase index, using basic results`);
+      console.log(`[analyze] Timeout — skipping codebase index, using starter results`);
       codebaseIndex = { dependencyGraph: {}, fileCallGraph: {} };
       persistedCodebaseIndex = codebaseIndex;
       mergedEndpoints = result.architecture.apiEndpoints || [];

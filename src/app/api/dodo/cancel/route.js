@@ -27,18 +27,18 @@ export async function POST() {
       return NextResponse.json({ error: "No active subscription to cancel." }, { status: 400 });
     }
 
-    const dodoSubId = sub.razorpay_subscription_id;
+    const dodoSubId = sub.dodo_subscription_id;
     if (!dodoSubId) {
-      return NextResponse.json({ error: "Subscription ID not found. Contact support." }, { status: 400 });
+      return NextResponse.json({ error: "Something went wrong. Please contact support." }, { status: 400 });
     }
 
     // Tell Dodo to cancel at next billing date
     try {
       await cancelSubscription(dodoSubId);
     } catch (err) {
-      const msg = err?.message || "Cancellation failed";
-      console.error("[cancel] Dodo error:", msg);
-      return NextResponse.json({ error: msg }, { status: 500 });
+      console.error("[cancel] Dodo error:", err?.message || err);
+      Sentry.captureException(err, { tags: { source: "dodo", action: "cancel" } });
+      return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
     }
 
     // Record locally for UI
@@ -55,6 +55,6 @@ export async function POST() {
   } catch (err) {
     Sentry.captureException(err, { tags: { source: "dodo", reason: "cancel_failed" } });
     console.error("[cancel] error:", err?.message || err);
-    return NextResponse.json({ error: "Failed to cancel subscription" }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

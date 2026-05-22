@@ -16,7 +16,7 @@ export default function RefundPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">1. General Policy</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
-          All paid subscriptions to Grepit — including Basic ($12/mo, 3 repositories) and Pro ($30/mo, 7 repositories) — are billed on a recurring monthly basis. We do not provide refunds for:
+          All paid subscriptions to Grepit — including starter ($12/mo, 3 repositories) and Pro ($30/mo, 7 repositories) — are billed on a recurring monthly basis. We do not provide refunds for:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li>Partial billing periods or unused days remaining in a billing cycle.</li>
@@ -83,7 +83,7 @@ export default function RefundPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">6. Upgrades</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed">
-          When you upgrade from one plan to another (e.g., Basic to Pro), you are charged a prorated amount for the remainder of your current billing cycle. These prorated upgrade charges are non-refundable. If you wish to downgrade after upgrading, the downgrade will take effect at the start of your next billing cycle — no refund is issued for the prorated upgrade charge already paid.
+          When you upgrade from one plan to another (e.g., starter to Pro), you are charged a prorated amount for the remainder of your current billing cycle. These prorated upgrade charges are non-refundable. If you wish to downgrade after upgrading, the downgrade will take effect at the start of your next billing cycle — no refund is issued for the prorated upgrade charge already paid.
         </p>
       </section>
 
@@ -91,7 +91,7 @@ export default function RefundPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">7. Downgrades</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed">
-          When you downgrade your plan (e.g., Pro to Basic, or any paid plan to Free), no refund is issued for the price difference between your current plan and the lower plan. The downgrade takes effect at the start of your next billing cycle. You retain access to your current plan&apos;s features until the end of the current period.
+          When you downgrade your plan (e.g., Pro to starter, or any paid plan to Free), no refund is issued for the price difference between your current plan and the lower plan. The downgrade takes effect at the start of your next billing cycle. You retain access to your current plan&apos;s features until the end of the current period.
         </p>
       </section>
 

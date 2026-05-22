@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
  * Caches the result for 60s so it's instant on subsequent calls.
  * 
  * Usage:
- *   const { plan, isBasic, isPro, isFree, isPaid, isLoading } = usePlan();
+ *   const { plan, isstarter, isPro, isFree, isPaid, isLoading } = usePlan();
  */
 export function usePlan() {
   const { data, isLoading } = useQuery({
@@ -22,9 +22,9 @@ export function usePlan() {
   return {
     plan,
     isFree: plan === "free",
-    isBasic: plan === "basic",
+    isstarter: plan === "starter",
     isPro: plan === "pro",
-    isPaid: plan === "basic" || plan === "pro",
+    isPaid: plan === "starter" || plan === "pro",
     isLoading,
     status: data?.status || "active",
     scheduledChange: data?.scheduledChange || null,

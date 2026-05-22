@@ -22,15 +22,15 @@ export async function POST(request) {
 
     let body = {};
     try { body = await request.json(); } catch {}
-    const requestedPlan = body.plan || "basic";
+    const requestedPlan = body.plan || "starter";
 
-    if (!["basic", "pro"].includes(requestedPlan)) {
+    if (!["starter", "pro"].includes(requestedPlan)) {
       return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
     }
 
     const productId = getProductId(requestedPlan);
     if (!productId) {
-      return NextResponse.json({ error: `${requestedPlan} plan is not configured.` }, { status: 500 });
+      return NextResponse.json({ error: "Something went wrong. Please try again later." }, { status: 500 });
     }
 
     // Never trust frontend — verify user is actually on free plan

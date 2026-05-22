@@ -46,15 +46,13 @@ export const query_history = pgTable(
 );
 
 /**
- * Subscriptions table — production billing state machine.
- * 
- * This table combines:
- * 1. Billing state (what Razorpay thinks)
- * 2. Entitlement state (what features user can access)
- * 3. Scheduled change intent (what user wants next)
- * 
- * Access check uses: entitlement_plan + entitlement_ends_at
- * NOT razorpay_status.
+ * Subscriptions table — Dodo Payments billing state.
+ *
+ * Source of truth for access: entitlement_plan + entitlement_ends_at
+ *
+ * Column naming note: razorpay_* columns are legacy names that now store
+ * Dodo Payments data. A future migration will rename them to dodo_*.
+ * Do not use the stripe_* columns — they are dead and will be dropped.
  */
 export const subscriptions = pgTable(
   "subscriptions",
@@ -63,27 +61,24 @@ export const subscriptions = pgTable(
     user_id: text("user_id").notNull().unique(),
     owner_email: text("owner_email"),
 
-    // ─── Razorpay billing state ───
-    razorpay_subscription_id: text("razorpay_subscription_id"),
-    razorpay_payment_id: text("razorpay_payment_id"),
-    razorpay_status: text("razorpay_status"), // created|authenticated|active|pending|halted|cancelled|completed|expired
-    payment_method: text("payment_method"), // card|upi|emandate|null
+    // ─── Dodo Payments billing state ───
+    dodo_subscription_id: text("dodo_subscription_id"),
+    dodo_payment_id: text("dodo_payment_id"),
+    dodo_status: text("dodo_status"),                   // active|on_hold|cancelled|expired
+    payment_method: text("payment_method"),
     auto_renew: boolean("auto_renew").notNull().default(true),
 
     // ─── Entitlement state (source of truth for access) ───
-    entitlement_plan: text("entitlement_plan").notNull().default("free"), // free|pro|team
+    entitlement_plan: text("entitlement_plan").notNull().default("free"), // free|basic|pro
     entitlement_starts_at: timestamp("entitlement_starts_at", { withTimezone: true, mode: "string" }),
     entitlement_ends_at: timestamp("entitlement_ends_at", { withTimezone: true, mode: "string" }),
 
     // ─── Scheduled change intent ───
-    scheduled_change_type: text("scheduled_change_type"), // downgrade|cancel|upgrade|null
-    scheduled_change_plan: text("scheduled_change_plan"), // target plan (pro|team|free|null)
+    scheduled_change_type: text("scheduled_change_type"), // downgrade|cancel|null
+    scheduled_change_plan: text("scheduled_change_plan"), // target plan
     scheduled_change_at: timestamp("scheduled_change_at", { withTimezone: true, mode: "string" }),
 
-    // ─── Legacy columns (kept for backward compat with existing data) ───
-    stripe_customer_id: text("stripe_customer_id"),
-    stripe_subscription_id: text("stripe_subscription_id"),
-    stripe_price_id: text("stripe_price_id"),
+    // ─── Legacy columns (dead — will be dropped in a future migration) ───
     status: text("status").notNull().default("inactive"),
     plan: text("plan").notNull().default("free"),
     current_period_end: timestamp("current_period_end", { withTimezone: true, mode: "string" }),
@@ -101,14 +96,13 @@ export const subscriptions = pgTable(
 );
 
 /**
- * Webhook events — for idempotency and audit trail.
- * Stores raw Razorpay webhook payloads to prevent duplicate processing.
+ * Webhook events — idempotency and audit trail for Dodo Payments webhooks.
  */
 export const webhook_events = pgTable(
   "webhook_events",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    provider: text("provider").notNull().default("razorpay"),
+    provider: text("provider").notNull().default("dodo"),
     provider_event_id: text("provider_event_id").notNull().unique(),
     event_type: text("event_type").notNull(),
     payload: jsonb("payload").notNull().default({}),

@@ -18,7 +18,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 describe("entitlement access: getUserPlan logic", () => {
   it("INVARIANT: user with valid entitlement always has access", () => {
     const sub = {
-      entitlement_plan: "basic",
+      entitlement_plan: "starter",
       entitlement_ends_at: new Date(Date.now() + 86400000 * 15).toISOString(), // 15 days left
       scheduled_change_type: null,
     };
@@ -46,7 +46,7 @@ describe("entitlement access: getUserPlan logic", () => {
       entitlement_plan: "pro",
       entitlement_ends_at: new Date(Date.now() + 86400000 * 10).toISOString(),
       scheduled_change_type: "downgrade",
-      scheduled_change_plan: "basic",
+      scheduled_change_plan: "starter",
     };
 
     const endsAt = new Date(sub.entitlement_ends_at);
@@ -56,7 +56,7 @@ describe("entitlement access: getUserPlan logic", () => {
 
   it("expired entitlement with scheduled cancel → free", () => {
     const sub = {
-      entitlement_plan: "basic",
+      entitlement_plan: "starter",
       entitlement_ends_at: new Date(Date.now() - 86400000).toISOString(), // Yesterday
       scheduled_change_type: "cancel",
       scheduled_change_plan: "free",
@@ -75,20 +75,20 @@ describe("entitlement access: getUserPlan logic", () => {
       entitlement_plan: "pro",
       entitlement_ends_at: new Date(Date.now() - 86400000).toISOString(), // Yesterday
       scheduled_change_type: "downgrade",
-      scheduled_change_plan: "basic",
+      scheduled_change_plan: "starter",
     };
 
     const endsAt = new Date(sub.entitlement_ends_at);
     const isExpired = endsAt <= new Date();
     expect(isExpired).toBe(true);
-    // Should downgrade to basic
+    // Should downgrade to starter
     const resultPlan = sub.scheduled_change_plan;
-    expect(resultPlan).toBe("basic");
+    expect(resultPlan).toBe("starter");
   });
 
   it("expired entitlement with NO scheduled change → free", () => {
     const sub = {
-      entitlement_plan: "basic",
+      entitlement_plan: "starter",
       entitlement_ends_at: new Date(Date.now() - 86400000).toISOString(),
       scheduled_change_type: null,
     };
@@ -105,13 +105,13 @@ describe("entitlement access: getUserPlan logic", () => {
       entitlement_plan: "free",
       entitlement_ends_at: null,
       status: "active",
-      plan: "basic",
+      plan: "starter",
       current_period_end: new Date(Date.now() + 86400000 * 10).toISOString(),
     };
 
     // Legacy fallback: check status + plan
     const plan = sub.status === "active" && sub.plan !== "free" ? sub.plan : "free";
-    expect(plan).toBe("basic");
+    expect(plan).toBe("starter");
   });
 
   it("no subscription record → free", () => {
@@ -204,7 +204,7 @@ describe("undo cancel flow: just clear DB flag", () => {
 // ─── Upgrade Flow ───
 describe("upgrade flow: immediate entitlement", () => {
   it("upgrade grants entitlement immediately", () => {
-    const before = { entitlement_plan: "basic" };
+    const before = { entitlement_plan: "starter" };
     const after = { entitlement_plan: "pro" }; // Immediate
     expect(after.entitlement_plan).toBe("pro");
   });
@@ -234,17 +234,17 @@ describe("downgrade flow: deferred to cycle end", () => {
   it("downgrade sets scheduled_change_type to 'downgrade'", () => {
     const after = {
       scheduled_change_type: "downgrade",
-      scheduled_change_plan: "basic",
+      scheduled_change_plan: "starter",
     };
     expect(after.scheduled_change_type).toBe("downgrade");
-    expect(after.scheduled_change_plan).toBe("basic");
+    expect(after.scheduled_change_plan).toBe("starter");
   });
 
   it("downgrade is applied only on next renewal webhook", () => {
     // Simulating webhook handler logic
     const sub = {
       scheduled_change_type: "downgrade",
-      scheduled_change_plan: "basic",
+      scheduled_change_plan: "starter",
     };
 
     // On subscription.charged webhook:
@@ -252,7 +252,7 @@ describe("downgrade flow: deferred to cycle end", () => {
     expect(shouldApplyDowngrade).toBe(true);
 
     const newPlan = sub.scheduled_change_plan;
-    expect(newPlan).toBe("basic");
+    expect(newPlan).toBe("starter");
   });
 });
 
@@ -276,12 +276,12 @@ describe("webhook: subscription.charged handler", () => {
   });
 
   it("renewal with scheduled downgrade → applies new plan", () => {
-    const sub = { scheduled_change_type: "downgrade", scheduled_change_plan: "basic" };
+    const sub = { scheduled_change_type: "downgrade", scheduled_change_plan: "starter" };
 
     const shouldDowngrade = sub.scheduled_change_type === "downgrade";
     expect(shouldDowngrade).toBe(true);
     const newPlan = sub.scheduled_change_plan;
-    expect(newPlan).toBe("basic");
+    expect(newPlan).toBe("starter");
   });
 });
 
@@ -291,7 +291,7 @@ describe("webhook failure fallback: getUserPlan safety net", () => {
     // Scenario: Razorpay charged successfully but webhook didn't fire
     // entitlement_ends_at is in the past
     const sub = {
-      entitlement_plan: "basic",
+      entitlement_plan: "starter",
       entitlement_ends_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
       scheduled_change_type: null,
       auto_renew: true, // Still set to renew
@@ -340,28 +340,28 @@ describe("webhook idempotency", () => {
 
 // ─── Plan Validation ───
 describe("plan validation", () => {
-  it("only 'basic' and 'pro' are valid paid plans", () => {
-    const validPlans = ["basic", "pro"];
-    expect(validPlans.includes("basic")).toBe(true);
+  it("only 'starter' and 'pro' are valid paid plans", () => {
+    const validPlans = ["starter", "pro"];
+    expect(validPlans.includes("starter")).toBe(true);
     expect(validPlans.includes("pro")).toBe(true);
     expect(validPlans.includes("team")).toBe(false);
     expect(validPlans.includes("enterprise")).toBe(false);
     expect(validPlans.includes("free")).toBe(false);
   });
 
-  it("plan order: free < basic < pro", () => {
-    const PLAN_ORDER = { free: 0, basic: 1, pro: 2 };
-    expect(PLAN_ORDER.basic > PLAN_ORDER.free).toBe(true);
-    expect(PLAN_ORDER.pro > PLAN_ORDER.basic).toBe(true);
+  it("plan order: free < starter < pro", () => {
+    const PLAN_ORDER = { free: 0, starter: 1, pro: 2 };
+    expect(PLAN_ORDER.starter > PLAN_ORDER.free).toBe(true);
+    expect(PLAN_ORDER.pro > PLAN_ORDER.starter).toBe(true);
     expect(PLAN_ORDER.pro > PLAN_ORDER.free).toBe(true);
   });
 
   it("upgrade detection: target > current", () => {
-    const PLAN_ORDER = { free: 0, basic: 1, pro: 2 };
-    // basic → pro = upgrade
-    expect(PLAN_ORDER.pro > PLAN_ORDER.basic).toBe(true);
-    // pro → basic = downgrade
-    expect(PLAN_ORDER.basic > PLAN_ORDER.pro).toBe(false);
+    const PLAN_ORDER = { free: 0, starter: 1, pro: 2 };
+    // starter → pro = upgrade
+    expect(PLAN_ORDER.pro > PLAN_ORDER.starter).toBe(true);
+    // pro → starter = downgrade
+    expect(PLAN_ORDER.starter > PLAN_ORDER.pro).toBe(false);
   });
 });
 
@@ -415,16 +415,16 @@ describe("billing edge cases", () => {
   });
 
   it("user cannot upgrade to same plan", () => {
-    const currentPlan = "basic";
-    const targetPlan = "basic";
+    const currentPlan = "starter";
+    const targetPlan = "starter";
     const isSamePlan = currentPlan === targetPlan;
     expect(isSamePlan).toBe(true);
   });
 
   it("user cannot downgrade from free", () => {
-    const PLAN_ORDER = { free: 0, basic: 1, pro: 2 };
+    const PLAN_ORDER = { free: 0, starter: 1, pro: 2 };
     const currentPlan = "free";
-    const targetPlan = "basic";
+    const targetPlan = "starter";
     const isUpgrade = PLAN_ORDER[targetPlan] > PLAN_ORDER[currentPlan];
     expect(isUpgrade).toBe(true); // This is actually an upgrade, not downgrade
   });

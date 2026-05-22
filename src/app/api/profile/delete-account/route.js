@@ -29,7 +29,7 @@ export async function DELETE() {
     const sub = await getSubscription(userId);
     if (sub) {
       await db.update(subscriptions)
-        .set({ status: 'cancelled', entitlement_plan: 'free', razorpay_status: 'cancelled', updated_at: new Date().toISOString() })
+        .set({ status: 'cancelled', entitlement_plan: 'free', dodo_status: 'cancelled', updated_at: new Date().toISOString() })
         .where(eq(subscriptions.user_id, userId))
         .catch((err) => console.warn('[delete-account] Failed to update subscription:', err.message));
     }

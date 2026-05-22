@@ -102,7 +102,7 @@ export async function sendPlanDowngradeEmail({ to, name, previousPlan }) {
             <ul style="font-size: 13px; color: #555; padding-left: 16px; margin: 0; line-height: 1.8;">
               <li>3 public repositories</li>
               <li>20 AI queries/day</li>
-              <li>Basic health report</li>
+              <li>starter health report</li>
             </ul>
           </div>
           <p style="color: #555; font-size: 13px; line-height: 1.6;">

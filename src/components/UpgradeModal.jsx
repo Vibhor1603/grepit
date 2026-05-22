@@ -43,8 +43,10 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
       return executeChange(planId);
     }
 
-    // Upgrades from a paid plan: fetch preview first
-    if (currentPlan !== 'free') {
+    // Starter → Pro only: fetch prorated preview before confirming
+    // Free → any plan: go straight to checkout (Dodo page shows the price)
+    const isStarterToPro = currentPlan === 'basic' && planId === 'pro';
+    if (isStarterToPro) {
       // If already showing preview for this plan, execute
       if (upgradePreview?.planId === planId) {
         return executeChange(planId);
@@ -60,12 +62,8 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
         });
         const data = await res.json();
 
-        if (data.available && data.immediateCharge) {
-          const amount = data.immediateCharge.amount
-            ? `$${(data.immediateCharge.amount / 100).toFixed(2)}`
-            : data.immediateCharge.summary || null;
-
-          setUpgradePreview({ planId, amount, currency: data.currency || 'USD' });
+        if (data.available && data.amount) {
+          setUpgradePreview({ planId, amount: data.amount });
         } else {
           // Preview not available — show generic confirmation
           setUpgradePreview({ planId, amount: null });
@@ -78,7 +76,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
       return;
     }
 
-    // Free → paid: redirect to checkout (no preview needed, they see price on Dodo page)
+    // All other cases (free → basic, free → pro): go straight to checkout
     return executeChange(planId);
   };
 
@@ -89,7 +87,29 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
     setUpgradePreview(null);
 
     try {
-      if (currentPlan !== 'free') {
+      // Free users → Dodo checkout page (new subscription)
+      // Paid users → change-plan API (uses saved payment method)
+      if (currentPlan === 'free') {
+        const res = await fetch('/api/dodo/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: planId }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          toast.error(data.error || 'Failed to create checkout.', { duration: 5000 });
+          setLoading(null);
+          return;
+        }
+
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          toast.error('Checkout could not be created.', { duration: 5000 });
+          setLoading(null);
+        }
+      } else {
         const res = await fetch('/api/dodo/change-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -105,29 +125,8 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
 
         toast.success(data.message || 'Plan changed successfully', { duration: 5000 });
         const delay = data.type === 'upgrade' ? 4000 : 1500;
-        setTimeout(() => window.location.href = '/profile', delay);
-        return;
-      }
-
-      // New subscriber: redirect to Dodo checkout
-      const res = await fetch('/api/dodo/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.error || 'Failed to create checkout.', { duration: 5000 });
-        setLoading(null);
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error('Checkout could not be created.', { duration: 5000 });
-        setLoading(null);
+        const redirectUrl = data.type === 'upgrade' ? '/profile?upgrade=pending' : '/profile';
+        setTimeout(() => window.location.href = redirectUrl, delay);
       }
     } catch {
       toast.error('Something went wrong. Try again.', { duration: 5000 });

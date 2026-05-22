@@ -1072,8 +1072,8 @@ export default function LandingPage() {
               </div>
               <div className="p-5 text-center border-l border-white/[0.06] bg-[#E0FC10]/[0.03] relative">
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E0FC10]/60 to-transparent" />
-                <span className="text-[14px] text-[#E0FC10] font-bold">Basic</span>
-                <p className="text-[11px] text-[#E0FC10]/60 mt-0.5">{PLANS.basic.price}/mo</p>
+                <span className="text-[14px] text-[#E0FC10] font-bold">starter</span>
+                <p className="text-[11px] text-[#E0FC10]/60 mt-0.5">{PLANS.starter.price}/mo</p>
               </div>
               <div className="p-5 text-center border-l border-white/[0.06]">
                 <span className="text-[14px] text-[#b0b0b8] font-semibold">Pro</span>
@@ -1082,17 +1082,17 @@ export default function LandingPage() {
             </div>
             {/* Rows */}
             {[
-              { feature: 'Repositories', free: String(PLANS.free.maxRepos), pro: String(PLANS.basic.maxRepos), team: String(PLANS.pro.maxRepos) },
-              { feature: 'AI queries per day', free: String(PLANS.free.maxAiQueriesPerDay), pro: String(PLANS.basic.maxAiQueriesPerDay), team: String(PLANS.pro.maxAiQueriesPerDay) },
+              { feature: 'Repositories', free: String(PLANS.free.maxRepos), pro: String(PLANS.starter.maxRepos), team: String(PLANS.pro.maxRepos) },
+              { feature: 'AI queries per day', free: String(PLANS.free.maxAiQueriesPerDay), pro: String(PLANS.starter.maxAiQueriesPerDay), team: String(PLANS.pro.maxAiQueriesPerDay) },
               { feature: 'Token budget per day', free: '50K', pro: '400K', team: '2M' },
-              { feature: 'Messages per chat', free: String(PLANS.free.maxMessagesPerChat), pro: String(PLANS.basic.maxMessagesPerChat), team: String(PLANS.pro.maxMessagesPerChat) },
+              { feature: 'Messages per chat', free: String(PLANS.free.maxMessagesPerChat), pro: String(PLANS.starter.maxMessagesPerChat), team: String(PLANS.pro.maxMessagesPerChat) },
               { feature: 'Re-analysis frequency', free: '1 / week', pro: 'Unlimited', team: 'Unlimited' },
               { feature: 'Chat sharing', free: '2 total', pro: 'Unlimited', team: 'Unlimited' },
-              { feature: 'Private repositories', free: PLANS.free.privateRepos, pro: PLANS.basic.privateRepos, team: PLANS.pro.privateRepos },
-              { feature: 'Full security report', free: PLANS.free.fullSecurityReport, pro: PLANS.basic.fullSecurityReport, team: PLANS.pro.fullSecurityReport },
-              { feature: 'PDF export', free: PLANS.free.pdfExport, pro: PLANS.basic.pdfExport, team: PLANS.pro.pdfExport },
+              { feature: 'Private repositories', free: PLANS.free.privateRepos, pro: PLANS.starter.privateRepos, team: PLANS.pro.privateRepos },
+              { feature: 'Full security report', free: PLANS.free.fullSecurityReport, pro: PLANS.starter.fullSecurityReport, team: PLANS.pro.fullSecurityReport },
+              { feature: 'PDF export', free: PLANS.free.pdfExport, pro: PLANS.starter.pdfExport, team: PLANS.pro.pdfExport },
               { feature: 'Large codebase support', free: false, pro: false, team: true },
-              { feature: 'Priority analysis queue', free: PLANS.free.priorityQueue, pro: PLANS.basic.priorityQueue, team: PLANS.pro.priorityQueue },
+              { feature: 'Priority analysis queue', free: PLANS.free.priorityQueue, pro: PLANS.starter.priorityQueue, team: PLANS.pro.priorityQueue },
               { feature: 'Priority support', free: false, pro: false, team: true },
             ].map((row, i) => (
               <div key={i} className={`grid grid-cols-[1.8fr_1fr_1fr_1fr] transition-colors hover:bg-white/[0.02] ${i % 2 === 0 ? 'bg-white/[0.01]' : ''} ${i < 10 ? 'border-b border-white/[0.04]' : ''}`}>
