@@ -1013,6 +1013,162 @@ function CostComparison() {
   );
 }
 
+/* ─── USE CASE SCENARIOS — Who uses Grepit ─── */
+
+function UseCaseScenarios({ onCta }) {
+  const [activeScenario, setActiveScenario] = useState(0);
+
+  const scenarios = [
+    {
+      persona: 'New hire',
+      title: 'Onboarding to a new codebase',
+      scenario: 'Day one at a new job. 200K lines of code. Instead of spending a week reading docs that don\'t exist, drop the repo into Grepit and start asking questions immediately.',
+      question: 'How does the authentication flow work?',
+      answer: 'The auth flow starts in middleware.js which validates JWT tokens via Clerk. Protected routes check auth.userId before proceeding. Session tokens are stored in HTTP-only cookies.',
+      file: 'src/middleware.js:58',
+    },
+    {
+      persona: 'Tech lead',
+      title: 'Pre-PR security review',
+      scenario: 'Before merging a feature branch, run a security audit. Catch hardcoded secrets, missing validation, and unsafe patterns — with exact file locations and severity tags.',
+      question: 'Are there any hardcoded secrets or API keys?',
+      answer: 'Found 1 critical issue: AWS_SECRET_KEY is hardcoded in config/aws.js:12. Recommendation: move to environment variables and add to .gitignore.',
+      file: 'config/aws.js:12',
+    },
+    {
+      persona: 'Freelancer',
+      title: 'Client codebase audit',
+      scenario: 'A client sends you a repo to evaluate. In under a minute, get a full architecture map, health score, and dependency analysis — ready to present in a proposal.',
+      question: 'What\'s the overall architecture of this project?',
+      answer: 'This is a Next.js 14 app with App Router. It uses Prisma for DB access, Stripe for billing, and has 3 main modules: auth, payments, and dashboard. 47 API routes total.',
+      file: 'Architecture overview',
+    },
+    {
+      persona: 'Student',
+      title: 'Learning from open source',
+      scenario: 'Found an interesting open source project but can\'t figure out how it works. Drop the GitHub link and ask questions like you\'re pair programming with the author.',
+      question: 'How does the state management work in this app?',
+      answer: 'The app uses Zustand for global state with 3 stores: useAuthStore (user session), useCartStore (shopping cart), and useUIStore (modals, toasts). All defined in src/stores/.',
+      file: 'src/stores/index.ts:1',
+    },
+  ];
+
+  const active = scenarios[activeScenario];
+
+  return (
+    <section className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden">
+      <div className="max-w-[1100px] mx-auto">
+        <div className="text-center mb-16">
+          <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-[10px] text-[#E0FC10] tracking-[3px] uppercase mb-3 font-medium">Use cases</motion.p>
+          <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+            className="text-[34px] md:text-[48px] font-semibold tracking-tight leading-[1.05]">
+            How people use <GrepitText className="text-[34px] md:text-[48px]" />
+          </motion.h2>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="rounded-2xl bg-[#111113] border border-white/[0.06] overflow-hidden">
+
+          {/* Persona tabs */}
+          <div className="flex border-b border-white/[0.06] bg-[#0d0d0f] overflow-x-auto">
+            {scenarios.map((s, i) => (
+              <button key={i}
+                onClick={() => setActiveScenario(i)}
+                className={`relative flex-1 min-w-[140px] px-5 py-4 text-center transition-colors ${
+                  activeScenario === i ? 'text-[#eaeaec]' : 'text-[#4a4a54] hover:text-[#787884]'
+                }`}>
+                <div className="text-[11px] font-medium">{s.persona}</div>
+                {activeScenario === i && (
+                  <motion.div layoutId="scenario-indicator"
+                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E0FC10]"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Content */}
+          <div className="grid md:grid-cols-[1fr_1.4fr] gap-0 min-h-[380px]">
+            {/* Left: scenario description */}
+            <div className="p-8 md:p-10 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/[0.06]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeScenario}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}>
+                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#E0FC10]/[0.06] border border-[#E0FC10]/15 mb-5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#E0FC10]" />
+                    <span className="text-[10px] font-medium text-[#E0FC10] uppercase tracking-wider">{active.persona}</span>
+                  </div>
+                  <h3 className="text-[22px] md:text-[26px] font-semibold text-[#eaeaec] leading-tight tracking-tight mb-4">
+                    {active.title}
+                  </h3>
+                  <p className="text-[13px] text-[#787884] leading-[1.7]">
+                    {active.scenario}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Right: mock chat interaction */}
+            <div className="p-6 md:p-8 bg-[#0a0a0c] flex flex-col justify-center">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeScenario}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -12 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="space-y-4">
+                  {/* User question */}
+                  <div className="flex justify-end">
+                    <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl rounded-tr-sm px-4 py-3 max-w-[85%]">
+                      <p className="text-[12px] text-[#eaeaec]">{active.question}</p>
+                    </div>
+                  </div>
+                  {/* AI answer */}
+                  <div className="flex justify-start">
+                    <div className="bg-[#111113] border border-white/[0.06] rounded-xl rounded-tl-sm px-4 py-3 max-w-[90%]">
+                      <p className="text-[12px] text-[#b0b0b8] leading-[1.7] mb-2">{active.answer}</p>
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#E0FC10]/50">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                          <polyline points="13 2 13 9 20 9" />
+                        </svg>
+                        {active.file}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Bottom CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3 }}
+          className="mt-10 text-center">
+          <motion.button onClick={onCta} whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.98 }}
+            className="inline-flex items-center gap-2 text-[13px] font-medium bg-[#E0FC10] text-[#0a0a0c] py-3 px-7 rounded-xl hover:bg-[#eafd60] transition-all">
+            Try it on your codebase <ArrowRight size={14} />
+          </motion.button>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── WHY GREPIT — Orbital / Fan Layout ─── */
 
 function WhyGrepit() {
@@ -1633,6 +1789,9 @@ export default function LandingPage() {
 
       {/* COST COMPARISON */}
       <CostComparison />
+
+      {/* USE CASES — who uses Grepit */}
+      <UseCaseScenarios onCta={scrollToInput} />
 
       {/* WHY GREPIT */}
       <WhyGrepit />
