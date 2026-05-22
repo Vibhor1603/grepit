@@ -19,7 +19,7 @@ function getResend() {
   return _resend;
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Grepit <notifications@grepit.co>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'grepit <notifications@grepit.co>';
 
 /**
  * Send a plan upgrade confirmation email.
@@ -32,7 +32,7 @@ export async function sendPlanUpgradeEmail({ to, name, plan, price }) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Welcome to Grepit ${plan} 🎉`,
+      subject: `Welcome to grepit ${plan} 🎉`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a;">
           <div style="text-align: center; margin-bottom: 32px;">
@@ -62,7 +62,7 @@ export async function sendPlanUpgradeEmail({ to, name, plan, price }) {
             Manage your subscription anytime from your <a href="https://grepit.co/profile" style="color: #E0FC10; text-decoration: none; font-weight: 500;">profile page</a>.
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">Grepit — Understand any codebase instantly.</p>
+          <p style="color: #999; font-size: 11px; text-align: center;">grepit — Understand any codebase instantly.</p>
         </div>
       `,
     });
@@ -87,7 +87,7 @@ export async function sendPlanDowngradeEmail({ to, name, previousPlan }) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Your Grepit ${previousPlan} subscription has ended`,
+      subject: `Your grepit ${previousPlan} subscription has ended`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a;">
           <div style="text-align: center; margin-bottom: 32px;">
@@ -109,7 +109,7 @@ export async function sendPlanDowngradeEmail({ to, name, previousPlan }) {
             Your existing analyses are still accessible. You can <a href="https://grepit.co/?scrollTo=pricing" style="color: #E0FC10; text-decoration: none; font-weight: 500;">resubscribe anytime</a>.
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">Grepit — Understand any codebase instantly.</p>
+          <p style="color: #999; font-size: 11px; text-align: center;">grepit — Understand any codebase instantly.</p>
         </div>
       `,
     });
@@ -134,7 +134,7 @@ export async function sendPaymentFailedEmail({ to, name, plan }) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Action needed: Payment failed for Grepit ${plan}`,
+      subject: `Action needed: Payment failed for grepit ${plan}`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a;">
           <div style="text-align: center; margin-bottom: 32px;">
@@ -153,7 +153,7 @@ export async function sendPaymentFailedEmail({ to, name, plan }) {
             If payment isn't resolved within 3 days, your subscription will be cancelled and you'll be moved to the Free plan.
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">Grepit — Understand any codebase instantly.</p>
+          <p style="color: #999; font-size: 11px; text-align: center;">grepit — Understand any codebase instantly.</p>
         </div>
       `,
     });

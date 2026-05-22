@@ -2,7 +2,7 @@ import "../index.css";
 import Providers from "../components/Providers";
 
 export const metadata = {
-  title: "Grepit — Understand Any Codebase",
+  title: "grepit — Understand Any Codebase",
   description: "AI-powered codebase intelligence. Architecture analysis, dependency maps, and deep insights for any repository.",
 };
 

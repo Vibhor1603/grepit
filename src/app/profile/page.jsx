@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Trash2, ChevronRight, Clock, CheckCircle, AlertCircle, Loader2, Crown, Zap } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import UpgradeModal from "../../components/UpgradeModal";
+import Footer from "../../components/Footer";
 import { PLANS } from "../../config/plans";
 
 function Github({ size = 18, className = "" }) {
@@ -232,7 +233,7 @@ export default function ProfilePage() {
   const planLabel = isPro ? "Pro" : isStarter ? "Starter" : "Free";
 
   return (
-    <div className="min-h-screen bg-vb-bg text-vb-ink">
+    <div className="min-h-screen bg-vb-bg text-vb-ink flex flex-col">
       <Toaster position="top-center" toastOptions={{
         duration: 7000,
         style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', fontSize: '13px', padding: '12px 16px' },
@@ -292,7 +293,7 @@ export default function ProfilePage() {
                   ) : (
                     <>
                       <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors border border-white/[0.06] hover:border-vb-accent/20 rounded-lg px-3 py-1.5">
-                        Change plan
+                        Modify
                       </button>
                       <button onClick={handleManageBilling} className="flex items-center gap-1.5 text-[11px] text-vb-ink2 hover:text-red-400 transition-colors border border-white/[0.08] hover:border-red-400/20 rounded-lg px-3 py-1.5">
                         Cancel
@@ -311,12 +312,12 @@ export default function ProfilePage() {
           {/* GitHub Connection */}
           <div className="bg-[#111113] border border-white/[0.06] rounded-xl p-5">
             <h2 className="text-[11px] text-vb-ink4 uppercase tracking-wider font-medium mb-3">GitHub</h2>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Github size={16} className={subData?.githubConnected ? "text-vb-accent" : "text-vb-ink4"} />
-                <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <Github size={16} className={`flex-shrink-0 ${subData?.githubConnected ? "text-vb-accent" : "text-vb-ink4"}`} />
+                <div className="min-w-0">
                   <p className="text-[13px] font-medium">{subData?.githubConnected ? "Connected" : "Not connected"}</p>
-                  <p className="text-[11px] text-vb-ink4">{subData?.githubConnected ? "Private repositories unlocked" : "Required for private repositories"}</p>
+                  <p className="text-[11px] text-vb-ink4 truncate">{subData?.githubConnected ? "Private repositories unlocked" : "Required for private repos"}</p>
                 </div>
               </div>
               {subData?.githubConnected ? (
@@ -334,7 +335,7 @@ export default function ProfilePage() {
                   const state = `${user.id}:${encodeURIComponent('__profile__')}`;
                   const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
                   window.location.href = url;
-                }} disabled={connectingGithub} className="flex items-center gap-1.5 text-[11px] text-vb-accent border border-vb-accent/20 rounded-lg px-2.5 py-1.5 hover:bg-vb-accent/5 transition-all disabled:opacity-50">
+                }} disabled={connectingGithub} className="flex-shrink-0 flex items-center gap-1.5 text-[11px] text-vb-accent border border-vb-accent/20 rounded-lg px-3 py-1.5 hover:bg-vb-accent/5 transition-all disabled:opacity-50">
                   {connectingGithub ? <Loader2 size={11} className="animate-spin" /> : <Github size={11} />}
                   {connectingGithub ? 'Connecting...' : 'Connect'}
                 </button>
@@ -494,21 +495,9 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-white/[0.06] py-6 px-6">
+      <Footer />
 
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} currentPlan={subData?.plan || 'free'} />
-        <div className="max-w-[900px] mx-auto flex items-center justify-between">
-          <span className="text-[11px] text-vb-ink3">© {new Date().getFullYear()} Grepit</span>
-          <div className="flex items-center gap-4">
-            <a href="/privacy" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Privacy</a>
-            <a href="/terms" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Terms</a>
-            <a href="/refund" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Refunds</a>
-            <a href="/faq" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">FAQ</a>
-            <a href="mailto:support@grepit.co" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Contact</a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

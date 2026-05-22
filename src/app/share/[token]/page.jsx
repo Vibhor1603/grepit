@@ -59,7 +59,7 @@ export default function SharedChatPage() {
           <h1 className="text-[20px] font-semibold text-vb-ink">Chat not found</h1>
           <p className="text-[13px] text-vb-ink3">{error}</p>
           <button onClick={() => router.push('/')} className="text-[12px] font-medium text-vb-bg bg-vb-accent px-4 py-2 rounded-lg hover:bg-vb-accent-bright transition-all">
-            Go to Grepit
+            Go to grepit
           </button>
         </div>
       </div>

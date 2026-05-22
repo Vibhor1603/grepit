@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <p className="text-[13px] text-vb-ink4 mb-10">Last updated: May 19, 2026</p>
 
       <p className="text-[14px] text-vb-ink2 leading-relaxed mb-10">
-        This Privacy Policy describes how Grepit (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;), operated at grepit.co, collects, uses, shares, and protects your personal information when you use our codebase analysis platform and related services (collectively, the &ldquo;Service&rdquo;). By using the Service, you acknowledge that you have read and understood this Privacy Policy.
+        This Privacy Policy describes how grepit (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;), operated at grepit.co, collects, uses, shares, and protects your personal information when you use our codebase analysis platform and related services (collectively, the &ldquo;Service&rdquo;). By using the Service, you acknowledge that you have read and understood this Privacy Policy.
       </p>
 
       {/* Section 1 */}

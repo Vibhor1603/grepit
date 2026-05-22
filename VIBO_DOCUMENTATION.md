@@ -1,4 +1,4 @@
-# Grepit — Technical Documentation
+# grepit — Technical Documentation
 
 ## Database Schema
 

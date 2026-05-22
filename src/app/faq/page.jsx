@@ -5,9 +5,9 @@ import Link from "next/link";
 
 const faqs = [
   {
-    question: "What is Grepit?",
+    question: "What is grepit?",
     answer:
-      "Grepit is an AI-powered codebase analysis platform. Paste a GitHub repository URL, and get architecture diagrams, security audit reports, code quality insights, and an AI chat that understands your entire codebase. It works with both public and private repositories.",
+      "grepit is an AI-powered codebase analysis platform. Paste a GitHub repository URL, and get architecture diagrams, security audit reports, code quality insights, and an AI chat that understands your entire codebase. It works with both public and private repositories.",
   },
   {
     question: "Is my code stored?",
@@ -17,12 +17,12 @@ const faqs = [
   {
     question: "Does it work with private repos?",
     answer:
-      "Yes. Connect your GitHub account from the Profile page to grant Grepit access to your private repositories. We request only the minimum permissions necessary to read repository content for analysis. You can revoke access at any time from your GitHub settings.",
+      "Yes. Connect your GitHub account from the Profile page to grant grepit access to your private repositories. We request only the minimum permissions necessary to read repository content for analysis. You can revoke access at any time from your GitHub settings.",
   },
   {
     question: "What languages are supported?",
     answer:
-      "Grepit supports all major programming languages. Our parser handles 40+ file types including JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, Ruby, PHP, Swift, Kotlin, and more. The AI analysis works with any language that appears in your repository.",
+      "grepit supports all major programming languages. Our parser handles 40+ file types including JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, Ruby, PHP, Swift, Kotlin, and more. The AI analysis works with any language that appears in your repository.",
   },
   {
     question: "How do I cancel my subscription?",
@@ -42,7 +42,7 @@ const faqs = [
   {
     question: "Is there a free plan?",
     answer:
-      "Yes. The Free plan includes 1 repository with 15 AI queries per day. It's a great way to try Grepit before committing to a paid plan. No credit card is required to get started.",
+      "Yes. The Free plan includes 1 repository with 15 AI queries per day. It's a great way to try grepit before committing to a paid plan. No credit card is required to get started.",
   },
   {
     question: "Can I upgrade or downgrade anytime?",
@@ -91,7 +91,7 @@ export default function FAQPage() {
 
       <h1 className="text-[32px] font-semibold tracking-tight mb-2">Frequently Asked Questions</h1>
       <p className="text-[14px] text-vb-ink2 leading-relaxed mb-10">
-        Everything you need to know about Grepit. Can&apos;t find what you&apos;re looking for? Reach out to us at{" "}
+        Everything you need to know about grepit. Can&apos;t find what you&apos;re looking for? Reach out to us at{" "}
         <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a>.
       </p>
 

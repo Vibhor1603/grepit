@@ -25,7 +25,7 @@ export function normalizeGitHubRepoUrl(input) {
 export async function githubRequest(pathname, accessToken) {
   const headers = {
     Accept: "application/vnd.github+json",
-    "User-Agent": "Grepit-Code-Analyst",
+    "User-Agent": "grepit-Code-Analyst",
     "X-GitHub-Api-Version": "2022-11-28",
   };
 

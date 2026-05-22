@@ -323,7 +323,7 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
                 <div className="flex items-center justify-between pt-4">
                   <p className="text-[11px] text-vb-ink4">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   <div className="text-right">
-                    <span className="text-[12px] text-vb-accent font-medium">✓ Grepit Certified</span>
+                    <span className="text-[12px] text-vb-accent font-medium">✓ grepit Certified</span>
                     <p className="text-[10px] text-vb-ink4">Automated security analysis</p>
                   </div>
                 </div>

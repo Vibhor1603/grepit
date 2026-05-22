@@ -1,6 +1,6 @@
-# Grepit — Product Overview
+# grepit — Product Overview
 
-## What is Grepit?
+## What is grepit?
 AI-powered codebase analysis platform. Upload any GitHub repo (public or private) or ZIP file and get instant architecture diagrams, security reports, AI chat, and code exploration.
 
 ## Plans

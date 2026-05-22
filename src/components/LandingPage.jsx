@@ -10,6 +10,7 @@ import { MessageSquare, Code2, Shield, Zap, Lock, ArrowRight, Check, X, Sparkles
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { trackAnalysisStarted, trackAnalysisFailed, trackCheckoutStarted, trackUpgradeClicked } from '../lib/analytics';
+import { NewEngineerAnswer, TechLeadAnswer, FreelancerAnswer, OSSContributorAnswer } from './UseCaseAnswers';
 
 const GridBackground = dynamic(() => import('./GridBackground'), { ssr: false });
 
@@ -31,7 +32,7 @@ async function parseJsonResponse(res) {
   catch { throw new Error(`Server returned an invalid response (HTTP ${res.status}).`); }
 }
 
-/* ─── Branded "Grepit" text — matches the logo: Grep in white, it in accent ─── */
+/* ─── Branded "grepit" text — matches the logo: Grep in white, it in accent ─── */
 function GrepitText({ className = '' }) {
   return (
     <span className={`font-semibold tracking-tight ${className}`}>
@@ -363,13 +364,13 @@ function PersistentMemory({ onCta }) {
   const rightX = useTransform(scrollYProgress, [0, 0.5, 1], [60, 0, 20]);
   const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
 
-  const withoutGrepit = [
+  const withoutgrepit = [
     { q: 'how does auth work in this codebase?', tokens: '~180K tokens', time: '45s', bad: true },
     { q: 'wait, what was the middleware again?', tokens: '~180K tokens', time: '45s', bad: true },
     { q: 'explain the payment flow', tokens: '~180K tokens', time: '45s', bad: true },
   ];
 
-  const withGrepit = [
+  const withgrepit = [
     { q: 'how does auth work?', tokens: '~4K tokens', time: '2s', bad: false },
     { q: 'what does the middleware do?', tokens: '~4K tokens', time: '2s', bad: false },
     { q: 'explain the payment flow', tokens: '~4K tokens', time: '2s', bad: false },
@@ -393,21 +394,21 @@ function PersistentMemory({ onCta }) {
           <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
             className="text-[15px] text-[#787884] max-w-[520px] mx-auto leading-relaxed">
             Every time you ask Claude or GPT about your code, it re-reads everything from scratch. 
-            That&apos;s 100K-500K tokens per question. Grepit indexes once, answers forever.
+            That&apos;s 100K-500K tokens per question. grepit indexes once, answers forever.
           </motion.p>
         </div>
 
         <motion.div style={{ opacity }} className="grid md:grid-cols-2 gap-6">
-          {/* Without Grepit */}
+          {/* Without grepit */}
           <motion.div style={{ x: leftX }}
             className="rounded-2xl border border-red-500/20 bg-red-500/[0.03] overflow-hidden">
             <div className="px-5 py-4 border-b border-red-500/10 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500/60" />
-              <span className="text-[11px] font-medium text-red-400/80 uppercase tracking-wider">Without Grepit</span>
+              <span className="text-[11px] font-medium text-red-400/80 uppercase tracking-wider">Without grepit</span>
               <span className="ml-auto text-[10px] text-red-400/40 font-mono">Claude / GPT / Cursor</span>
             </div>
             <div className="p-5 space-y-3">
-              {withoutGrepit.map((item, i) => (
+              {withoutgrepit.map((item, i) => (
                 <motion.div key={i}
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -433,16 +434,16 @@ function PersistentMemory({ onCta }) {
             </div>
           </motion.div>
 
-          {/* With Grepit */}
+          {/* With grepit */}
           <motion.div style={{ x: rightX }}
             className="rounded-2xl border border-[#E0FC10]/20 bg-[#E0FC10]/[0.02] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#E0FC10]/10 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#E0FC10] animate-pulse" />
-              <span className="text-[11px] font-medium text-[#E0FC10]/80 uppercase tracking-wider">With Grepit</span>
+              <span className="text-[11px] font-medium text-[#E0FC10]/80 uppercase tracking-wider">With grepit</span>
               <span className="ml-auto text-[10px] text-[#E0FC10]/40 font-mono">indexed once, answers forever</span>
             </div>
             <div className="p-5 space-y-3">
-              {withGrepit.map((item, i) => (
+              {withgrepit.map((item, i) => (
                 <motion.div key={i}
                   initial={{ opacity: 0, x: 20 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -743,7 +744,7 @@ function TokenDrain() {
             {/* Divider */}
             <div className="border-t border-white/[0.06] pt-8">
               <div className="text-center mb-4">
-                <span className="text-[11px] text-[#4a4a54] uppercase tracking-wider">vs. Grepit</span>
+                <span className="text-[11px] text-[#4a4a54] uppercase tracking-wider">vs. grepit</span>
               </div>
               <div className="flex items-center justify-center gap-8">
                 <div className="text-center">
@@ -787,7 +788,7 @@ function FeatureDeepDive({ onCta }) {
 
 /* ─── POSITIONING — We don't write code ─── */
 
-/* ─── EFFICIENCY — Why Grepit saves you money ─── */
+/* ─── EFFICIENCY — Why grepit saves you money ─── */
 
 function DivisionOfLabour({ onCta }) {
   const ref = useRef(null);
@@ -854,7 +855,7 @@ function DivisionOfLabour({ onCta }) {
             </div>
           </motion.div>
 
-          {/* Right card: The Grepit way */}
+          {/* Right card: The grepit way */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -916,17 +917,92 @@ function DivisionOfLabour({ onCta }) {
   );
 }
 
+/* ─── SUPPORTED TECH — Infinite scrolling marquee with real icons ─── */
+
+function SupportedTech() {
+  // Using devicon CDN for real framework/language icons
+  const cdnBase = 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons';
+  const techs = [
+    { name: 'JavaScript', icon: `${cdnBase}/javascript/javascript-original.svg` },
+    { name: 'TypeScript', icon: `${cdnBase}/typescript/typescript-original.svg` },
+    { name: 'Python', icon: `${cdnBase}/python/python-original.svg` },
+    { name: 'Go', icon: `${cdnBase}/go/go-original.svg` },
+    { name: 'Rust', icon: `${cdnBase}/rust/rust-original.svg` },
+    { name: 'Java', icon: `${cdnBase}/java/java-original.svg` },
+    { name: 'C#', icon: `${cdnBase}/csharp/csharp-original.svg` },
+    { name: 'Ruby', icon: `${cdnBase}/ruby/ruby-original.svg` },
+    { name: 'PHP', icon: `${cdnBase}/php/php-original.svg` },
+    { name: 'Swift', icon: `${cdnBase}/swift/swift-original.svg` },
+    { name: 'Kotlin', icon: `${cdnBase}/kotlin/kotlin-original.svg` },
+    { name: 'C++', icon: `${cdnBase}/cplusplus/cplusplus-original.svg` },
+    { name: 'React', icon: `${cdnBase}/react/react-original.svg` },
+    { name: 'Next.js', icon: `${cdnBase}/nextjs/nextjs-original.svg` },
+    { name: 'Vue', icon: `${cdnBase}/vuejs/vuejs-original.svg` },
+    { name: 'Svelte', icon: `${cdnBase}/svelte/svelte-original.svg` },
+    { name: 'Angular', icon: `${cdnBase}/angular/angular-original.svg` },
+    { name: 'Django', icon: `${cdnBase}/django/django-plain.svg` },
+    { name: 'Rails', icon: `${cdnBase}/rails/rails-plain.svg` },
+    { name: 'Flutter', icon: `${cdnBase}/flutter/flutter-original.svg` },
+    { name: 'Tailwind', icon: `${cdnBase}/tailwindcss/tailwindcss-original.svg` },
+    { name: 'Docker', icon: `${cdnBase}/docker/docker-original.svg` },
+    { name: 'GraphQL', icon: `${cdnBase}/graphql/graphql-plain.svg` },
+    { name: 'Terraform', icon: `${cdnBase}/terraform/terraform-original.svg` },
+    { name: 'Elixir', icon: `${cdnBase}/elixir/elixir-original.svg` },
+    { name: 'Scala', icon: `${cdnBase}/scala/scala-original.svg` },
+    { name: 'Dart', icon: `${cdnBase}/dart/dart-original.svg` },
+    { name: 'Lua', icon: `${cdnBase}/lua/lua-original.svg` },
+    { name: 'Haskell', icon: `${cdnBase}/haskell/haskell-original.svg` },
+    { name: 'Bash', icon: `${cdnBase}/bash/bash-original.svg` },
+  ];
+
+  const track = [...techs, ...techs];
+
+  return (
+    <section className="relative z-[1] py-20 overflow-hidden">
+      {/* Fade edges */}
+      <div className="absolute left-0 top-0 bottom-0 w-40 bg-gradient-to-r from-[#0a0a0c] to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-40 bg-gradient-to-l from-[#0a0a0c] to-transparent z-10 pointer-events-none" />
+
+      <div className="text-center mb-10">
+        <p className="text-[11px] text-[#787884] font-medium">
+          Works with <span className="text-[#E0FC10] font-semibold">40+</span> languages and frameworks
+        </p>
+      </div>
+
+      {/* Row 1 — scrolls left, slow */}
+      <div className="flex gap-4 mb-4 animate-[marquee_80s_linear_infinite] hover:[animation-play-state:paused]" style={{ width: 'max-content' }}>
+        {track.map((tech, i) => (
+          <div key={`a-${i}`} className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-white/[0.06] bg-[#111113] hover:border-[#E0FC10]/20 transition-all duration-300 cursor-default group">
+            <img src={tech.icon} alt={tech.name} width={18} height={18} className="opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" />
+            <span className="text-[11px] text-[#787884] font-medium whitespace-nowrap group-hover:text-[#b0b0b8] transition-colors">{tech.name}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Row 2 — scrolls right, slightly different speed */}
+      <div className="flex gap-4 animate-[marquee_90s_linear_infinite_reverse] hover:[animation-play-state:paused]" style={{ width: 'max-content' }}>
+        {[...track].reverse().map((tech, i) => (
+          <div key={`b-${i}`} className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-white/[0.06] bg-[#111113] hover:border-[#E0FC10]/20 transition-all duration-300 cursor-default group">
+            <img src={tech.icon} alt={tech.name} width={18} height={18} className="opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" />
+            <span className="text-[11px] text-[#787884] font-medium whitespace-nowrap group-hover:text-[#b0b0b8] transition-colors">{tech.name}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ─── COST COMPARISON ─── */
 
 function AnimatedBar({ label, cost, maxCost, color, delay = 0, branded = false }) {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-40px' });
+  const isInView = useInView(ref, { once: false, margin: '-40px' });
   const width = (cost / maxCost) * 100;
 
   return (
     <motion.div ref={ref} className="mb-6"
       initial={{ opacity: 0, x: -30 }}
-      animate={isInView ? { opacity: 1, x: 0 } : {}}
+      animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
       transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[13px] text-[#b0b0b8] font-medium">
@@ -949,13 +1025,12 @@ function AnimatedBar({ label, cost, maxCost, color, delay = 0, branded = false }
 
 function AnimatedCounter({ target }) {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
+  const isInView = useInView(ref, { once: false });
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    if (!isInView) return;
+    if (!isInView) { setCount(0); return; }
     let frame;
-    let start = 0;
     const duration = 2000;
     const startTime = performance.now();
     const animate = (now) => {
@@ -977,7 +1052,7 @@ function CostComparison() {
     { label: 'Claude Code (heavy use)', cost: 125, color: 'linear-gradient(90deg, #ef4444, #f97316)' },
     { label: 'Cursor (with API keys)', cost: 60, color: 'linear-gradient(90deg, #f97316, #eab308)' },
     { label: 'GitHub Copilot Workspace', cost: 19, color: 'linear-gradient(90deg, #eab308, #a3a3a3)' },
-    { label: 'Grepit Starter', cost: 12, color: 'linear-gradient(90deg, #E0FC10, #b8d00e)', branded: true },
+    { label: 'grepit Starter', cost: 12, color: 'linear-gradient(90deg, #E0FC10, #b8d00e)', branded: true },
   ];
 
   return (
@@ -1013,47 +1088,64 @@ function CostComparison() {
   );
 }
 
-/* ─── USE CASE SCENARIOS — Who uses Grepit ─── */
+/* ─── USE CASE SCENARIOS — Who uses grepit ─── */
 
 function UseCaseScenarios({ onCta }) {
   const [activeScenario, setActiveScenario] = useState(0);
+  const [autoplay, setAutoplay] = useState(true);
+
+  // Auto-rotate every 6 seconds
+  useEffect(() => {
+    if (!autoplay) return;
+    const interval = setInterval(() => {
+      setActiveScenario(prev => (prev + 1) % 4);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [autoplay]);
 
   const scenarios = [
     {
-      persona: 'New hire',
-      title: 'Onboarding to a new codebase',
-      scenario: 'Day one at a new job. 200K lines of code. Instead of spending a week reading docs that don\'t exist, drop the repo into Grepit and start asking questions immediately.',
-      question: 'How does the authentication flow work?',
-      answer: 'The auth flow starts in middleware.js which validates JWT tokens via Clerk. Protected routes check auth.userId before proceeding. Session tokens are stored in HTTP-only cookies.',
-      file: 'src/middleware.js:58',
+      persona: 'New engineer',
+      title: 'First week at a new company',
+      scenario: 'You just joined a team with a 150K-line monorepo. No onboarding docs. The senior dev is on vacation. You need to ship a fix by Friday.',
+      question: 'Walk me through the payment processing pipeline — from checkout to webhook confirmation.',
+      answer: 'The payment flow has 4 stages:\n\n1. Frontend calls POST /api/checkout which creates a Stripe session\n2. User completes payment on Stripe\'s hosted page\n3. Stripe sends a webhook to POST /api/webhooks/stripe\n4. The webhook handler verifies the signature, updates the order status in the DB, and triggers the fulfillment queue',
+      file: 'src/app/api/checkout/route.ts:34',
+      followUps: ['Show the webhook handler', 'What happens if payment fails?', 'Where is the fulfillment queue?'],
     },
     {
       persona: 'Tech lead',
-      title: 'Pre-PR security review',
-      scenario: 'Before merging a feature branch, run a security audit. Catch hardcoded secrets, missing validation, and unsafe patterns — with exact file locations and severity tags.',
-      question: 'Are there any hardcoded secrets or API keys?',
-      answer: 'Found 1 critical issue: AWS_SECRET_KEY is hardcoded in config/aws.js:12. Recommendation: move to environment variables and add to .gitignore.',
-      file: 'config/aws.js:12',
+      title: 'Architecture review before a rewrite',
+      scenario: 'Your team is planning a migration from a legacy service. You need to map every dependency, every API consumer, and every shared module before you can scope the work.',
+      question: 'Which services depend on the UserService module and what methods do they call?',
+      answer: 'UserService is imported by 7 modules:\n\n• AuthController — calls getUserById, validateSession\n• BillingService — calls getUserSubscription, updatePlan\n• NotificationWorker — calls getUserEmail, getPreferences\n• AdminDashboard — calls listUsers, suspendUser\n• AnalyticsService — calls getUserMetadata\n• OnboardingFlow — calls createUser, sendVerification\n• APIGateway — calls authenticateRequest',
+      file: 'src/services/UserService.ts:1',
+      followUps: ['Show the dependency graph', 'Which methods are unused?', 'What would break if we split this?'],
     },
     {
       persona: 'Freelancer',
-      title: 'Client codebase audit',
-      scenario: 'A client sends you a repo to evaluate. In under a minute, get a full architecture map, health score, and dependency analysis — ready to present in a proposal.',
-      question: 'What\'s the overall architecture of this project?',
-      answer: 'This is a Next.js 14 app with App Router. It uses Prisma for DB access, Stripe for billing, and has 3 main modules: auth, payments, and dashboard. 47 API routes total.',
-      file: 'Architecture overview',
+      title: 'Evaluating a client\'s codebase',
+      scenario: 'A potential client wants you to estimate a feature. They sent you the repo. You have 30 minutes before the call to understand their stack, identify risks, and sound credible.',
+      question: 'Give me a high-level summary of this project — stack, architecture, and any red flags.',
+      answer: 'Stack: Next.js 14 (App Router), PostgreSQL via Prisma, Redis for caching, deployed on Vercel.\n\nArchitecture: 3 main domains — auth (Clerk), billing (Stripe), and content (CMS). 52 API routes, 23 React Server Components.\n\nRed flags:\n• No rate limiting on any public endpoint\n• 3 hardcoded API keys in config files\n• No error boundaries — unhandled rejections crash the app\n• Test coverage: 0%',
+      file: 'Security audit · 4 issues found',
+      followUps: ['Show me the hardcoded keys', 'Generate architecture diagram', 'Export as PDF'],
     },
     {
-      persona: 'Student',
-      title: 'Learning from open source',
-      scenario: 'Found an interesting open source project but can\'t figure out how it works. Drop the GitHub link and ask questions like you\'re pair programming with the author.',
-      question: 'How does the state management work in this app?',
-      answer: 'The app uses Zustand for global state with 3 stores: useAuthStore (user session), useCartStore (shopping cart), and useUIStore (modals, toasts). All defined in src/stores/.',
-      file: 'src/stores/index.ts:1',
+      persona: 'Open source contributor',
+      title: 'Understanding a project before contributing',
+      scenario: 'You want to contribute to a popular library but the codebase is complex. You need to understand the internal architecture before you can write a meaningful PR.',
+      question: 'How does the plugin system work? Where would I add a new plugin?',
+      answer: 'The plugin system uses a registry pattern:\n\n1. Plugins implement the IPlugin interface (src/types/plugin.ts)\n2. They register via registerPlugin() in src/core/registry.ts\n3. The engine calls plugin.init() during startup, then plugin.transform() on each input\n\nTo add a new plugin:\n• Create a file in src/plugins/\n• Implement IPlugin with init() and transform()\n• Register it in src/plugins/index.ts exports',
+      file: 'src/core/registry.ts:12',
+      followUps: ['Show IPlugin interface', 'List existing plugins', 'Show a simple plugin example'],
     },
   ];
 
   const active = scenarios[activeScenario];
+  // Rich JSX answers with code snippets and diagrams
+  const answerComponents = [<NewEngineerAnswer />, <TechLeadAnswer />, <FreelancerAnswer />, <OSSContributorAnswer />];
+  const activeAnswerJsx = answerComponents[activeScenario];
 
   return (
     <section className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden">
@@ -1072,14 +1164,14 @@ function UseCaseScenarios({ onCta }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="rounded-2xl bg-[#111113] border border-white/[0.06] overflow-hidden">
+          className="rounded-2xl bg-[#111113] border border-white/[0.06] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
 
           {/* Persona tabs */}
-          <div className="flex border-b border-white/[0.06] bg-[#0d0d0f] overflow-x-auto">
+          <div className="flex border-b border-white/[0.06] bg-[#0d0d0f]">
             {scenarios.map((s, i) => (
               <button key={i}
-                onClick={() => setActiveScenario(i)}
-                className={`relative flex-1 min-w-[140px] px-5 py-4 text-center transition-colors ${
+                onClick={() => { setActiveScenario(i); setAutoplay(false); }}
+                className={`relative flex-1 min-w-[120px] px-4 py-3.5 text-center transition-colors ${
                   activeScenario === i ? 'text-[#eaeaec]' : 'text-[#4a4a54] hover:text-[#787884]'
                 }`}>
                 <div className="text-[11px] font-medium">{s.persona}</div>
@@ -1088,13 +1180,22 @@ function UseCaseScenarios({ onCta }) {
                     className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E0FC10]"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
                 )}
+                {activeScenario === i && autoplay && (
+                  <motion.div
+                    className="absolute bottom-0 left-0 h-[2px] bg-[#E0FC10]/40"
+                    initial={{ width: '0%' }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 6, ease: 'linear' }}
+                    key={`progress-${activeScenario}`}
+                  />
+                )}
               </button>
             ))}
           </div>
 
           {/* Content */}
-          <div className="grid md:grid-cols-[1fr_1.4fr] gap-0 min-h-[380px]">
-            {/* Left: scenario description */}
+          <div className="grid md:grid-cols-[0.9fr_1.1fr] gap-0">
+            {/* Left: scenario */}
             <div className="p-8 md:p-10 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/[0.06]">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -1103,11 +1204,7 @@ function UseCaseScenarios({ onCta }) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}>
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#E0FC10]/[0.06] border border-[#E0FC10]/15 mb-5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#E0FC10]" />
-                    <span className="text-[10px] font-medium text-[#E0FC10] uppercase tracking-wider">{active.persona}</span>
-                  </div>
-                  <h3 className="text-[22px] md:text-[26px] font-semibold text-[#eaeaec] leading-tight tracking-tight mb-4">
+                  <h3 className="text-[20px] md:text-[24px] font-semibold text-[#eaeaec] leading-tight tracking-tight mb-4">
                     {active.title}
                   </h3>
                   <p className="text-[13px] text-[#787884] leading-[1.7]">
@@ -1117,37 +1214,54 @@ function UseCaseScenarios({ onCta }) {
               </AnimatePresence>
             </div>
 
-            {/* Right: mock chat interaction */}
-            <div className="p-6 md:p-8 bg-[#0a0a0c] flex flex-col justify-center">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeScenario}
-                  initial={{ opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                  className="space-y-4">
-                  {/* User question */}
-                  <div className="flex justify-end">
-                    <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl rounded-tr-sm px-4 py-3 max-w-[85%]">
-                      <p className="text-[12px] text-[#eaeaec]">{active.question}</p>
-                    </div>
-                  </div>
-                  {/* AI answer */}
-                  <div className="flex justify-start">
-                    <div className="bg-[#111113] border border-white/[0.06] rounded-xl rounded-tl-sm px-4 py-3 max-w-[90%]">
-                      <p className="text-[12px] text-[#b0b0b8] leading-[1.7] mb-2">{active.answer}</p>
-                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#E0FC10]/50">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
-                          <polyline points="13 2 13 9 20 9" />
-                        </svg>
-                        {active.file}
+            {/* Right: product-style chat mock */}
+            <div className="bg-[#0a0a0c] overflow-hidden">
+              {/* Mini window chrome */}
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06] bg-[#111113]">
+                <span className="w-[8px] h-[8px] rounded-full bg-[#ff5f57]" />
+                <span className="w-[8px] h-[8px] rounded-full bg-[#febc2e]" />
+                <span className="w-[8px] h-[8px] rounded-full bg-[#28c840]" />
+                <span className="text-[9px] text-[#4a4a54] ml-2 font-mono">grepit — ai chat</span>
+              </div>
+
+              <div className="p-5 md:p-6 max-h-[420px] overflow-y-auto">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeScenario}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-4">
+                    {/* User message */}
+                    <div className="flex justify-end">
+                      <div className="bg-white/[0.05] border border-white/[0.08] rounded-xl rounded-tr-sm px-4 py-3 max-w-[85%]">
+                        <p className="text-[12px] text-[#eaeaec] leading-[1.6]">{active.question}</p>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+                    {/* AI response */}
+                    <div className="flex justify-start">
+                      <div className="bg-[#111113] border border-white/[0.06] rounded-xl rounded-tl-sm px-4 py-3 max-w-[95%]">
+                        {activeAnswerJsx}
+                        {/* File citation */}
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#E0FC10]/60 mb-3 px-2 py-1 rounded bg-[#E0FC10]/[0.04] border border-[#E0FC10]/10 w-fit">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                            <polyline points="13 2 13 9 20 9" />
+                          </svg>
+                          {active.file}
+                        </div>
+                        {/* Follow-up chips */}
+                        <div className="flex gap-2 flex-wrap">
+                          {active.followUps.map(q => (
+                            <span key={q} className="text-[10px] px-2.5 py-1 rounded-full border border-white/[0.08] text-[#787884] bg-white/[0.02] hover:border-[#E0FC10]/20 hover:text-[#b0b0b8] transition-colors cursor-default">{q}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -1171,7 +1285,7 @@ function UseCaseScenarios({ onCta }) {
 
 /* ─── WHY GREPIT — Orbital / Fan Layout ─── */
 
-function WhyGrepit() {
+function Whygrepit() {
   const items = [
     { icon: Zap, title: 'Instant understanding', desc: 'No setup, no config, paste a link' },
     { icon: MessageSquare, title: 'Grounded answers', desc: 'AI responses cite actual files, not hallucinations' },
@@ -1226,103 +1340,91 @@ function WhyGrepit() {
   );
 }
 
-/* ─── HOW IT WORKS — Wide layout with rich copy ─── */
+/* ─── HOW IT WORKS — Zigzag ladder with hand-drawn arrows ─── */
 
 function HowItWorks() {
-  const containerRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start 0.8', 'end 0.6'] });
-  const lineHeight = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
-
   const steps = [
-    {
-      icon: Terminal,
-      title: 'Drop a link or upload your code',
-      desc: 'GitHub URL, private repo, or a ZIP. Public or private, any language, any size. No OAuth dance, no config files, no CLI to install. Just paste and go.',
-      detail: 'Supports 40+ languages · public & private repos · ZIP upload · folder drag-and-drop',
-    },
-    {
-      icon: Sparkles,
-      title: 'We index everything. Once.',
-      desc: 'Your entire codebase — files, functions, dependencies, APIs, secrets — parsed and indexed into a structured intelligence layer. This happens once. Not every time you ask a question.',
-      detail: 'Architecture extraction · dependency mapping · security scanning · AI enrichment',
-    },
-    {
-      icon: MessageSquare,
-      title: 'Ask anything. Get grounded answers.',
-      desc: 'Your codebase is now queryable. Ask how auth works, what a function does, where a bug might be hiding. Every answer cites the exact file and line. No hallucinations. No re-reading the whole repo.',
-      detail: 'File-cited responses · follow-up context · persistent across sessions',
-    },
-    {
-      icon: BarChart3,
-      title: 'Export, share, and keep shipping',
-      desc: 'Generate PDF security reports, share chat links with teammates, export architecture diagrams. Use the right tool for the right job — that\'s the division of labor.',
-      detail: 'PDF export · shareable links · architecture diagrams · security reports',
-    },
+    { num: '01', title: 'Drop a link', desc: 'GitHub URL, private repo, or ZIP. Any language, any size. Just paste and go.' },
+    { num: '02', title: 'Indexed in under a minute', desc: 'Architecture, dependencies, APIs, security — all extracted and structured.' },
+    { num: '03', title: 'Ask anything, forever', desc: 'Your codebase is now queryable. Every answer cites the exact file and line.' },
+    { num: '04', title: 'Export and share', desc: 'PDF reports, shareable links, architecture diagrams — ready for your team.' },
   ];
 
   return (
-    <section ref={containerRef} className="relative z-[1] py-28 px-6 md:px-8" id="how">
-      <div className="max-w-[900px] mx-auto">
-        <div className="text-center mb-20">
+    <section className="relative z-[1] py-32 px-6 md:px-8" id="how">
+      <div className="max-w-[800px] mx-auto">
+        <div className="text-center mb-24">
           <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             className="text-[10px] text-[#E0FC10] tracking-[3px] uppercase mb-3 font-medium">How it works</motion.p>
           <motion.h2 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-            className="text-[30px] md:text-[42px] font-semibold tracking-tight leading-tight mb-4">
-            From link to full understanding.<br />Under a minute.
+            className="text-[34px] md:text-[48px] font-semibold tracking-tight leading-[1.05]">
+            From link to full understanding.
           </motion.h2>
-          <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-            className="text-[14px] text-[#787884] max-w-[480px] mx-auto leading-relaxed">
-            We don&apos;t write code for you. We make sure you understand the code you&apos;re working with — so your AI tools can focus on what they&apos;re actually good at.
-          </motion.p>
         </div>
 
+        {/* Zigzag ladder layout */}
         <div className="relative">
-          {/* Background line */}
-          <div className="absolute left-[23px] top-0 bottom-0 w-px bg-white/[0.04]" />
-          {/* Animated glowing line */}
-          <motion.div
-            className="absolute left-[23px] top-0 w-px bg-gradient-to-b from-[#E0FC10] via-[#E0FC10]/60 to-transparent"
-            style={{ height: lineHeight }}
-          />
+          {steps.map((step, i) => {
+            const isRight = i % 2 === 1;
+            return (
+              <div key={i} className="relative">
+                {/* Curved arrow from this card to the next */}
+                {i < steps.length - 1 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.4 + i * 0.1, duration: 0.5 }}
+                    className="absolute left-1/2 -translate-x-1/2 -bottom-[72px] z-10">
+                    <svg width="60" height="50" viewBox="0 0 120 80" fill="none" overflow="visible">
+                      <defs>
+                        <marker id={`ah-${i}`} markerWidth="14" markerHeight="12" refX="7" refY="6" orient="auto" overflow="visible">
+                          <polygon points="0 0, 14 6, 0 12" fill="#E0FC10" />
+                        </marker>
+                      </defs>
+                      <path
+                        d={isRight
+                          ? 'M80 0 C78 20, 50 40, 42 70'
+                          : 'M40 0 C42 20, 70 40, 78 70'}
+                        stroke="#E0FC10"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        fill="none"
+                        markerEnd={`url(#ah-${i})`}
+                      />
+                    </svg>
+                  </motion.div>
+                )}
 
-          <div className="space-y-14">
-            {steps.map((step, i) => {
-              const Icon = step.icon;
-              return (
-                <motion.div key={i}
-                  initial={{ opacity: 0, x: -24 }}
+                {/* Step card */}
+                <motion.div
+                  initial={{ opacity: 0, x: isRight ? 40 : -40 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, margin: '-60px' }}
-                  transition={{ duration: 0.6, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  className="flex items-start gap-8 relative">
-                  {/* Node */}
-                  <div className="relative z-10 w-12 h-12 rounded-full bg-[#111113] border border-white/[0.08] flex items-center justify-center flex-shrink-0 shadow-[0_0_0_4px_#0a0a0c]">
-                    <Icon size={18} className="text-[#E0FC10]" strokeWidth={1.6} />
-                    <motion.div
-                      className="absolute inset-0 rounded-full border border-[#E0FC10]/15"
-                      animate={{ scale: [1, 1.7, 1], opacity: [0.5, 0, 0.5] }}
-                      transition={{ duration: 3, repeat: Infinity, delay: i * 0.6 }}
-                    />
-                  </div>
-                  {/* Content */}
-                  <div className="flex-1 pt-2 pb-2">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-[10px] font-mono text-[#4a4a54]">0{i + 1}</span>
-                      <h4 className="text-[17px] font-semibold text-[#eaeaec] leading-tight">{step.title}</h4>
+                  transition={{ duration: 0.7, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                  className={`relative mb-24 ${isRight ? 'md:ml-auto md:mr-0' : 'md:mr-auto md:ml-0'} md:w-[55%]`}>
+                  <motion.div
+                    whileHover={{ y: -4 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                    className="relative p-8 rounded-2xl bg-[#111113] border border-white/[0.08] hover:border-[#E0FC10]/20 transition-colors overflow-hidden group">
+                    {/* Large accent number */}
+                    <div className="absolute -top-2 -right-2 text-[80px] font-bold text-[#E0FC10]/[0.1] leading-none select-none group-hover:text-[#E0FC10]/[0.18] transition-colors duration-500">
+                      {step.num}
                     </div>
-                    <p className="text-[13px] text-[#787884] leading-[1.75] mb-3 max-w-[600px]">{step.desc}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {step.detail.split(' · ').map((tag, j) => (
-                        <span key={j} className="text-[10px] font-mono text-[#4a4a54] px-2.5 py-1 rounded-md bg-white/[0.02] border border-white/[0.04]">
-                          {tag}
-                        </span>
-                      ))}
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-7 h-7 rounded-full bg-[#E0FC10]/[0.08] border border-[#E0FC10]/20 flex items-center justify-center">
+                          <span className="text-[9px] font-bold text-[#E0FC10]">{step.num}</span>
+                        </div>
+                        <h3 className="text-[18px] font-semibold text-[#eaeaec] tracking-tight">{step.title}</h3>
+                      </div>
+                      <p className="text-[13px] text-[#787884] leading-relaxed pl-10">{step.desc}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 </motion.div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -1787,17 +1889,20 @@ export default function LandingPage() {
       {/* PRODUCT SHOWCASE */}
       <ProductShowcase />
 
+      {/* HOW IT WORKS */}
+      <HowItWorks />
+
+      {/* SUPPORTED TECH — scrolling marquee */}
+      <SupportedTech />
+
+      {/* USE CASES */}
+      <UseCaseScenarios onCta={scrollToInput} />
+
       {/* COST COMPARISON */}
       <CostComparison />
 
-      {/* USE CASES — who uses Grepit */}
-      <UseCaseScenarios onCta={scrollToInput} />
-
       {/* WHY GREPIT */}
-      <WhyGrepit />
-
-      {/* HOW IT WORKS */}
-      <HowItWorks />
+      <Whygrepit />
 
       {/* TESTIMONIALS */}
       <section className="relative py-28 px-6 md:px-8 z-[1] overflow-hidden">
@@ -1831,7 +1936,6 @@ export default function LandingPage() {
             className="relative overflow-visible">
             {/* Coming soon badge — hangs off the right edge */}
             <div className="absolute -top-4 z-10 flex items-center gap-2 px-4 py-1.5 rounded-md bg-[#0a0a0c] border border-[#E0FC10]/25 shadow-[0_4px_12px_rgba(0,0,0,0.4)]" style={{ right: '-40px' }}>
-              <span className="w-2 h-2 rounded-full bg-[#E0FC10] animate-pulse" />
               <span className="text-[12px] text-[#E0FC10] font-medium">More features coming soon</span>
             </div>
             <div className="rounded-2xl border border-white/[0.08] overflow-hidden bg-[#111113] shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
@@ -1929,7 +2033,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-6 pt-5 border-t border-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-3">
-            <span className="text-[11px] text-[#787884]">© {new Date().getFullYear()} Grepit. All rights reserved.</span>
+            <span className="text-[11px] text-[#787884]">© {new Date().getFullYear()} grepit. All rights reserved.</span>
             <span className="text-[11px] text-[#787884]">Built for developers who value their time.</span>
           </div>
         </div>

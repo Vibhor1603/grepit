@@ -15,7 +15,7 @@ export const SITE_CONFIG = {
     suggestedRepos: ['shadcn-ui/ui', 'pmndrs/zustand', 'hono-js/hono', 't3-oss/create-t3-app', 'colinhacks/zod'],
     stats: [
       { value: '40+', label: 'languages' },
-      { value: '< 30s', label: 'analysis time' },
+      { value: '< 1m', label: 'analysis time' },
       { value: 'Free', label: 'to start' },
     ],
   },
@@ -53,7 +53,7 @@ export const SITE_CONFIG = {
       {
         icon: 'Workflow',
         title: 'AI Diagrams',
-        desc: 'Generate architecture and flow diagrams on demand. Mermaid-powered, dark-themed.',
+        desc: 'Generate architecture and flow diagrams on demand. Dark-themed, always up to date.',
         color: '#7ca8e8',
       },
       {
@@ -97,9 +97,9 @@ export const SITE_CONFIG = {
     label: 'Trusted by developers',
     title: 'What people are saying',
     items: [
-      { quote: 'Dropped a legacy codebase I inherited into Grepit and understood the whole thing in 10 minutes. Would have taken me a week otherwise.', name: 'Marcus R.', role: 'Senior Engineer', avatar: 'MR' },
+      { quote: 'Dropped a legacy codebase I inherited into grepit and understood the whole thing in 10 minutes. Would have taken me a week otherwise.', name: 'Marcus R.', role: 'Senior Engineer', avatar: 'MR' },
       { quote: 'The security audit caught a hardcoded API key in a codebase we were about to acquire. That alone justified the tool.', name: 'Sofia L.', role: 'CTO, Seed-stage startup', avatar: 'SL' },
-      { quote: 'I use Grepit every time I start at a new client. The architecture map makes it trivially easy to explain the codebase to stakeholders.', name: 'Ananya K.', role: 'Freelance Engineer', avatar: 'AK' },
+      { quote: 'I use grepit every time I start at a new client. The architecture map makes it trivially easy to explain the codebase to stakeholders.', name: 'Ananya K.', role: 'Freelance Engineer', avatar: 'AK' },
     ],
   },
 
@@ -113,7 +113,7 @@ export const SITE_CONFIG = {
   // CTA section
   cta: {
     title: 'Ready to try it?',
-    subtitle: 'Free to start. No credit card. No install. Just paste a GitHub URL and see what Grepit finds.',
+    subtitle: 'Free to start. No credit card. No install. Just paste a GitHub URL and see what grepit finds.',
     button: 'Analyze a codebase',
   },
 };

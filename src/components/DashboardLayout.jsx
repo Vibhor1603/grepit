@@ -1422,7 +1422,7 @@ export default function DashboardLayout() {
                 <PanelLeftOpen size={15} />
               </button>
             )}
-            <a href="/" className="flex items-center gap-1.5 mr-2 hover:opacity-90 transition-opacity flex-shrink-0" title="Grepit Home">
+            <a href="/" className="flex items-center gap-1.5 mr-2 hover:opacity-90 transition-opacity flex-shrink-0" title="grepit Home">
               <ViboMark size={18} />
               <span className="text-[15px] font-semibold tracking-tight text-vb-ink select-none hidden sm:inline">grep<span className="text-vb-accent">it</span></span>
             </a>

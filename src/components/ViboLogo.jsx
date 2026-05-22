@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Grepit brand logo — lightning bolt mark + wordmark.
+ * grepit brand logo — lightning bolt mark + wordmark.
  * Sizes: "sm" (nav), "md" (footer/default), "lg" (hero).
  */
 export function ViboMark({ size = 20, className = "" }) {
