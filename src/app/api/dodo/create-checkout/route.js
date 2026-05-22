@@ -22,21 +22,26 @@ export async function POST(request) {
 
     let body = {};
     try { body = await request.json(); } catch {}
-    const requestedPlan = body.plan || "starter";
+    // Plan IDs match the config keys: "basic" (Starter) and "pro"
+    const requestedPlan = body.plan || "basic";
 
-    if (!["starter", "pro"].includes(requestedPlan)) {
+    if (!["basic", "pro"].includes(requestedPlan)) {
+      console.error("[create-checkout] Invalid plan:", requestedPlan);
       return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
     }
 
     const productId = getProductId(requestedPlan);
     if (!productId) {
+      console.error("[create-checkout] Product ID not configured for plan:", requestedPlan, "| DODO_STARTER_PRODUCT_ID:", !!process.env.DODO_STARTER_PRODUCT_ID, "| DODO_PRO_PRODUCT_ID:", !!process.env.DODO_PRO_PRODUCT_ID);
       return NextResponse.json({ error: "Something went wrong. Please try again later." }, { status: 500 });
     }
 
-    // Never trust frontend — verify user is actually on free plan
+    // Verify user is on free plan
     const currentPlan = await getUserPlan(userId);
+    console.log("[create-checkout] user=%s, currentPlan=%s, requestedPlan=%s", userId, currentPlan, requestedPlan);
+
     if (currentPlan !== "free") {
-      return NextResponse.json({ error: `You already have an active subscription. Use plan change instead.` }, { status: 400 });
+      return NextResponse.json({ error: "You already have an active subscription. Use plan change instead." }, { status: 400 });
     }
 
     // Get user info for checkout pre-fill
