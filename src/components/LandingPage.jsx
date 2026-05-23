@@ -1826,10 +1826,10 @@ export default function LandingPage() {
                 }`}>{label}</button>
             ))}
             <div className="ml-auto flex items-center gap-2">
-              <span className="text-[11px] text-[#4a4a54]">try:</span>
+              <span className="text-[11px] text-[#787884]">try:</span>
               {hero.suggestedRepos.map(repo => (
                 <button key={repo} onClick={() => { setMode('url'); setRepoUrl(`https://github.com/${repo}`); }} disabled={loading}
-                  className="text-[11px] text-[#4a4a54] hover:text-[#E0FC10] transition-colors disabled:opacity-40">{repo.split('/')[1]}</button>
+                  className="text-[11px] text-[#787884] hover:text-[#E0FC10] transition-colors disabled:opacity-40">{repo.split('/')[1]}</button>
               ))}
             </div>
           </div>

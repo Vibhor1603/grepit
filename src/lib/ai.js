@@ -5,153 +5,106 @@ import * as Sentry from "@sentry/nextjs";
 // Fallback: Groq (llama-3.1-8b-instant) — free tier
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
-const GROQ_BASE_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 // Primary model via OpenRouter
 const OPENROUTER_MODEL = "REDACTED_CHAT_MODEL";
 
-// Fallback models via Groq (if OpenRouter fails)
-const GROQ_FALLBACK_MODELS = [
-  "llama-3.1-8b-instant",
-  "llama-3.3-70b-versatile",
+// Fallback models (same quality/context tier, same or cheaper cost)
+// OpenRouter handles fallback automatically with route="fallback"
+const FALLBACK_MODELS = [
+  "REDACTED_CHAT_MODEL",       // Primary: 1M context, $0.20/MTok input
+  "REDACTED_CHAT_MODEL",       // Fallback 1: 1M context, $0.10/MTok input
+  "qwen/qwen-3-235b-a22b",            // Fallback 2: 128K context, excellent at code
+  "REDACTED_CHAT_MODEL",            // Fallback 3: 128K context, $0.14/MTok input
 ];
 
 export function getAIApiUrl() {
-  if (process.env.OPENROUTER_API_KEY) return OPENROUTER_BASE_URL;
-  return GROQ_BASE_URL;
+  return OPENROUTER_BASE_URL;
 }
 
 export function getAIHeaders() {
-  if (process.env.OPENROUTER_API_KEY) {
-    return {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://grepit.co",
-      "X-Title": "grepit Code Analyst",
-    };
-  }
   return {
-    Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
     "Content-Type": "application/json",
+    "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://grepit.co",
+    "X-Title": "grepit Code Analyst",
   };
 }
 
 export function getAIModel() {
-  if (process.env.OPENROUTER_API_KEY) return OPENROUTER_MODEL;
-  return GROQ_FALLBACK_MODELS[0];
+  return OPENROUTER_MODEL;
 }
 
-// ── Fetch with provider fallback ─────────────────────────────────────
+// ── Fetch with OpenRouter provider fallback ─────────────────────────────────────
 export async function aiFetch(body, maxAttempts = 2) {
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error("No AI provider configured (OPENROUTER_API_KEY missing)");
+  }
+
   let lastError;
 
-  // Try OpenRouter first (if configured)
-  if (process.env.OPENROUTER_API_KEY) {
-    const requestBody = { ...body, model: OPENROUTER_MODEL };
+  // Use OpenRouter's native fallback routing
+  // Sends models array + route="fallback" — OpenRouter retries the next model if primary fails
+  const requestBody = {
+    ...body,
+    models: FALLBACK_MODELS,
+    route: "fallback",
+  };
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 45000);
-        const res = await fetch(OPENROUTER_BASE_URL, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://grepit.co",
-            "X-Title": "grepit Code Analyst",
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 45000);
+      const res = await fetch(OPENROUTER_BASE_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://grepit.co",
+          "X-Title": "grepit Code Analyst",
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (res.status === 429 && attempt < maxAttempts - 1) {
+        console.warn("[ai] OpenRouter rate limited, retrying...");
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+
+      if (res.status === 402) {
+        const err = new Error("OpenRouter credits exhausted");
+        Sentry.captureException(err, {
+          level: "fatal",
+          tags: { source: "ai-provider", provider: "openrouter", reason: "credits_exhausted" },
         });
-        clearTimeout(timeout);
+        console.error("[ai] CRITICAL: OpenRouter credits exhausted!");
+        throw err;
+      }
 
-        if (res.status === 429 && attempt < maxAttempts - 1) {
-          console.warn("[ai] OpenRouter rate limited, retrying...");
-          await new Promise((r) => setTimeout(r, 2000));
-          continue;
-        }
-
-        if (res.ok || res.status === 429) return res;
-
-        // Check for credit exhaustion (402 = payment required)
-        if (res.status === 402) {
-          const err = new Error("OpenRouter credits exhausted");
-          Sentry.captureException(err, { 
-            level: "fatal",
-            tags: { source: "ai-provider", provider: "openrouter", reason: "credits_exhausted" },
-          });
-          console.error("[ai] CRITICAL: OpenRouter credits exhausted!");
-        }
-
-        // Non-retryable error from OpenRouter — fall through to Groq
-        console.log(`[ai] OpenRouter error ${res.status}, falling back to Groq...`);
-        break;
-      } catch (err) {
-        lastError = err;
-        if (err.name === 'AbortError') {
-          console.error(`[ai] OpenRouter timed out, falling back to Groq...`);
-          break;
-        }
+      return res;
+    } catch (err) {
+      lastError = err;
+      if (err.name === 'AbortError') {
+        console.error(`[ai] OpenRouter timed out (attempt ${attempt + 1})`);
         if (attempt < maxAttempts - 1) {
           await new Promise((r) => setTimeout(r, 1000));
+          continue;
         }
+      } else if (err.message === "OpenRouter credits exhausted") {
+        throw err;
+      } else if (attempt < maxAttempts - 1) {
+        await new Promise((r) => setTimeout(r, 1000));
       }
     }
   }
 
-  // Fallback: Groq
-  if (!process.env.GROQ_API_KEY) {
-    throw lastError || new Error("No AI provider configured");
-  }
-
-  for (const model of GROQ_FALLBACK_MODELS) {
-    const requestBody = { ...body, model };
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
-        const res = await fetch(GROQ_BASE_URL, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        if (res.status === 429 || res.status === 413) {
-          console.log(`[ai] Groq model ${model} rate-limited (${res.status}), trying next...`);
-          Sentry.addBreadcrumb({ message: `Groq ${model} rate-limited (${res.status})`, level: "warning" });
-          break;
-        }
-
-        if (res.status === 503 && attempt < maxAttempts - 1) {
-          await new Promise((r) => setTimeout(r, 1000));
-          continue;
-        }
-
-        return res;
-      } catch (err) {
-        lastError = err;
-        if (err.name === 'AbortError') {
-          console.error(`[ai] Groq model ${model} timed out, trying next...`);
-          break;
-        }
-        if (attempt < maxAttempts - 1) {
-          await new Promise((r) => setTimeout(r, 1000));
-        }
-      }
-    }
-  }
-  const finalError = lastError || new Error("All AI providers failed");
-  Sentry.captureException(finalError, { 
+  const finalError = lastError || new Error("AI provider failed after retries");
+  Sentry.captureException(finalError, {
     level: "error",
-    tags: { source: "ai-provider", reason: "all_providers_failed" },
-    extra: { errorMessage: lastError?.message },
+    tags: { source: "ai-provider", reason: "all_attempts_failed" },
   });
   throw finalError;
 }

@@ -271,10 +271,10 @@ export default function ProfilePage() {
           {/* Subscription */}
           <div className="bg-[#111113] border border-white/[0.06] rounded-xl p-5">
             <h2 className="text-[11px] text-vb-ink4 uppercase tracking-wider font-medium mb-3">Subscription</h2>
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
                 <span className="text-[15px] font-semibold">{planLabel}</span>
-                <p className="text-[12px] text-vb-ink3 mt-0.5">
+                <p className="text-[12px] text-vb-ink3 mt-1.5">
                   {isPaid
                     ? subData?.scheduledChange === 'downgrade'
                       ? `Switching to ${subData.scheduledChangePlan?.charAt(0).toUpperCase() + subData.scheduledChangePlan?.slice(1)} on ${subData?.entitlementEndsAt ? new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'next cycle'}`

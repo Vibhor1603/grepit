@@ -428,7 +428,8 @@ function RightPanel({ analysis, selectedFile, activeTab, userPlan, onShareChat, 
   const displayFiles = highTraffic || [];
 
   return (
-    <div className="h-full flex flex-col overflow-y-auto">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto flex flex-col">
       {showSymbols ? (
         <>
           <div className="px-3 py-2.5 border-b border-white/[0.06] flex items-center gap-2 min-w-0">
@@ -499,14 +500,14 @@ function RightPanel({ analysis, selectedFile, activeTab, userPlan, onShareChat, 
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-vb-ink4 uppercase tracking-wider">Plan</span>
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${userPlan === 'free' ? 'bg-white/[0.04] text-vb-ink3' : 'bg-vb-accent/10 text-vb-accent border border-vb-accent/20'}`}>
-                {userPlan === 'free' ? 'Free' : userPlan === 'pro' ? 'Pro' : 'Team'}
+                {userPlan === 'free' ? 'Free' : userPlan === 'starter' ? 'Starter' : 'Pro'}
               </span>
             </div>
           </div>
 
-          {/* Footer links at bottom of scroll */}
-          <div className="px-4 py-4">
-            <div className="flex items-center justify-center gap-4">
+          {/* Footer links — always at bottom */}
+          <div className="mt-auto px-4 py-4 border-t border-white/[0.04]">
+            <div className="flex items-center justify-center gap-4 flex-wrap">
               <a href="/privacy" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Privacy</a>
               <a href="/terms" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Terms</a>
               <a href="/refund" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Refunds</a>
@@ -516,6 +517,7 @@ function RightPanel({ analysis, selectedFile, activeTab, userPlan, onShareChat, 
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }
@@ -1088,7 +1090,7 @@ export default function DashboardLayout() {
   const [reanalyzing, setReanalyzing] = useState(false);
   const { plan: fetchedPlan } = usePlan();
   const leftPanel = useResizable({ defaultWidth: 240, minWidth: 180, maxWidth: 400, storageKey: 'grepit-left-panel' });
-  const rightPanel = useResizableRight({ defaultWidth: 240, minWidth: 180, maxWidth: 360, storageKey: 'grepit-right-panel' });
+  const rightPanel = useResizableRight({ defaultWidth: 300, minWidth: 200, maxWidth: 420, storageKey: 'grepit-right-panel' });
   const abortRef = useRef(null);
   const { toast, show: showToast, dismiss: dismissToast } = useToast();
   const router = useRouter();
@@ -1459,15 +1461,11 @@ export default function DashboardLayout() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Plan badge + upgrade CTA for free users */}
-            {userPlan === 'free' ? (
+            {/* Upgrade CTA for free users only — no badge for paid users */}
+            {userPlan === 'free' && (
               <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium text-vb-ink3 bg-white/[0.03] border border-white/[0.06] hover:border-vb-accent/20 hover:text-vb-accent transition-all hidden sm:flex" title="Upgrade plan">
                 <Zap size={10} className="text-vb-accent" /> Upgrade
               </button>
-            ) : (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-vb-accent/10 text-vb-accent border border-vb-accent/20 hidden sm:flex">
-                {userPlan === 'team' ? 'Team' : 'Pro'}
-              </span>
             )}
             <button onClick={() => router.push('/profile')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="Profile & Settings">
               <UserCircle size={13} />
