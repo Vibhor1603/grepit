@@ -1,5 +1,6 @@
 import "../index.css";
 import Providers from "../components/Providers";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: "grepit — Understand Any Codebase",
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="font-sans bg-vb-bg text-vb-ink antialiased">
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
