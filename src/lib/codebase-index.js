@@ -321,12 +321,30 @@ export function extractQueryTerms(query = "") {
   const lowered = query.toLowerCase().trim();
   if (!lowered) return [];
 
-  return unique(
-    lowered
-      .split(/[^a-z0-9_./@-]+/)
-      .map((part) => part.trim())
-      .filter((part) => part.length > 1 && !STOP_WORDS.has(part)),
-  ).slice(0, 16);
+  const raw = lowered
+    .split(/[^a-z0-9_./@-]+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 1 && !STOP_WORDS.has(part));
+
+  // Basic stemming: add root forms for common suffixes
+  // "streaming" → also search "stream", "authentication" → "auth", etc.
+  const stemmed = [];
+  for (const term of raw) {
+    stemmed.push(term);
+    // Strip common suffixes to find root
+    const root = term
+      .replace(/(?:ing|tion|ation|ment|ness|able|ible|ous|ive|ful|less|er|or|ist|ize|ise)$/, '');
+    if (root.length >= 3 && root !== term) {
+      stemmed.push(root);
+    }
+    // Also handle "streaming" → "stream" (strip just "ing" when root is valid)
+    if (term.endsWith('ing') && term.length > 5) {
+      const noIng = term.slice(0, -3);
+      if (noIng.length >= 3 && noIng !== root) stemmed.push(noIng);
+    }
+  }
+
+  return unique(stemmed).slice(0, 20);
 }
 
 export function buildCodebaseIndex({
@@ -692,6 +710,37 @@ export function queryCodebase(analysis, query, options = {}) {
   }
 
   const folderMatches = buildFolderMatches(index, terms, query);
+
+  // ── Hub/Entry file boosting ──
+  // Files imported by many others are architecturally important — boost them
+  // when they have ANY relevance (even partial match)
+  const fileNodes = index.fileNodes || [];
+  for (const node of fileNodes) {
+    const inDegree = (node.importedBy?.length || 0) + (node.calledBy?.length || 0);
+    const isEntryPoint = /\b(index|main|app|server|route|page|layout)\b/i.test(basename(node.path));
+    const isConfig = /\b(config|env|settings|constants)\b/i.test(basename(node.path));
+
+    // Only boost files that already have some relevance (avoid noise)
+    const currentScore = directFileScores.get(node.path) || 0;
+    if (currentScore <= 0) continue;
+
+    // Hub boost: files imported by 3+ others get a bonus proportional to their connectivity
+    if (inDegree >= 3) {
+      const hubBoost = Math.min(4, inDegree * 0.5);
+      addScore(directFileScores, reasonMap, node.path, hubBoost, `hub file (imported by ${inDegree} others)`);
+    }
+
+    // Entry point boost
+    if (isEntryPoint) {
+      addScore(directFileScores, reasonMap, node.path, 2, 'entry point file');
+    }
+
+    // Config file boost (defines architecture)
+    if (isConfig) {
+      addScore(directFileScores, reasonMap, node.path, 1.5, 'configuration file');
+    }
+  }
+
   const treeScores = expandThroughTree(index, folderMatches, directFileScores, reasonMap);
   const graphSeedScores = new Map([...directFileScores.entries()].filter(([, score]) => score >= 4));
   const { graphScores, explored } = expandThroughGraph(index, graphSeedScores, reasonMap, options.maxGraphDepth || 2);

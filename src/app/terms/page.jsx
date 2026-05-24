@@ -73,7 +73,7 @@ export default function TermsPage() {
           <strong>Billing Terms:</strong>
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
-          <li>Paid subscriptions are processed through Razorpay. By subscribing, you authorize recurring charges to your payment method at the then-current rate.</li>
+          <li>Paid subscriptions are processed through our payment provider (Dodo Payments). By subscribing, you authorize recurring charges to your payment method at the then-current rate.</li>
           <li>Billing cycles begin on the date of your initial subscription and recur monthly or annually depending on your selected plan.</li>
           <li>All fees are exclusive of applicable taxes, which will be added where required by law.</li>
           <li><strong>Cancellation:</strong> You may cancel your subscription at any time through your account billing portal. Cancellation takes effect at the end of the current billing period. You will retain access to paid features until the end of your paid period.</li>
@@ -184,6 +184,7 @@ export default function TermsPage() {
           <li><strong>Maintenance:</strong> We may perform scheduled or emergency maintenance that temporarily interrupts the Service. We will endeavor to provide advance notice of scheduled maintenance when possible.</li>
           <li><strong>Third-Party Dependencies:</strong> The Service depends on third-party providers (GitHub, AI providers, hosting infrastructure). Outages or degradation of these providers may affect Service availability, and we are not liable for such disruptions.</li>
           <li><strong>Data Availability:</strong> While we maintain regular backups, we do not guarantee against data loss. You are responsible for maintaining your own copies of any critical data.</li>
+          <li><strong>Service Discontinuation:</strong> We may discontinue the Service at any time by providing at least 30 days&apos; prior written notice via email to all registered users. Upon discontinuation: (a) no new subscriptions will be accepted; (b) all active subscriptions will be cancelled at the end of the notice period (no further charges); (c) the Service will remain accessible during the notice period so you may export your data; (d) no refunds will be issued for the current billing period. After the notice period, all user data will be deleted in accordance with our Privacy Policy.</li>
         </ul>
       </section>
 

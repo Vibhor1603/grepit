@@ -1133,6 +1133,19 @@ export default function DashboardLayout() {
     const q = (text || query).trim();
     if (!q || chatLoading || !analysis?.id) return;
 
+    // Optimistically add this conversation to the sidebar if it's the first message
+    const isFirstMessage = messages.length === 0;
+    if (isFirstMessage) {
+      queryClient.setQueryData(['chatHistory', analysisId], (old = []) => {
+        // Don't add if already exists
+        if (old.some(c => c.id === activeChatId)) return old;
+        return [
+          { id: activeChatId, title: q.slice(0, 80), created_at: new Date().toISOString(), last_activity: new Date().toISOString(), messageCount: 1 },
+          ...old,
+        ];
+      });
+    }
+
     // Build display message (what user sees — no hidden context, but show badge)
     const displayMsg = attachedFiles.length > 0
       ? { role: 'user', content: q, _files: attachedFiles }
@@ -1361,9 +1374,18 @@ export default function DashboardLayout() {
         setShowUpgradeModal(true);
         showToast(data.error, 'error');
       } else if (res.ok && data.id) {
-        showToast('Re-analysis started', 'success');
-        queryClient.invalidateQueries({ queryKey: ['analysis', analysisId] });
-        router.push(`/dashboard?id=${data.id}`);
+        showToast('Re-analysis complete', 'success');
+        // If same ID, just refresh the cache. If new ID, update URL without full reload.
+        if (data.id === analysisId) {
+          queryClient.invalidateQueries({ queryKey: ['analysis', analysisId] });
+        } else {
+          // Update URL without triggering a full page navigation
+          window.history.replaceState({}, '', `/dashboard?id=${data.id}`);
+          // Invalidate old cache and set new data directly
+          queryClient.removeQueries({ queryKey: ['analysis', analysisId] });
+          queryClient.setQueryData(['analysis', data.id], data);
+          queryClient.invalidateQueries({ queryKey: ['chatHistory', data.id] });
+        }
       } else {
         showToast(data.error || data.message || 'Re-analysis failed', 'error');
       }

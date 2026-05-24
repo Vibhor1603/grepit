@@ -319,10 +319,7 @@ export async function checkGate(userId, feature) {
       return { allowed: true, plan: userPlan };
     }
     case "ai_query": {
-      const usageCount = await getAiQueryCountToday(userId);
-      if (usageCount >= plan.maxAiQueriesPerDay) {
-        return { allowed: false, plan: userPlan, reason: `You've used all ${plan.maxAiQueriesPerDay} AI queries for today. Resets at midnight.`, code: "QUERY_LIMIT_REACHED" };
-      }
+      // Token budget is the only limiter — checked separately in the stream controller
       return { allowed: true, plan: userPlan };
     }
     case "pdf_export": {

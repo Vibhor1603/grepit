@@ -51,7 +51,7 @@ export async function handleStreamPost(request) {
   const plan = getPlan(userPlanName);
   const tokenBudget = await checkTokenBudget(session.userId, plan.maxTokensPerDay);
   if (!tokenBudget.allowed) {
-    return new Response(JSON.stringify({ error: `Daily token budget exhausted (${plan.maxTokensPerDay.toLocaleString()} tokens). Resets at midnight.`, code: "TOKEN_BUDGET_EXCEEDED" }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: `You've reached your daily usage limit. Your budget resets in 24 hours — or upgrade your plan for more.`, code: "TOKEN_BUDGET_EXCEEDED" }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
   const isAuthed = Boolean(ownerEmail);
@@ -67,10 +67,51 @@ export async function handleStreamPost(request) {
   }
 
   // Build context — with configured chat model (1M context) we can be generous
-  const queryResult = queryCodebase(analysis, query, { maxFiles: 10, maxSymbols: 15, maxGraphDepth: 3 });
+  const queryResult = queryCodebase(analysis, query, { maxFiles: 12, maxSymbols: 15, maxGraphDepth: 3 });
   const files = analysis?.results?.files || [];
   const fileByPath = new Map(files.map(f => [f.path, f]));
-  const relevantFiles = queryResult.fileMatches.map(m => fileByPath.get(m.path)).filter(Boolean);
+  let relevantFiles = queryResult.fileMatches.map(m => fileByPath.get(m.path)).filter(Boolean);
+
+  console.log(`[stream] Top file matches: ${relevantFiles.slice(0, 5).map(f => f.path).join(', ')}`);
+
+  // ── Follow imports for thin wrapper files ──
+  // If a matched file is tiny (< 500 chars, e.g., a route.js that just re-exports),
+  // also include the files it imports — that's where the actual implementation lives.
+  const importedExtras = [];
+  const seenPaths = new Set(relevantFiles.map(f => f.path));
+
+  // Log thin files for debugging
+  const thinFiles = relevantFiles.filter(f => (f.code || '').length < 500);
+  if (thinFiles.length > 0) {
+    console.log(`[stream] Thin wrapper files found: ${thinFiles.map(f => `${f.path} (imports: ${(f.imports || []).join(', ')})`).join(' | ')}`);
+  }
+
+  for (const file of relevantFiles) {
+    const codeLen = (file.code || '').length;
+    if (codeLen < 500 && (file.imports || []).length > 0) {
+      for (const imp of file.imports) {
+        // Resolve: strip leading dots/slashes, keep the full module path
+        // Don't strip .controller, .service, etc — only strip actual file extensions
+        const normalized = imp
+          .replace(/^[./]+/g, '')
+          .replace(/\.(js|ts|jsx|tsx|mjs|cjs|json)$/, '');
+        if (!normalized) continue;
+        const candidates = files.filter(f =>
+          f.path.includes(normalized) && !seenPaths.has(f.path)
+        );
+        for (const candidate of candidates.slice(0, 2)) {
+          importedExtras.push(candidate);
+          seenPaths.add(candidate.path);
+          console.log(`[stream] Import-follow: ${file.path} → ${candidate.path}`);
+        }
+      }
+    }
+  }
+
+  // Prepend imported files (they have the actual code) before the thin wrappers
+  if (importedExtras.length > 0) {
+    relevantFiles = [...importedExtras, ...relevantFiles];
+  }
 
   // Force-include user-tagged files
   const forcedFiles = (forcedFilePaths || [])
@@ -80,7 +121,7 @@ export async function handleStreamPost(request) {
   const forcedPaths = new Set(forcedFiles.map(f => f.path));
   const otherFiles = relevantFiles.filter(f => !forcedPaths.has(f.path)).slice(0, 8);
 
-  // Build context
+  // Build context — prioritize actual code over metadata
   const contextParts = [
     `Repository: ${analysis.repo_name}`,
     `Summary: ${analysis.summary}`,
@@ -88,31 +129,62 @@ export async function handleStreamPost(request) {
     `File tree (${(analysis.file_tree || []).length} files): ${JSON.stringify((analysis.file_tree || []).slice(0, 150).map(f => f.path))}`,
   ];
 
-  // Tagged files get generous code space
+  // ── Adaptive context sizing based on query complexity ──
+  // Simple questions (what does X do, where is Y) need less context
+  // Complex questions (how does the auth flow work, explain architecture) need more
+  const isSimpleQuery = /^(what|where|which|show|find|list)\b/i.test(query) && query.length < 80;
+  const isArchitectureQuery = /\b(architect|flow|pipeline|system|how does .+ work|end.to.end|overview|explain the)\b/i.test(query);
+  const hasFileAttached = forcedFiles.length > 0;
+
+  // Context budget per file (chars)
+  const CODE_BUDGET = hasFileAttached
+    ? { tagged: 30000, top: 16000, rest: 6000 }   // User tagged a file — give it full code, less for others
+    : isArchitectureQuery
+      ? { tagged: 0, top: 20000, rest: 10000 }     // Architecture — spread code across more files
+      : isSimpleQuery
+        ? { tagged: 0, top: 12000, rest: 4000 }    // Simple — less context needed
+        : { tagged: 0, top: 18000, rest: 8000 };   // Default — balanced
+
+  // Tagged files get full code
   if (forcedFiles.length > 0) {
     contextParts.push(`User-specified files (BASE YOUR ANSWER ON THESE):\n${JSON.stringify(forcedFiles.map(file => ({
       path: file.path, summary: file.summary,
-      functions: (file.functions || []).map(i => i.name),
+      functions: (file.functions || []).map(i => ({ name: i.name, args: i.args })),
       classes: (file.classes || []).map(i => i.name),
       imports: file.imports || [],
-      code: (file.code || "").slice(0, 6000),
+      code: (file.code || "").slice(0, CODE_BUDGET.tagged),
     })))}`);
   }
 
-  // Other relevant files
-  const codePerFile = forcedFiles.length > 0 ? 2500 : 4000;
-  contextParts.push(`Relevant files:\n${JSON.stringify(otherFiles.map(file => ({
-    path: file.path, summary: file.summary,
-    functions: (file.functions || []).map(i => i.name),
-    classes: (file.classes || []).map(i => i.name),
-    code: (file.code || "").slice(0, codePerFile),
-  })))}`);
+  // Top 3 relevant files get generous code, rest get less
+  const topFiles = otherFiles.slice(0, 3);
+  const restFiles = otherFiles.slice(3);
 
-  contextParts.push(`Symbols: ${JSON.stringify((queryResult.symbolMatches || []).slice(0, 15))}`);
+  if (topFiles.length > 0) {
+    contextParts.push(`Most relevant files:\n${JSON.stringify(topFiles.map(file => ({
+      path: file.path, summary: file.summary,
+      functions: (file.functions || []).map(i => ({ name: i.name, args: i.args })),
+      classes: (file.classes || []).map(i => i.name),
+      imports: file.imports || [],
+      code: (file.code || "").slice(0, CODE_BUDGET.top),
+    })))}`);
+  }
+
+  if (restFiles.length > 0) {
+    contextParts.push(`Additional context files:\n${JSON.stringify(restFiles.map(file => ({
+      path: file.path, summary: file.summary,
+      functions: (file.functions || []).map(i => i.name),
+      classes: (file.classes || []).map(i => i.name),
+      code: (file.code || "").slice(0, CODE_BUDGET.rest),
+    })))}`);
+  }
+
+  contextParts.push(`Symbols: ${JSON.stringify((queryResult.symbolMatches || []).slice(0, 12))}`);
 
   let context = contextParts.join("\n");
-  // Cap at 60K chars — still well within 1M context budget
-  if (context.length > 60000) context = context.slice(0, 60000);
+  // Adaptive cap based on query type
+  const contextCap = isSimpleQuery ? 60000 : isArchitectureQuery ? 150000 : 100000;
+  if (context.length > contextCap) context = context.slice(0, contextCap);
 
   console.log(`[stream] Context: ${context.length} chars, query: ${query.length} chars`);
 
@@ -321,7 +393,10 @@ ${context}`;
         }).catch(() => {});
 
         // Record approximate token usage (4 chars ≈ 1 token)
-        const approxTokens = Math.ceil((query.length + cleanResponse.length) / 4);
+        // Include input context in the count — this is what actually costs money
+        const inputTokens = Math.ceil(context.length / 4);
+        const outputTokens = Math.ceil(cleanResponse.length / 4);
+        const approxTokens = inputTokens + outputTokens;
         recordTokenUsage(session.userId, approxTokens).catch(() => {});
 
       } catch (err) {

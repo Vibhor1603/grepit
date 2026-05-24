@@ -33,6 +33,7 @@ export async function getGithubAccessToken(authState) {
 
   const client = await clerkClient();
 
+  // First try: Clerk-linked GitHub OAuth (for users who signed in with GitHub)
   try {
     const tokens = await client.users.getUserOauthAccessToken(authState.userId, "github");
     if (tokens.data && tokens.data.length > 0) {
@@ -42,13 +43,16 @@ export async function getGithubAccessToken(authState) {
     // User hasn't connected GitHub via Clerk — that's fine
   }
 
+  // Second try: Our custom OAuth App token stored in privateMetadata (repo scope)
   try {
     const user = await client.users.getUser(authState.userId);
     if (user.privateMetadata?.githubAccessToken) {
+      console.log(`[github] Found repo-scoped token in privateMetadata for user ${authState.userId}`);
       return user.privateMetadata.githubAccessToken;
     }
-  } catch {
-    // No repo-scoped token stored
+    console.log(`[github] No token found for user ${authState.userId} (privateMetadata empty)`);
+  } catch (err) {
+    console.warn(`[github] Failed to read privateMetadata for user ${authState.userId}:`, err.message);
   }
 
   return null;

@@ -13,10 +13,10 @@ export const PLANS = {
 
     // Limits
     maxRepos: 1,
-    maxAiQueriesPerDay: 15,
+    maxAiQueriesPerDay: Infinity,
     maxDiagramsPerHour: 10,
     maxFileViewsPerHour: 30,
-    maxTokensPerDay: 50_000,
+    maxTokensPerDay: 250_000,
     maxRepoFiles: 2000,
     maxChatConversations: 5,
     maxMessagesPerChat: 12,
@@ -31,8 +31,8 @@ export const PLANS = {
     // Rate limits (requests per window)
     rateLimit: {
       analyze: { max: 3, windowMs: 86_400_000 },   // 3/day
-      query: { max: 15, windowMs: 3_600_000 },     // 15/hour
-      stream: { max: 15, windowMs: 3_600_000 },    // 15/hour
+      query: { max: 30, windowMs: 3_600_000 },     // 30/hour (spam protection only)
+      stream: { max: 30, windowMs: 3_600_000 },    // 30/hour
       diagram: { max: 3, windowMs: 3_600_000 },    // 3/hour
       file: { max: 30, windowMs: 3_600_000 },      // 30/hour
     },
@@ -42,7 +42,7 @@ export const PLANS = {
     featured: false,
     features: [
       '1 repository',
-      '15 AI queries/day',
+      '250K tokens/day',
       'Basic health report',
       'Code explorer',
       'Architecture diagrams',
@@ -57,10 +57,10 @@ export const PLANS = {
 
     // Limits
     maxRepos: 3,
-    maxAiQueriesPerDay: 100,
+    maxAiQueriesPerDay: Infinity,
     maxDiagramsPerHour: 50,
     maxFileViewsPerHour: 200,
-    maxTokensPerDay: 400_000,
+    maxTokensPerDay: 500_000,
     maxRepoFiles: 5000,
     maxChatConversations: 50,
     maxMessagesPerChat: 30,
@@ -75,8 +75,8 @@ export const PLANS = {
     // Rate limits
     rateLimit: {
       analyze: { max: 15, windowMs: 86_400_000 },
-      query: { max: 60, windowMs: 3_600_000 },
-      stream: { max: 60, windowMs: 3_600_000 },
+      query: { max: 120, windowMs: 3_600_000 },
+      stream: { max: 120, windowMs: 3_600_000 },
       diagram: { max: 20, windowMs: 3_600_000 },
       file: { max: 200, windowMs: 3_600_000 },
     },
@@ -86,7 +86,7 @@ export const PLANS = {
     featured: true,
     features: [
       '3 repositories',
-      '100 AI queries/day',
+      '500K tokens/day',
       'Full security report',
       'PDF export',
       'Unlimited re-analysis',
@@ -102,7 +102,7 @@ export const PLANS = {
 
     // Limits
     maxRepos: 7,
-    maxAiQueriesPerDay: 500,
+    maxAiQueriesPerDay: Infinity,
     maxDiagramsPerHour: 100,
     maxFileViewsPerHour: 1000,
     maxTokensPerDay: 2_000_000,
@@ -120,8 +120,8 @@ export const PLANS = {
     // Rate limits
     rateLimit: {
       analyze: { max: 50, windowMs: 86_400_000 },
-      query: { max: 200, windowMs: 3_600_000 },
-      stream: { max: 200, windowMs: 3_600_000 },
+      query: { max: 300, windowMs: 3_600_000 },
+      stream: { max: 300, windowMs: 3_600_000 },
       diagram: { max: 100, windowMs: 3_600_000 },
       file: { max: 1000, windowMs: 3_600_000 },
     },
@@ -131,7 +131,7 @@ export const PLANS = {
     featured: false,
     features: [
       'Everything in Starter',
-      '500 AI queries/day',
+      '2M tokens/day',
       '7 repositories',
       'Large codebase support',
       'Priority analysis queue',

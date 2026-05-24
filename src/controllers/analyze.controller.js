@@ -419,19 +419,10 @@ export async function handleAnalyzePost(request) {
     }
 
     // For large repos (>500 files), skip component enrichment to avoid timeout
+    // Run component enrichment and code intelligence IN PARALLEL — they're independent
     let detailedComponents = [];
-    if (fileCount <= 500 && !isTimedOut()) {
-      console.log(`[analyze] Enriching components...`);
-      detailedComponents = await enrichGitHubComponents(snapshot, normalized.repoPath, accessToken);
-    } else {
-      console.log(`[analyze] Skipping component enrichment (${fileCount} files, timeout: ${isTimedOut()})`);
-    }
-
-    if (isTimedOut()) {
-      console.log(`[analyze] Timeout reached after component enrichment, saving partial results...`);
-    }
-
-    console.log(`[analyze] Building code intelligence...`);
+    console.log(`[analyze] Building code intelligence + enriching components (parallel)...`);
+    
     // For huge repos, limit code-intel to most important files (prioritize source over tests/docs)
     const codeIntelLimit = isHugeRepo ? 1000 : isLargeRepo ? 1500 : filteredTree.length;
     const prioritizedTree = filteredTree
@@ -451,20 +442,49 @@ export async function handleAnalyzePost(request) {
       .slice(0, codeIntelLimit);
     
     const codeIntelSnapshot = { ...snapshot, fileTree: prioritizedTree };
-    const codeIntel = buildCodeIntelligence(codeIntelSnapshot, previous);
+
+    // Parallel: code intel + component enrichment
+    const [codeIntel, enrichedComponents] = await Promise.all([
+      Promise.resolve(buildCodeIntelligence(codeIntelSnapshot, previous)),
+      (fileCount <= 500 && !isTimedOut())
+        ? enrichGitHubComponents(snapshot, normalized.repoPath, accessToken).catch(() => [])
+        : Promise.resolve([]),
+    ]);
+    detailedComponents = enrichedComponents;
     console.log(`[analyze] Code intel complete: ${codeIntel.files.length} files indexed (limit: ${codeIntelLimit})`);
 
-    console.log(`[analyze] Building codebase index...`);
+    console.log(`[analyze] Building codebase index + AI enhancement (parallel)...`);
     let codebaseIndex, persistedCodebaseIndex, mergedEndpoints;
     
-    if (!isTimedOut()) {
-      codebaseIndex = buildCodebaseIndex({
+    // Run codebase index building and AI enhancement IN PARALLEL
+    // They're independent: AI uses code intel results, index uses file tree + symbols
+    const indexPromise = !isTimedOut() ? Promise.resolve().then(() => {
+      const idx = buildCodebaseIndex({
         fileTree: filteredTree,
         files: codeIntel.files,
         symbolIndex: codeIntel.symbolIndex,
         dependencyGraph: codeIntel.dependencyGraph,
         callGraph: codeIntel.callGraph,
       });
+      return idx;
+    }) : Promise.resolve(null);
+
+    const aiPromise = !isTimedOut() ? Promise.race([
+      maybeEnhanceAnalysisWithGroq(result, { snapshot: codeIntelSnapshot, codeIntel }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), Math.min(30000, ANALYSIS_TIMEOUT - (Date.now() - startTime) - 5000))),
+    ]).catch((err) => {
+      if (err.message === 'AI_TIMEOUT') {
+        console.log(`[analyze] AI enhancement timed out, continuing without it`);
+      } else {
+        console.warn(`[analyze] AI enhancement failed:`, err.message);
+      }
+      return result;
+    }) : Promise.resolve(result);
+
+    const [indexResult, aiResult] = await Promise.all([indexPromise, aiPromise]);
+
+    if (indexResult) {
+      codebaseIndex = indexResult;
       persistedCodebaseIndex = { ...codebaseIndex };
       delete persistedCodebaseIndex.__runtime;
       mergedEndpoints = mergeApiEndpoints(result.architecture.apiEndpoints, codeIntel.files);
@@ -474,6 +494,10 @@ export async function handleAnalyzePost(request) {
       persistedCodebaseIndex = codebaseIndex;
       mergedEndpoints = result.architecture.apiEndpoints || [];
     }
+
+    // Apply AI enhancement result
+    result = aiResult;
+
     result = mergeAnalysisDetails(result, {
       components: detailedComponents.length ? detailedComponents : result.architecture.components,
       flowPaths: buildFlowMap(result.architecture.flowPaths, detailedComponents, mergedEndpoints),
@@ -493,25 +517,6 @@ export async function handleAnalyzePost(request) {
       performance: codeIntel.performance,
       incremental: codeIntel.incremental,
     });
-    console.log(`[analyze] Enhancing with AI...`);
-    if (!isTimedOut()) {
-      result = await Promise.race([
-        maybeEnhanceAnalysisWithGroq(result, { snapshot: codeIntelSnapshot, codeIntel }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), Math.min(30000, ANALYSIS_TIMEOUT - (Date.now() - startTime) - 5000))),
-      ]).catch((err) => {
-        if (err.message === 'AI_TIMEOUT') {
-          console.log(`[analyze] AI enhancement timed out, continuing without it`);
-        } else {
-          console.warn(`[analyze] AI enhancement failed:`, err.message);
-        }
-        return result;
-      });
-    } else {
-      console.log(`[analyze] Skipping AI enhancement due to timeout`);
-    }
-
-    console.log(`[analyze] Saving results...`);
-
     console.log(`[analyze] Saving results...`);
     const updated = await updateAnalysisRecord(analysis.id, {
       status: "COMPLETED",
