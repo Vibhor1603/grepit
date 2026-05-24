@@ -24,6 +24,8 @@ export const analyses = pgTable(
   (table) => [
     index("analyses_owner_email_idx").on(table.owner_email),
     index("analyses_created_at_idx").on(table.created_at),
+    index("analyses_owner_created_idx").on(table.owner_email, table.created_at),
+    index("analyses_repo_url_idx").on(table.repo_url),
   ],
 );
 
@@ -42,6 +44,34 @@ export const query_history = pgTable(
     index("query_history_analysis_id_idx").on(table.analysis_id),
     index("query_history_owner_email_idx").on(table.owner_email),
     index("query_history_conversation_id_idx").on(table.conversation_id),
+    index("query_history_analysis_conversation_idx").on(table.analysis_id, table.conversation_id, table.created_at),
+    index("query_history_conversation_created_idx").on(table.conversation_id, table.created_at),
+  ],
+);
+
+/**
+ * Conversations table — denormalized conversation metadata.
+ * 
+ * Avoids expensive GROUP BY on query_history for the sidebar.
+ * Updated on every new message (via chat-buffer flush).
+ * The sidebar queries this table directly — O(1) per conversation.
+ */
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    conversation_id: uuid("conversation_id").notNull().unique(),
+    analysis_id: uuid("analysis_id").references(() => analyses.id, { onDelete: "cascade" }),
+    owner_email: text("owner_email"),
+    title: text("title").notNull().default(""),
+    message_count: integer("message_count").notNull().default(0),
+    last_activity_at: timestamp("last_activity_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("conversations_analysis_id_idx").on(table.analysis_id),
+    index("conversations_conversation_id_idx").on(table.conversation_id),
+    index("conversations_analysis_activity_idx").on(table.analysis_id, table.last_activity_at),
   ],
 );
 
@@ -128,6 +158,7 @@ export const usage_logs = pgTable(
     index("usage_logs_user_id_idx").on(table.user_id),
     index("usage_logs_feature_idx").on(table.feature),
     index("usage_logs_created_at_idx").on(table.created_at),
+    index("usage_logs_user_feature_created_idx").on(table.user_id, table.feature, table.created_at),
   ],
 );
 

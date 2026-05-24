@@ -1,10 +1,10 @@
 import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 import { rateLimit, rateLimitKey, getCachedResponse, setCachedResponse, buildCacheKey, checkTokenBudget, recordTokenUsage } from "../lib/rateLimit";
-import { getAnalysisRecord, createQueryHistory, getRecentQueries, getConversationMessages } from "../lib/analysis-store";
+import { getAnalysisRecord, createQueryHistory, getRecentQueries, getConversationMessages, getConversationMessageCount } from "../lib/analysis-store";
 import { buildQueryResponse } from "../lib/analysis";
 import { isAIConfigured } from "../lib/env";
-import { getAIHeaders, getAIApiUrl, getAIModel, GROQ_BASE_URL, GROQ_FALLBACK_MODELS } from "../lib/ai";
+import { getAIHeaders, getAIApiUrl, getAIModel, FALLBACK_MODELS } from "../lib/ai";
 import { getCurrentSession, getSessionOwner } from "../lib/server-session";
 import { queryCodebase } from "../lib/codebase-index";
 import { checkGate, logUsage, isUserPro, getUserPlan } from "../lib/subscription-gate";
@@ -119,10 +119,8 @@ export async function handleStreamPost(request) {
   // Fetch conversation history — use conversation messages if available, else recent queries
   let historyMessages = [];
   if (conversationId) {
-    const convMessages = await getConversationMessages(conversationId).catch(() => []);
-    
-    // Check message limit per chat based on plan
-    const messageCount = convMessages.length;
+    // Check message limit using cached count (avoids fetching all messages just to count)
+    const messageCount = await getConversationMessageCount(conversationId).catch(() => 0);
     if (messageCount >= plan.maxMessagesPerChat) {
       return new Response(JSON.stringify({ 
         error: `This conversation has reached the ${plan.maxMessagesPerChat}-message limit for your plan. Start a new chat to continue.`,
@@ -131,8 +129,9 @@ export async function handleStreamPost(request) {
         limit: plan.maxMessagesPerChat,
       }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     }
-    
-    // Only send last 10 messages as context to save tokens
+
+    // Only fetch last 10 messages for context (not the full history)
+    const convMessages = await getConversationMessages(conversationId, { limit: 10 }).catch(() => []);
     const recentMessages = convMessages.slice(-10);
     historyMessages = recentMessages.flatMap(h => [
       { role: "user", content: h.query },
@@ -225,11 +224,12 @@ ${context}`;
     async start(controller) {
       try {
         let aiRes = null;
-        const primaryModel = getAIModel();
 
-        // Try primary provider (OpenRouter / configured chat model)
+        // Use OpenRouter with native fallback routing
         const requestBody = {
-          model: primaryModel,
+          model: getAIModel(),
+          models: FALLBACK_MODELS,
+          route: "fallback",
           messages: allMessages,
           temperature: 0.25,
           max_tokens: 8000,
@@ -242,29 +242,9 @@ ${context}`;
           body: JSON.stringify(requestBody),
         });
 
-        // If primary fails, try Groq fallback models
-        if (!aiRes.ok && process.env.GROQ_API_KEY) {
-          console.log(`[stream] Primary (${primaryModel}) failed with ${aiRes.status}, trying Groq fallback...`);
-          for (const model of GROQ_FALLBACK_MODELS) {
-            const fallbackBody = { ...requestBody, model, max_tokens: 2000 };
-            aiRes = await fetch(GROQ_BASE_URL, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(fallbackBody),
-            });
-            if (aiRes.ok) {
-              console.log(`[stream] Groq fallback ${model} succeeded`);
-              break;
-            }
-            console.log(`[stream] Groq fallback ${model} failed (${aiRes.status})`);
-          }
-        }
-
         if (!aiRes || !aiRes.ok) {
           const err = await aiRes?.text().catch(() => 'Unknown error');
+          console.error(`[stream] AI error ${aiRes?.status}:`, err?.slice(0, 500));
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `AI error: ${aiRes?.status || 'no response'}` })}\n\n`));
           controller.close();
           return;

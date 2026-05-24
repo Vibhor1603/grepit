@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { useAnalysis, useChatHistory, useDeleteChatHistory, useFileContent } from '../hooks/useApi';
@@ -7,15 +7,27 @@ import { usePlan } from '../hooks/usePlan';
 import { useQueryClient } from '@tanstack/react-query';
 import { useResizable, useResizableRight } from '../hooks/useResizable';
 import { LOADING_MESSAGES, getRandomMessage, getRateLimitMessage, ERROR_MESSAGES, EMPTY_STATES } from '../lib/personality';
-import { MessageSquare, LayoutGrid, Terminal, FileText, Folder, ChevronRight, Code2, Shield, Server, Cpu, Layers, Send, Plus, Clock, X, Square, Copy, Check, Trash2, Search, ZoomIn, ZoomOut, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, UserCircle, Share2, Zap, RefreshCw, Loader2 } from 'lucide-react';
+import { MessageSquare, LayoutGrid, Terminal, FileText, Folder, ChevronRight, Code2, Shield, Send, Plus, Clock, X, Square, Copy, Check, Trash2, Search, ZoomIn, ZoomOut, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, UserCircle, Share2, Zap, RefreshCw, Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import ChatInputComponent from './ChatInput';
-import SystemTabComponent from './SystemTab';
-import SymbolInspector from './SymbolInspector';
-import UpgradeModal from './UpgradeModal';
 import { ViboMark } from './ViboLogo';
 import { Highlight, themes } from 'prism-react-renderer';
 import { healthScore, getIdentityProfile, getHighTrafficFiles, parseFollowUps } from '../utils/client/formatting';
+
+// ── Lazy-loaded components (not needed on initial render) ──
+const SystemTabComponent = dynamic(() => import('./SystemTab'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-40"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>,
+});
+
+const SymbolInspector = dynamic(() => import('./SymbolInspector'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-20"><svg className="w-4 h-4 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>,
+});
+
+const UpgradeModal = dynamic(() => import('./UpgradeModal'), {
+  ssr: false,
+});
 
 const viboCodeTheme = {
   ...themes.vsDark,
@@ -41,8 +53,8 @@ const CodeViewerLazy = dynamic(() => import('./CodeViewer'), {
   loading: () => <div className="flex items-center justify-center h-40"><svg className="w-5 h-5 animate-spin text-vb-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-20"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>,
 });
 
-/* ── Copy Button ── */
-function CopyButton({ text }) {
+/* ── Copy Button (memoized — one per message) ── */
+const CopyButton = memo(function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(text).then(() => {
@@ -55,10 +67,11 @@ function CopyButton({ text }) {
       {copied ? <Check size={13} className="text-vb-accent" /> : <Copy size={13} />}
     </button>
   );
-}
+});
 
-/* ── Time Ago Helper ── */
+/* ── Time Ago Helper (pure function — safe to call anywhere) ── */
 function timeAgo(dateStr) {
+  if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${mins}m ago`;
@@ -88,8 +101,8 @@ function generateId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); });
 }
-/* ── Markdown renderer ── */
-function MarkdownMessage({ content, onNavigateToFile }) {
+/* ── Markdown renderer (memoized — only re-renders when content changes) ── */
+const MarkdownMessage = memo(function MarkdownMessage({ content, onNavigateToFile }) {
   const lines = content.split('\n');
   const elements = [];
   let listBuffer = [], listType = null, tableBuffer = [];
@@ -279,7 +292,7 @@ function MarkdownMessage({ content, onNavigateToFile }) {
     );
   }
   return <div>{elements}</div>;
-}
+});
 
 /* ── File Tree Sidebar ── */
 function FileTreeSidebar({ analysis, selectedFile, onSelectFile, score, onCollapse }) {
@@ -899,7 +912,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                 const isAI = msg.role === 'assistant';
                 const { body, followUps } = isAI ? parseFollowUps(msg.content) : { body: msg.content, followUps: [] };
                 return (
-                  <div key={i} className="group">
+                  <div key={i} className="group" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 80px' }}>
                     {msg.role === 'user' ? (
                       <div className="flex justify-end">
                         <div className="max-w-[70%]">
@@ -1047,30 +1060,6 @@ function ExploreView({ analysis, selectedFile, onContinueInChat }) {
           <p className="text-[14px] text-vb-ink3">Select a file from the sidebar to explore</p>
         </div>
       )}
-    </div>
-  );
-}
-
-function SystemView({ analysis }) {
-  const arch = analysis?.architecture || analysis?.results || {};
-  const techStack = arch.techStack || []; const layers = arch.layers || [];
-  const issues = [...(arch.securityIssues || []), ...(analysis?.results?.security?.hardcodedSecrets || []).map(item => ({ severity: 'high', title: 'Hardcoded secret', description: item.issue }))];
-  const score = healthScore(analysis);
-  return (
-    <div className="flex-1 overflow-y-auto p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[{ label: 'Files', value: analysis?.total_files || 0 }, { label: 'Languages', value: Object.keys(analysis?.languages || {}).length }, { label: 'Health', value: `${score}%` }, { label: 'Issues', value: issues.length }].map((s, i) => (
-            <div key={i} className="p-4 bg-white/[0.02] border border-white/[0.06] rounded-lg">
-              <div className="text-[11px] text-vb-ink3 uppercase tracking-wide mb-2">{s.label}</div>
-              <div className="text-2xl font-semibold font-mono text-vb-accent">{s.value}</div>
-            </div>
-          ))}
-        </div>
-        {techStack.length > 0 && <div className="p-5 bg-white/[0.02] border border-white/[0.06] rounded-lg"><h3 className="text-[11px] text-vb-ink3 uppercase tracking-wider mb-3">Technology Stack</h3><div className="flex flex-wrap gap-2">{techStack.map((t, i) => <span key={i} className="px-3 py-1.5 bg-vb-accent/[0.04] border border-vb-accent/[0.1] rounded-md text-[13px] text-vb-ink2">{t}</span>)}</div></div>}
-        {layers.length > 0 && <div className="p-5 bg-white/[0.02] border border-white/[0.06] rounded-lg"><h3 className="text-[11px] text-vb-ink3 uppercase tracking-wider mb-3">Architecture Layers</h3><div className="space-y-3">{layers.map((l, i) => <div key={i} className="p-3 bg-white/[0.02] border border-white/[0.06] rounded-md"><div className="text-[13px] font-medium text-vb-ink mb-2">{l.name}</div><div className="flex flex-wrap gap-1.5">{(l.modules || []).map((m, j) => <span key={j} className="px-2 py-0.5 bg-white/[0.03] border border-white/[0.06] rounded text-[11px] text-vb-ink3 font-mono">{m}</span>)}</div></div>)}</div></div>}
-        {issues.length > 0 && <div className="p-5 bg-white/[0.02] border border-white/[0.06] rounded-lg"><h3 className="text-[11px] text-vb-ink3 uppercase tracking-wider mb-3">Security Issues ({issues.length})</h3><div className="space-y-2">{issues.slice(0, 5).map((issue, i) => <div key={i} className="flex items-start gap-3 p-3 bg-white/[0.02] border border-white/[0.06] rounded-md"><span className={`text-[10px] font-medium uppercase px-2 py-0.5 rounded flex-shrink-0 ${issue.severity === 'high' ? 'bg-vb-red/10 text-vb-red' : 'bg-vb-amber/10 text-vb-amber'}`}>{issue.severity}</span><div><div className="text-[13px] text-vb-ink font-medium">{issue.title}</div><div className="text-[12px] text-vb-ink3 mt-0.5">{issue.description}</div></div></div>)}</div></div>}
-      </div>
     </div>
   );
 }

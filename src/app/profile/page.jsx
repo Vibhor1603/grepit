@@ -23,7 +23,6 @@ export default function ProfilePage() {
   const queryClient = useQueryClient();
 
   const [disconnecting, setDisconnecting] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
   const [connectingGithub, setConnectingGithub] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);

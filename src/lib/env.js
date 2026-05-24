@@ -3,7 +3,7 @@ export function isGitHubAuthConfigured() {
 }
 
 export function isAIConfigured() {
-  return Boolean(process.env.OPENROUTER_API_KEY || process.env.GROQ_API_KEY);
+  return Boolean(process.env.OPENROUTER_API_KEY);
 }
 
 export function isDatabaseConfigured() {

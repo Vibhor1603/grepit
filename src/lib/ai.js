@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 
 // ── AI Provider abstraction ──
 // Primary: OpenRouter (configured chat model) — 1M context, cheap, fast
-// Fallback: Groq (llama-3.1-8b-instant) — free tier
+// Fallback: OpenRouter native route="fallback" with multiple models
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -14,8 +14,7 @@ const OPENROUTER_MODEL = "REDACTED_CHAT_MODEL";
 const FALLBACK_MODELS = [
   "REDACTED_CHAT_MODEL",       // Primary: 1M context, $0.20/MTok input
   "REDACTED_CHAT_MODEL",       // Fallback 1: 1M context, $0.10/MTok input
-  "qwen/qwen-3-235b-a22b",            // Fallback 2: 128K context, excellent at code
-  "REDACTED_CHAT_MODEL",            // Fallback 3: 128K context, $0.14/MTok input
+  "REDACTED_CHAT_MODEL",            // Fallback 2: 128K context, $0.14/MTok input
 ];
 
 export function getAIApiUrl() {
@@ -128,8 +127,6 @@ export function buildReasoningRequest({
 
 export function buildStructuredRequest({
   messages,
-  schemaName,
-  schema,
   maxCompletionTokens = 2500,
   temperature = 0.1,
 }) {
@@ -147,4 +144,4 @@ export function buildStructuredRequest({
 }
 
 // Exported for streaming route fallback
-export { GROQ_BASE_URL, GROQ_FALLBACK_MODELS };
+export { FALLBACK_MODELS };

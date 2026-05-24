@@ -5,6 +5,7 @@ import { shared_chats, query_history, analyses } from "../../../db/schema";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import { checkGate, logUsage } from "../../../lib/subscription-gate";
+import { flushChatBuffer } from "../../../lib/analysis-store";
 
 /**
  * POST /api/share — Create a share link for a conversation
@@ -26,6 +27,9 @@ export async function POST(request) {
   }
 
   console.log("[share] Creating share for conversation:", conversationId, "user:", userId);
+
+  // Flush chat buffer to ensure all messages are persisted before sharing
+  await flushChatBuffer().catch(() => {});
 
   // Check share gate (free: 2 total, paid: unlimited)
   const gate = await checkGate(userId, "chat_share");

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getDb } from "../../../../lib/db";
-import { analyses, query_history, subscriptions, usage_logs, shared_chats } from "../../../../db/schema";
+import { analyses, query_history, subscriptions, usage_logs, shared_chats, conversations } from "../../../../db/schema";
 import { eq } from "drizzle-orm";
 import { getSubscription } from "../../../../lib/subscription-gate";
 
@@ -48,6 +48,7 @@ export async function DELETE() {
     // Delete query history for all user's analyses
     for (const id of analysisIds) {
       await db.delete(query_history).where(eq(query_history.analysis_id, id)).catch(() => {});
+      await db.delete(conversations).where(eq(conversations.analysis_id, id)).catch(() => {});
     }
 
     // Delete analyses

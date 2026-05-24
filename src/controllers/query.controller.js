@@ -13,7 +13,7 @@ import { queryCodebase } from "../lib/codebase-index";
 import { checkGate, logUsage } from "../lib/subscription-gate";
 
 // ── Context builder ────────────────────────────────────────────────────────
-// Hard-cap at ~48,000 chars (~12,000 tokens) before sending to Groq.
+// Hard-cap at ~48,000 chars (~12,000 tokens) before sending to the AI provider.
 // Priority order: summary → languages → architecture → file tree → files → symbols
 const MAX_CONTEXT_CHARS = 48_000;
 
@@ -328,7 +328,7 @@ export async function handleQueryGet(request) {
   try {
     // If conversationId provided, return all messages in that conversation
     if (conversationId) {
-      const messages = await getConversationMessages(conversationId).catch(() => []);
+      const messages = await getConversationMessages(conversationId, { limit: 100 }).catch(() => []);
       return NextResponse.json({ messages });
     }
 
