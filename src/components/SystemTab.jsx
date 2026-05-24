@@ -10,12 +10,12 @@ function Section({ title, icon: Icon, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border border-white/[0.06] rounded-lg overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2.5 px-4 py-3 bg-white/[0.02] hover:bg-white/[0.03] transition-colors text-left">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2 md:gap-2.5 px-3 md:px-4 py-2.5 md:py-3 bg-white/[0.02] hover:bg-white/[0.03] transition-colors text-left">
         <Icon size={14} className="text-vb-accent flex-shrink-0" />
-        <span className="text-[14px] font-medium text-vb-ink flex-1">{title}</span>
+        <span className="text-[13px] md:text-[14px] font-medium text-vb-ink flex-1">{title}</span>
         <ChevronRight size={13} className={`text-vb-ink3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
       </button>
-      {open && <div className="px-4 py-3 border-t border-white/[0.04]">{children}</div>}
+      {open && <div className="px-3 md:px-4 py-2.5 md:py-3 border-t border-white/[0.04]">{children}</div>}
     </div>
   );
 }
@@ -124,7 +124,7 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
   };
 
   if (isLoading) return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto p-3 md:p-6">
       <div className="max-w-5xl mx-auto space-y-4">
         {/* Skeleton placeholders */}
         <div className="h-20 rounded-lg bg-white/[0.03] animate-pulse" />
@@ -141,12 +141,12 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
   const { techStack, entryPoints, conventions, securityReport, database } = data;
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto p-3 md:p-6">
       <div className="max-w-5xl mx-auto space-y-4">
 
         {/* Health Score Banner */}
-        <div className="flex items-center justify-between p-4 rounded-lg border border-white/[0.08] bg-white/[0.02]">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between p-3 md:p-4 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+          <div className="flex items-center gap-3 md:gap-4">
             <div className="relative w-12 h-12">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                 <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
@@ -172,25 +172,29 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
 
         {/* Report Modal */}
         {reportOpen && (
-          <div className="fixed inset-0 z-[250] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setReportOpen(false)}>
-            <div className="w-full max-w-3xl max-h-[90vh] bg-[#1a1a1e] rounded-xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.6)] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[250] bg-black/70 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6" onClick={() => setReportOpen(false)}>
+            <div className="w-full md:max-w-3xl max-h-[95vh] md:max-h-[90vh] bg-[#1a1a1e] rounded-t-2xl md:rounded-xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.6)] flex flex-col" onClick={(e) => e.stopPropagation()}>
+              {/* Mobile drag handle */}
+              <div className="md:hidden flex justify-center py-2">
+                <div className="w-8 h-1 rounded-full bg-white/[0.15]" />
+              </div>
               {/* Header */}
-              <div className="flex items-center px-5 py-3.5 bg-[#1e1e22] border-b border-white/[0.06]">
-                <button onClick={() => setReportOpen(false)} className="group/close w-[12px] h-[12px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center mr-4">
-                  <svg width="7" height="7" viewBox="0 0 10 10" className="opacity-0 group-hover/close:opacity-100 transition-opacity"><path d="M2 2L8 8M8 2L2 8" stroke="#4a0000" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              <div className="flex items-center px-4 md:px-5 py-2.5 md:py-3.5 bg-[#1e1e22] border-b border-white/[0.06]">
+                <button onClick={() => setReportOpen(false)} className="w-[16px] h-[16px] md:w-[12px] md:h-[12px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center mr-3 md:mr-4">
+                  <svg width="7" height="7" viewBox="0 0 10 10" className="opacity-100"><path d="M2 2L8 8M8 2L2 8" stroke="#4a0000" strokeWidth="1.8" strokeLinecap="round"/></svg>
                 </button>
                 <div className="flex-1 flex items-center justify-center gap-2">
-                  <span className="text-[14px] font-semibold text-vb-ink">grep<span className="text-vb-accent">it</span></span>
-                  <span className="text-vb-ink4">|</span>
-                  <span className="text-[13px] text-vb-ink2">Security Report</span>
+                  <span className="text-[13px] md:text-[14px] font-semibold text-vb-ink">grep<span className="text-vb-accent">it</span></span>
+                  <span className="text-vb-ink4 hidden md:inline">|</span>
+                  <span className="text-[12px] md:text-[13px] text-vb-ink2 hidden md:inline">Security Report</span>
                 </div>
                 {canExportPdf ? (
-                  <button onClick={() => downloadReport(securityReport)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+                  <button onClick={() => downloadReport(securityReport)} className="flex items-center gap-1.5 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-[11px] text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
                     <Download size={11} />
                     PDF
                   </button>
                 ) : (
-                  <button onClick={onUpgrade} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+                  <button onClick={onUpgrade} className="flex items-center gap-1.5 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-[11px] text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
                     <Download size={11} />
                     PDF
                   </button>
@@ -198,10 +202,10 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
               </div>
 
               {/* Report content */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-6">
+              <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6">
                 {/* Score */}
-                <div className="bg-[#222226] rounded-lg p-8 border border-white/[0.06] text-center">
-                  <div className="inline-block relative w-28 h-28 mb-4">
+                <div className="bg-[#222226] rounded-lg p-5 md:p-8 border border-white/[0.06] text-center">
+                  <div className="inline-block relative w-20 h-20 md:w-28 md:h-28 mb-3 md:mb-4">
                     <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                       <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
                       <circle
@@ -214,11 +218,11 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-vb-ink">{securityReport.score}%</span>
+                      <span className="text-lg md:text-2xl font-bold text-vb-ink">{securityReport.score}%</span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-vb-ink2 uppercase tracking-widest mb-4">Health Score</p>
-                  <p className="text-[14px] text-vb-ink leading-relaxed max-w-md mx-auto">
+                  <p className="text-[10px] text-vb-ink2 uppercase tracking-widest mb-3 md:mb-4">Health Score</p>
+                  <p className="text-[12px] md:text-[14px] text-vb-ink leading-relaxed max-w-md mx-auto">
                     Analysis of <strong className="text-vb-accent">{securityReport.repoName}</strong> covering {securityReport.totalFiles} files. {securityReport.highCount > 0 ? `${securityReport.highCount} high-severity issues require immediate attention.` : 'No critical issues found.'} {securityReport.testing.hasTests ? `${securityReport.testing.testFileCount} test files detected.` : 'No test coverage detected.'}
                   </p>
                 </div>
@@ -276,7 +280,7 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
                   <div className="fixed top-[12vh] right-8 w-[300px] max-h-[70vh] bg-[#1e1e22] border border-white/[0.08] rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col z-[260] overflow-hidden">
                     <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/[0.06] flex-shrink-0">
                       <span className="text-[11px] text-vb-accent font-medium truncate">Fix: {fixExplanation.cat}</span>
-                      <button onClick={() => setFixExplanation(null)} className="group/close w-[11px] h-[11px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center"><svg width="6" height="6" viewBox="0 0 10 10" className="opacity-0 group-hover/close:opacity-100 transition-opacity"><path d="M2 2L8 8M8 2L2 8" stroke="#4a0000" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
+                      <button onClick={() => setFixExplanation(null)} className="w-[16px] h-[16px] md:w-[11px] md:h-[11px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center"><svg width="6" height="6" viewBox="0 0 10 10" className="opacity-100"><path d="M2 2L8 8M8 2L2 8" stroke="#4a0000" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
                     </div>
                     <div className="flex-1 overflow-y-auto px-3 py-3">
                       {fixExplanation.loading ? (
@@ -314,10 +318,10 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
 
         {/* Tech Stack */}
         <Section title="Technology Stack" icon={Layers}>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {techStack.map((t, i) => (
-              <div key={i} className="flex items-center justify-between px-3 py-2.5 bg-white/[0.02] rounded-md border border-white/[0.04]">
-                <span className="text-[13px] text-vb-ink font-medium">{t.name}</span>
+              <div key={i} className="flex items-center justify-between px-3 py-2 md:py-2.5 bg-white/[0.02] rounded-md border border-white/[0.04]">
+                <span className="text-[12px] md:text-[13px] text-vb-ink font-medium">{t.name}</span>
                 <span className="text-[12px] text-vb-ink2">{t.role}</span>
               </div>
             ))}
@@ -421,7 +425,7 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
         {/* Dependencies */}
         {conventions.dependencies.length > 0 && (
           <Section title="Dependencies" icon={Package} defaultOpen={false}>
-            <div className="grid grid-cols-2 gap-1 max-h-[300px] overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-[300px] overflow-y-auto">
               {conventions.dependencies.map((d, i) => (
                 <div key={i} className="flex items-center justify-between px-2 py-1 text-[11px]">
                   <span className="text-vb-ink2 font-mono truncate">{d.name}</span>

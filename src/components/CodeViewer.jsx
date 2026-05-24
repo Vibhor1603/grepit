@@ -115,6 +115,10 @@ export default function CodeViewer({ code, filePath, analysisId, onContinueInCha
   const [hoveredBlock, setHoveredBlock] = useState(null);
   const [explanation, setExplanation] = useState('');
   const [chatInput, setChatInput] = useState('');
+  const [hintDismissed, setHintDismissed] = useState(() => {
+    if (typeof window !== 'undefined') return sessionStorage.getItem('grepit-code-hint-dismissed') === 'true';
+    return false;
+  });
   const explainMutation = useExplainCode();
   const explaining = explainMutation.isPending;
 
@@ -153,6 +157,19 @@ export default function CodeViewer({ code, filePath, analysisId, onContinueInCha
 
   return (
     <div className="relative h-full flex flex-col" style={{ fontSize: `${fontSize}px` }}>
+      {/* Hint banner — shows once per session */}
+      {!hintDismissed && Object.keys(blockStarts).length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-vb-accent/[0.04] border-b border-vb-accent/10 flex-shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-vb-accent flex-shrink-0"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0018 8 6 6 0 006 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 019 14"/></svg>
+          <span className="text-[11px] text-vb-accent/80 flex-1">
+            <span className="hidden md:inline">Hover over any function or class to get an AI explanation</span>
+            <span className="md:hidden">Tap any function or class name to get an AI explanation</span>
+          </span>
+          <button onClick={() => { setHintDismissed(true); sessionStorage.setItem('grepit-code-hint-dismissed', 'true'); }} className="text-vb-accent/50 hover:text-vb-accent transition-colors flex-shrink-0">
+            <X size={12} />
+          </button>
+        </div>
+      )}
       <Highlight theme={viboTheme} code={code} language={language}>
         {({ tokens, getLineProps, getTokenProps }) => (
           <div className="flex-1 overflow-auto">
@@ -177,15 +194,20 @@ export default function CodeViewer({ code, filePath, analysisId, onContinueInCha
                       className={`leading-[1.6] relative group ${isBlockStart ? 'hover:bg-vb-accent/[0.03] rounded cursor-pointer' : ''} ${isMatch ? 'bg-vb-accent/[0.06]' : ''} ${isCurrentMatch ? 'bg-vb-accent/[0.12]' : ''}`}
                       onMouseEnter={() => isBlockStart && setHoveredBlock({ line: i, name: isBlockStart })}
                       onMouseLeave={() => setHoveredBlock(null)}
+                      onClick={() => { if (isBlockStart && window.innerWidth < 768) handleExplain(i); }}
                     >
                       {line.map((token, j) => <span key={j} {...getTokenProps({ token })} />)}
                       {isBlockStart && hoveredBlock?.line === i && (
                         <button onClick={(e) => { e.stopPropagation(); handleExplain(i); }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] text-vb-accent border border-vb-accent/25 bg-vb-accent/[0.08] hover:bg-vb-accent/[0.14] transition-all z-10"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] text-vb-accent border border-vb-accent/25 bg-vb-accent/[0.08] hover:bg-vb-accent/[0.14] transition-all z-10"
                           title="Explain this block">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0018 8 6 6 0 006 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 019 14"/></svg>
                           Explain
                         </button>
+                      )}
+                      {/* Mobile: always show a subtle indicator for tappable blocks */}
+                      {isBlockStart && !hoveredBlock && (
+                        <span className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-vb-accent/30" />
                       )}
                     </div>
                   );
@@ -201,7 +223,7 @@ export default function CodeViewer({ code, filePath, analysisId, onContinueInCha
         <div className="absolute top-4 right-4 w-[300px] max-h-[60%] bg-vb-bg2 border border-white/[0.08] rounded-lg overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-20 flex flex-col">
           <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06] bg-white/[0.02] flex-shrink-0">
             <span className="text-[11px] text-vb-ink font-medium truncate">{hoveredBlock?.name || 'Explanation'}</span>
-            <button onClick={() => { setExplanation(''); setHoveredBlock(null); setChatInput(''); }} className="group/close w-[14px] h-[14px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center flex-shrink-0" title="Close"><X size={9} strokeWidth={3} className="text-[#4a0000] opacity-0 group-hover/close:opacity-100 transition-opacity" /></button>
+            <button onClick={() => { setExplanation(''); setHoveredBlock(null); setChatInput(''); }} className="w-[18px] h-[18px] md:w-[14px] md:h-[14px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center flex-shrink-0" title="Close"><X size={9} strokeWidth={3} className="text-[#4a0000] opacity-100" /></button>
           </div>
           <div className="overflow-y-auto px-3 py-3 flex-shrink">
             {explaining ? (

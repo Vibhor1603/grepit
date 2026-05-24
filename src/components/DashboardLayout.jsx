@@ -769,7 +769,6 @@ function InlineDiagramRender({ mermaidCode }) {
         }
         else if (!cancelled) setFailed(true);
       } catch (e) {
-        console.warn('[mermaid] render failed:', e?.message || e);
         if (!cancelled) setFailed(true);
       }
       // Clean up any error elements mermaid injected
@@ -875,12 +874,14 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
   return (
     <div className="flex-1 flex min-h-0">
       {!historyCollapsed && (
-        <ChatHistorySidebar history={chatHistory} onSelect={onSelectHistory} onNewChat={onNewChat} onDelete={onDeleteHistory} onRename={onRenameHistory} onShare={onShareHistory} sharingChatId={sharingChatId} onCollapse={() => setHistoryCollapsed(true)} activeChatId={activeChatId} />
+        <div className="hidden md:block">
+          <ChatHistorySidebar history={chatHistory} onSelect={onSelectHistory} onNewChat={onNewChat} onDelete={onDeleteHistory} onRename={onRenameHistory} onShare={onShareHistory} sharingChatId={sharingChatId} onCollapse={() => setHistoryCollapsed(true)} activeChatId={activeChatId} />
+        </div>
       )}
 
       <div className="flex-1 flex flex-col min-h-0 bg-vb-chat relative">
         {historyCollapsed && (
-          <button onClick={() => setHistoryCollapsed(false)} className="absolute top-2 left-2 z-10 p-1.5 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors" title="Show chat history">
+          <button onClick={() => setHistoryCollapsed(false)} className="absolute top-2 left-2 z-10 p-1.5 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors hidden md:block" title="Show chat history">
             <PanelLeftOpen size={14} />
           </button>
         )}
@@ -895,8 +896,9 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
               <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mb-10">
                 {suggestions.map((s, i) => (
                   <button key={i} onClick={() => handleSend(s)}
-                    className="group/chip relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[12px] text-vb-ink3 transition-all duration-200 ease-out overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.14] hover:text-vb-ink">
-                    <span className="absolute bottom-0 left-1/2 h-[1px] w-0 bg-vb-accent/40 transition-all duration-300 ease-out group-hover/chip:w-3/4 group-hover/chip:left-[12.5%] rounded-full" />
+                    className="group/chip relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[12px] text-vb-ink3 transition-all duration-200 ease-out overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.14] hover:text-vb-ink cursor-pointer active:scale-[0.97]">
+                    <span className="absolute bottom-0 left-0 h-[1px] w-full bg-vb-accent/20 md:w-0 md:left-1/2 md:bg-vb-accent/40 transition-all duration-300 ease-out group-hover/chip:w-3/4 group-hover/chip:left-[12.5%] rounded-full" />
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-vb-accent/40 flex-shrink-0"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     {s}
                   </button>
                 ))}
@@ -944,16 +946,10 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                       <div className="px-1 py-2 text-[13px] text-vb-red">{msg.content}</div>
                     ) : (
                       <div className="py-2">
-                        {msg.content === '__DIAGRAM__' && msg._mermaid ? (
-                          <InlineDiagramRender mermaidCode={msg._mermaid} />
-                        ) : (
-                          <MarkdownMessage content={body} onNavigateToFile={onNavigateToFile} />
-                        )}
-                        {msg.content !== '__DIAGRAM__' && (
-                          <div className="flex justify-start mt-1">
-                            <CopyButton text={msg.content} />
-                          </div>
-                        )}
+                        <MarkdownMessage content={body} onNavigateToFile={onNavigateToFile} />
+                        <div className="flex justify-start mt-1">
+                          <CopyButton text={msg.content} />
+                        </div>
                       </div>
                     )}
                     {followUps.length > 0 && !loading && (
@@ -984,7 +980,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
 }
 
 /* ── Explore & System Views ── */
-function ExploreView({ analysis, selectedFile, onContinueInChat }) {
+function ExploreView({ analysis, selectedFile, onSelectFile, onContinueInChat }) {
   const [fontSize, setFontSize] = useState(12);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1041,7 +1037,7 @@ function ExploreView({ analysis, selectedFile, onContinueInChat }) {
               className="flex-1 bg-transparent text-[12px] text-vb-ink placeholder:text-vb-ink4 outline-none caret-vb-accent"
             />
             {searchQuery && <span className="text-[10px] text-vb-ink4">{(code.match(new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length} matches</span>}
-            <button onClick={() => { setSearchOpen(false); setSearchQuery(''); }} className="group/close w-[12px] h-[12px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center flex-shrink-0" title="Close"><X size={7} className="text-[#4a0000] opacity-0 group-hover/close:opacity-100 transition-opacity" /></button>
+            <button onClick={() => { setSearchOpen(false); setSearchQuery(''); }} className="w-[16px] h-[16px] md:w-[12px] md:h-[12px] rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors flex items-center justify-center flex-shrink-0" title="Close"><X size={7} className="text-[#4a0000] opacity-100" /></button>
           </div>
         )}
 
@@ -1056,8 +1052,15 @@ function ExploreView({ analysis, selectedFile, onContinueInChat }) {
           )}
         </div>
       </>) : (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-[14px] text-vb-ink3">Select a file from the sidebar to explore</p>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Desktop: show message to use sidebar */}
+          <div className="hidden md:flex flex-1 items-center justify-center">
+            <p className="text-[14px] text-vb-ink3">Select a file from the sidebar to explore</p>
+          </div>
+          {/* Mobile: full file tree (same as desktop sidebar) */}
+          <div className="md:hidden flex-1 flex flex-col overflow-hidden">
+            <FileTreeSidebar analysis={analysis} selectedFile={selectedFile} onSelectFile={(p) => onSelectFile?.(p)} score={0} onCollapse={() => {}} />
+          </div>
         </div>
       )}
     </div>
@@ -1076,6 +1079,7 @@ export default function DashboardLayout() {
   const [userPlan, setUserPlan] = useState('free');
   const [sharingChatId, setSharingChatId] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
   const { plan: fetchedPlan } = usePlan();
   const leftPanel = useResizable({ defaultWidth: 240, minWidth: 180, maxWidth: 400, storageKey: 'grepit-left-panel' });
@@ -1165,23 +1169,8 @@ export default function DashboardLayout() {
     let forcedFiles = attachedFiles;
     setQuery(''); setChatLoading(true);
 
-    // Detect diagram requests
-    const isDiagramRequest = /\b(diagram|visuali[sz]e|draw|graph|flow\s*chart|architecture\s*(diagram|visual|graph))\b/i.test(q);
-    if (isDiagramRequest) {
-      try {
-        const res = await fetch('/api/diagram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ analysisId: analysis.id, mode: actualQuery }) });
-        const data = await res.json();
-        if (res.ok && data.mermaid) {
-          setMessages(prev => [...prev, { role: 'assistant', content: '__DIAGRAM__', _mermaid: data.mermaid }]);
-        } else {
-          setMessages(prev => [...prev, { role: 'system', content: data.error || 'Failed to generate diagram' }]);
-        }
-      } catch (err) { setMessages(prev => [...prev, { role: 'system', content: err.message }]); }
-      setChatLoading(false);
-      return;
-    }
-
-    // Stream response from AI
+    // Stream response from AI — the AI decides if a diagram is needed
+    // and includes mermaid code blocks in its response when appropriate
     abortRef.current = new AbortController();
     const streamChatId = activeChatId; // Capture current chat ID to detect stale streams
     // Add a placeholder message that we'll update with streamed tokens
@@ -1428,66 +1417,65 @@ export default function DashboardLayout() {
       {/* Center */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar */}
-        <div className="h-[64px] border-b border-white/[0.06] flex items-center px-3 md:px-4 flex-shrink-0 overflow-hidden">
-          <div className="flex items-center gap-2 text-[13px] min-w-0">
+        <div className="h-[48px] md:h-[64px] border-b border-white/[0.06] flex items-center px-3 md:px-4 flex-shrink-0 overflow-hidden">
+          <div className="flex items-center gap-1.5 md:gap-2 text-[13px] min-w-0">
             {leftPanel.collapsed && (
               <button onClick={() => leftPanel.setCollapsed(false)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors mr-1 hidden md:block" title="Show file explorer">
                 <PanelLeftOpen size={15} />
               </button>
             )}
-            <a href="/" className="flex items-center gap-1.5 mr-2 hover:opacity-90 transition-opacity flex-shrink-0" title="grepit Home">
-              <ViboMark size={18} />
-              <span className="text-[15px] font-semibold tracking-tight text-vb-ink select-none hidden sm:inline">grep<span className="text-vb-accent">it</span></span>
+            <a href="/" className="flex items-center gap-1.5 mr-1 md:mr-2 hover:opacity-90 transition-opacity flex-shrink-0" title="grepit Home">
+              <ViboMark size={16} />
+              <span className="text-[14px] font-semibold tracking-tight text-vb-ink select-none hidden md:inline">grep<span className="text-vb-accent">it</span></span>
             </a>
-            <span className="text-vb-ink4 text-[11px] hidden sm:inline">/</span>
-            <span className="text-vb-ink2 hidden sm:inline">{user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'grepit'}</span>
-            <span className="text-vb-ink4 hidden sm:inline">›</span>
-            <span className="text-vb-ink font-medium truncate max-w-[100px] sm:max-w-none">{analysis?.repo_name || '...'}</span>
+            <span className="text-vb-ink font-medium truncate max-w-[120px] md:max-w-none text-[12px] md:text-[13px]">{analysis?.repo_name || '...'}</span>
             {analysis?.updated_at && (
-              <button onClick={handleReanalyze} disabled={reanalyzing} className="ml-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] text-vb-ink3 hover:text-vb-accent bg-white/[0.03] hover:bg-vb-accent/[0.06] border border-white/[0.06] hover:border-vb-accent/20 transition-all" title={`Last analyzed ${timeAgo(analysis.updated_at)} — click to re-analyze`}>
-                {reanalyzing ? <Loader2 size={12} className="animate-spin text-vb-accent" /> : <RefreshCw size={12} />}
+              <button onClick={handleReanalyze} disabled={reanalyzing} className="ml-1 md:ml-2 flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg text-[10px] md:text-[11px] text-vb-ink3 hover:text-vb-accent bg-white/[0.03] hover:bg-vb-accent/[0.06] border border-white/[0.06] hover:border-vb-accent/20 transition-all" title={`Last analyzed ${timeAgo(analysis.updated_at)} — click to re-analyze`}>
+                {reanalyzing ? <Loader2 size={11} className="animate-spin text-vb-accent" /> : <RefreshCw size={11} />}
                 <span className="hidden md:inline">{reanalyzing ? 'Re-analyzing...' : timeAgo(analysis.updated_at)}</span>
               </button>
             )}
           </div>
 
-          {/* Tabs — use flex-1 + justify-center so they center within the available space */}
-          <div className="flex-1 flex justify-center">
+          {/* Desktop tabs — hidden on mobile (moved to bottom bar) */}
+          <div className="flex-1 hidden md:flex justify-center">
             <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-1 py-1">
               {[
                 { id: 'explore', Icon: LayoutGrid, label: 'Explore' },
                 { id: 'chat', Icon: MessageSquare, label: 'Chat' },
                 { id: 'system', Icon: Terminal, label: 'System' },
               ].map(({ id, Icon, label }) => (
-                <button key={id} onClick={() => setActiveTab(id)}
+                <button key={id} onClick={() => { setActiveTab(id); if (id !== 'explore') setSelectedFile(''); }}
                   className={`group/tab relative flex items-center gap-2 px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 overflow-hidden ${
                     activeTab === id ? 'bg-vb-accent/[0.05] text-vb-ink' : 'text-vb-ink3 hover:text-vb-ink2'
                   }`}>
                   {activeTab !== id && <span className="absolute bottom-0 left-1/2 h-[1px] w-0 bg-vb-accent/40 transition-all duration-300 ease-out group-hover/tab:w-3/4 group-hover/tab:left-[12.5%] rounded-full" />}
                   <Icon size={15} className={activeTab === id ? 'text-vb-accent-dim' : 'text-vb-ink4'} strokeWidth={activeTab === id ? 2.2 : 1.8} />
-                  <span className="hidden sm:inline">{label}</span>
+                  <span>{label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Upgrade CTA for free users only — no badge for paid users */}
+          {/* Mobile: spacer to push right buttons */}
+          <div className="flex-1 md:hidden" />
+
+          <div className="flex items-center gap-1 md:gap-2">
             {userPlan === 'free' && (
               <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium text-vb-ink3 bg-white/[0.03] border border-white/[0.06] hover:border-vb-accent/20 hover:text-vb-accent transition-all hidden sm:flex" title="Upgrade plan">
                 <Zap size={10} className="text-vb-accent" /> Upgrade
               </button>
             )}
-            <button onClick={() => router.push('/profile')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="Profile & Settings">
-              <UserCircle size={13} />
-              <span className="hidden sm:inline">Profile</span>
+            <button onClick={() => router.push('/profile')} className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[11px] md:text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="Profile">
+              <UserCircle size={12} />
+              <span className="hidden md:inline">Profile</span>
             </button>
-            <button onClick={() => router.push('/')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="Analyze a new repository">
-              <Plus size={13} />
-              <span className="hidden sm:inline">New</span>
+            <button onClick={() => router.push('/')} className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[11px] md:text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="New analysis">
+              <Plus size={12} />
+              <span className="hidden md:inline">New</span>
             </button>
             {rightPanel.collapsed && (
-              <button onClick={() => rightPanel.setCollapsed(false)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors" title="Show inspector panel">
+              <button onClick={() => rightPanel.setCollapsed(false)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors hidden lg:block" title="Show inspector panel">
                 <PanelRightOpen size={15} />
               </button>
             )}
@@ -1495,8 +1483,70 @@ export default function DashboardLayout() {
         </div>
 
         {activeTab === 'chat' && <ChatView analysis={analysis} messages={messages} loading={chatLoading} query={query} setQuery={setQuery} handleSend={handleSend} suggestions={suggestions} chatHistory={chatHistory} onSelectHistory={handleSelectHistory} onNewChat={handleNewChat} onDeleteHistory={handleDeleteHistory} onStopGeneration={handleStopGeneration} onRenameHistory={handleRenameHistory} onShareHistory={handleShareHistory} sharingChatId={sharingChatId} historyLoaded={historyLoaded} setHistoryLoaded={setHistoryLoaded} onNavigateToFile={handleNavigateToFile} activeChatId={activeChatId} />}
-        {activeTab === 'explore' && <ExploreView analysis={analysis} selectedFile={selectedFile} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveChatId(crypto.randomUUID()); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
+        {activeTab === 'explore' && <ExploreView analysis={analysis} selectedFile={selectedFile} onSelectFile={setSelectedFile} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveChatId(crypto.randomUUID()); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
         {activeTab === 'system' && <SystemTabComponent analysisId={analysisId} userPlan={userPlan} onUpgrade={() => setShowUpgradeModal(true)} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveChatId(crypto.randomUUID()); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
+
+        {/* Mobile bottom tab bar */}
+        <div className="md:hidden flex-shrink-0 border-t border-white/[0.06] bg-vb-bg1 safe-area-bottom">
+          <div className="flex items-center justify-around py-2">
+            {[
+              { id: 'explore', Icon: LayoutGrid, label: 'Explore' },
+              { id: 'chat', Icon: MessageSquare, label: 'Chat' },
+              { id: 'system', Icon: Terminal, label: 'System' },
+            ].map(({ id, Icon, label }) => (
+              <button key={id} onClick={() => { setActiveTab(id); if (id !== 'explore') setSelectedFile(''); }}
+                className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition-colors ${
+                  activeTab === id ? 'text-vb-accent' : 'text-vb-ink4'
+                }`}>
+                <Icon size={18} strokeWidth={activeTab === id ? 2.2 : 1.5} />
+                <span className="text-[9px] font-medium">{label}</span>
+              </button>
+            ))}
+            <button onClick={() => setMobileHistoryOpen(true)}
+              className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition-colors ${mobileHistoryOpen ? 'text-vb-accent' : 'text-vb-ink4'}`}>
+              <Clock size={18} strokeWidth={1.5} />
+              <span className="text-[9px] font-medium">History</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile chat history drawer */}
+        {mobileHistoryOpen && (
+          <div className="md:hidden fixed inset-0 z-[200] flex flex-col justify-end" onClick={() => setMobileHistoryOpen(false)}>
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div className="relative bg-vb-bg1 border-t border-white/[0.08] rounded-t-2xl max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              {/* Handle */}
+              <div className="flex justify-center py-2">
+                <div className="w-8 h-1 rounded-full bg-white/[0.15]" />
+              </div>
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 pb-3 border-b border-white/[0.06]">
+                <span className="text-[13px] font-medium text-vb-ink">Chat History</span>
+                <button onClick={() => { handleNewChat(); setMobileHistoryOpen(false); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04]">
+                  <Plus size={11} /> New chat
+                </button>
+              </div>
+              {/* Chat list */}
+              <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+                {chatHistory.length === 0 ? (
+                  <p className="text-[12px] text-vb-ink4 text-center py-8">No conversations yet</p>
+                ) : (
+                  chatHistory.map((item) => (
+                    <button key={item.id}
+                      onClick={() => { handleSelectHistory(item); setMobileHistoryOpen(false); }}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg text-[12px] transition-colors flex items-center gap-2 ${
+                        item.id === activeChatId ? 'bg-vb-accent/[0.06] text-vb-ink border border-vb-accent/15' : 'text-vb-ink2 hover:bg-white/[0.04]'
+                      }`}>
+                      <Clock size={11} className={item.id === activeChatId ? 'text-vb-accent flex-shrink-0' : 'text-vb-ink4 flex-shrink-0'} />
+                      <span className="truncate">{item.title || 'New chat'}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Right sidebar — hidden on small screens */}

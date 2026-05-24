@@ -1,6 +1,7 @@
 import "../index.css";
 import Providers from "../components/Providers";
 import { Analytics } from "@vercel/analytics/next";
+import MobileNotice from "../components/MobileNotice";
 
 export const metadata = {
   title: "grepit — Understand Any Codebase",
@@ -17,8 +18,9 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans bg-vb-bg text-vb-ink antialiased">
+      <body className="font-sans bg-vb-bg text-vb-ink antialiased overflow-x-hidden">
         <Providers>{children}</Providers>
+        <MobileNotice />
         <Analytics />
       </body>
     </html>

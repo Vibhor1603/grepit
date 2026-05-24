@@ -240,29 +240,6 @@ function ProductShowcase() {
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end end'] });
   const x = useTransform(scrollYProgress, [0, 1], ['0%', '-75%']);
-  const [showHint, setShowHint] = useState(false);
-  const hintTimerRef = useRef(null);
-
-  // Detect horizontal scroll attempts and show a hint
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handleWheel = (e) => {
-      const isHorizontalDominant = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-      if (isHorizontalDominant) {
-        setShowHint(true);
-        clearTimeout(hintTimerRef.current);
-        hintTimerRef.current = setTimeout(() => setShowHint(false), 2500);
-      }
-    };
-
-    el.addEventListener('wheel', handleWheel, { passive: true });
-    return () => {
-      el.removeEventListener('wheel', handleWheel);
-      clearTimeout(hintTimerRef.current);
-    };
-  }, []);
 
   const panels = [
     { caption: 'AI Chat', subtitle: 'Ask anything about the code. Get grounded answers with file citations.', component: <MockChatUI /> },
@@ -279,20 +256,6 @@ function ProductShowcase() {
           <h2 className="text-[28px] md:text-[36px] font-semibold tracking-tight leading-tight text-[#eaeaec]">
             A complete intelligence<br />dashboard
           </h2>
-          {/* Scroll hint — fades out as user scrolls */}
-          <motion.div
-            style={{ opacity: useTransform(scrollYProgress, [0, 0.15], [1, 0]) }}
-            className="mt-5 flex items-center gap-2.5 text-[12px] text-[#E0FC10]/70 font-medium">
-            <motion.div
-              animate={{ y: [0, 4, 0] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-              className="w-6 h-6 rounded-full border border-[#E0FC10]/30 bg-[#E0FC10]/[0.06] flex items-center justify-center">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 5v14M5 12l7 7 7-7"/>
-              </svg>
-            </motion.div>
-            Scroll to explore
-          </motion.div>
         </div>
 
         {/* Progress dots */}
@@ -316,20 +279,6 @@ function ProductShowcase() {
             />
           ))}
         </div>
-
-        {/* Horizontal scroll warning */}
-        <motion.div
-          initial={false}
-          animate={{ opacity: showHint ? 1 : 0, y: showHint ? 0 : 8 }}
-          transition={{ duration: 0.25 }}
-          className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#111113] border border-[#E0FC10]/30 shadow-[0_4px_20px_rgba(0,0,0,0.6)] backdrop-blur-sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E0FC10" strokeWidth="2" opacity="0.8">
-              <path d="M12 5v14M5 12l7 7 7-7"/>
-            </svg>
-            <span className="text-[12px] text-[#E0FC10]/80 font-medium whitespace-nowrap">Scroll down to navigate →</span>
-          </div>
-        </motion.div>
 
         <motion.div className="flex gap-8 pl-[5vw] pt-20" style={{ x }}>
           {panels.map((panel, i) => (
@@ -1773,7 +1722,7 @@ export default function LandingPage() {
   const taglineParts = hero.tagline.split(hero.taglineAccent);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-[#eaeaec] relative">
+    <div className="min-h-screen bg-[#0a0a0c] text-[#eaeaec] relative overflow-x-hidden">
       <GridBackground />
 
       {/* NAV */}
@@ -1825,7 +1774,7 @@ export default function LandingPage() {
                   mode === m ? 'bg-[#E0FC10]/[0.1] text-[#E0FC10] border border-[#E0FC10]/20' : 'text-[#4a4a54] hover:text-[#787884] border border-transparent'
                 }`}>{label}</button>
             ))}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="hidden md:flex ml-auto items-center gap-2">
               <span className="text-[11px] text-[#787884]">try:</span>
               {hero.suggestedRepos.map(repo => (
                 <button key={repo} onClick={() => { setMode('url'); setRepoUrl(`https://github.com/${repo}`); }} disabled={loading}
@@ -1863,6 +1812,14 @@ export default function LandingPage() {
             </div>
           )}
           {error && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 text-center"><p className="text-red-400 text-[12px]">{error}</p></motion.div>}
+          {/* Mobile suggested repos — shown as chips below input */}
+          <div className="flex md:hidden flex-wrap items-center justify-center gap-2 mt-3">
+            <span className="text-[10px] text-[#4a4a54]">try:</span>
+            {hero.suggestedRepos.slice(0, 3).map(repo => (
+              <button key={repo} onClick={() => { setMode('url'); setRepoUrl(`https://github.com/${repo}`); }} disabled={loading}
+                className="text-[10px] text-[#787884] hover:text-[#E0FC10] px-2 py-1 rounded-md border border-white/[0.06] bg-white/[0.02] transition-colors disabled:opacity-40">{repo.split('/')[1]}</button>
+            ))}
+          </div>
           {needsGithub && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-center">
               <p className="text-[13px] text-[#b0b0b8] mb-2">This repository is private — connect your GitHub to continue</p>
@@ -1933,16 +1890,42 @@ export default function LandingPage() {
           </div>
 
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
-            className="relative overflow-visible">
-            {/* Coming soon badge — hangs off the right edge */}
-            <div className="absolute -top-4 z-10 flex items-center gap-2 px-4 py-1.5 rounded-md bg-[#0a0a0c] border border-[#E0FC10]/25 shadow-[0_4px_12px_rgba(0,0,0,0.4)]" style={{ right: '-40px' }}>
-              <span className="text-[12px] text-[#E0FC10] font-medium">More features coming soon</span>
+            className="relative">
+            {/* Coming soon badge */}
+            <div className="absolute -top-4 right-0 md:right-[-40px] z-10 hidden md:flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-md bg-[#0a0a0c] border border-[#E0FC10]/25 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+              <span className="text-[10px] md:text-[12px] text-[#E0FC10] font-medium">More features coming soon</span>
             </div>
-            <div className="rounded-2xl border border-white/[0.08] overflow-hidden bg-[#111113] shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
+
+            {/* Mobile: simplified feature list per plan */}
+            <div className="md:hidden space-y-4">
+              {[
+                { name: 'Starter', price: PLANS.starter.price, accent: true, features: ['3 repositories', '500K tokens/day', '30 messages/chat', 'Full security report', 'PDF export', 'Unlimited re-analysis'] },
+                { name: 'Pro', price: PLANS.pro.price, accent: false, features: ['7 repositories', '2M tokens/day', '80 messages/chat', 'Everything in Starter', 'Large codebase support', 'Priority queue & support'] },
+              ].map((plan) => (
+                <div key={plan.name} className={`rounded-xl border p-5 ${plan.accent ? 'border-[#E0FC10]/20 bg-[#E0FC10]/[0.02]' : 'border-white/[0.06] bg-[#111113]'}`}>
+                  <div className="flex items-baseline justify-between mb-4">
+                    <span className={`text-[14px] font-semibold ${plan.accent ? 'text-[#E0FC10]' : 'text-[#eaeaec]'}`}>{plan.name}</span>
+                    <span className="text-[18px] font-bold text-[#eaeaec]">{plan.price}<span className="text-[11px] text-[#4a4a54] font-normal">/mo</span></span>
+                  </div>
+                  <div className="space-y-2">
+                    {plan.features.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Check size={12} className={plan.accent ? 'text-[#E0FC10]' : 'text-[#787884]'} strokeWidth={2.5} />
+                        <span className="text-[12px] text-[#b0b0b8]">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: full comparison table */}
+            <div className="hidden md:block rounded-2xl border border-white/[0.08] overflow-x-auto bg-[#111113] shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
+            <div className="min-w-[600px]">
             {/* Header */}
             <div className="grid grid-cols-[1.8fr_1fr_1fr_1fr] border-b border-white/[0.08]">
-              <div className="p-5 flex items-center">
-                <span className="text-[13px] text-[#787884] font-medium uppercase tracking-wider">Features</span>
+              <div className="p-3 md:p-5 flex items-center">
+                <span className="text-[11px] md:text-[13px] text-[#787884] font-medium uppercase tracking-wider">Features</span>
               </div>
               <div className="p-5 text-center border-l border-white/[0.06]">
                 <span className="text-[14px] text-[#b0b0b8] font-semibold">Free</span>
@@ -1995,6 +1978,7 @@ export default function LandingPage() {
                 ))}
               </div>
             ))}
+            </div>
             </div>
           </motion.div>
         </div>

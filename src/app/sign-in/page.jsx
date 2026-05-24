@@ -41,9 +41,7 @@ function SignInContent() {
         redirectCallbackUrl: '/sso-callback',
         redirectUrl: '/',
       });
-      if (error) console.error('[auth] auto-github error:', error);
     } catch (err) {
-      console.error('[auth] auto-github error:', err);
     }
   };
 
@@ -94,12 +92,10 @@ function SignInContent() {
         redirectUrl: redirectUrl,
       });
       if (error) {
-        console.error('[auth] SSO error:', JSON.stringify(error, null, 2));
         toast.error(error?.longMessage || error?.message || 'OAuth failed');
         setOauthLoading('');
       }
     } catch (err) {
-      console.error('[auth] OAuth error:', err);
       toast.error(err?.errors?.[0]?.longMessage || 'OAuth failed');
       setOauthLoading('');
     }
@@ -131,10 +127,8 @@ function SignInContent() {
     clearFieldErrors();
     setLoading(true);
     try {
-      console.log('[signin] Attempting sign in for:', email);
       const result = await signIn.create({ identifier: email, password });
       const status = result?.status || signIn?.status;
-      console.log('[signin] Result status:', status, 'raw:', JSON.stringify(result?.status));
       if (status === 'complete') {
         setSuccess(true);
         const sessionId = result?.createdSessionId || signIn?.createdSessionId;
@@ -150,7 +144,6 @@ function SignInContent() {
           setResendCooldown(30);
           setMode('signin_verify');
         } catch (sfErr) {
-          console.error('[signin] prepareSecondFactor error:', sfErr?.errors || sfErr?.message || sfErr);
           // Show verification UI anyway — Clerk may have already sent the code
           setVerificationEmail(email);
           setPendingVerification(true);
@@ -161,7 +154,6 @@ function SignInContent() {
         setFieldErrors({ email: 'No account with this email. Try signing up.' });
       } else {
         // Try to check signIn object directly
-        console.log('[signin] signIn.status:', signIn?.status);
         if (signIn?.status === 'needs_second_factor') {
           try {
             await signIn.prepareSecondFactor({ strategy: 'email_code' });
@@ -176,7 +168,6 @@ function SignInContent() {
           }
         } else {
           // Unknown status — guide user to try OAuth or sign up
-          console.warn('[signin] Unexpected status:', status, 'signIn.status:', signIn?.status);
           setFieldErrors({ email: 'Could not sign in with these credentials. Try signing in with GitHub or create a new account.' });
         }
       }
@@ -217,27 +208,21 @@ function SignInContent() {
         }
       }
 
-      console.log('[signup] Creating account for:', email);
       // Use clerk.client.signUp which has the full SignUpResource with all methods
       const signUpResource = clerk.client.signUp;
       await signUpResource.create({ emailAddress: email, password });
-      console.log('[signup] status after create:', signUpResource.status);
       
       if (signUpResource.status === 'complete') {
         setSuccess(true);
         await setActive({ session: signUpResource.createdSessionId });
         setTimeout(() => router.replace(redirectUrl), 400);
       } else {
-        console.log('[signup] Preparing email verification...');
         await signUpResource.prepareEmailAddressVerification({ strategy: 'email_code' });
-        console.log('[signup] Verification email sent');
         setVerificationEmail(email);
         setPendingVerification(true);
         setResendCooldown(30);
       }
     } catch (err) {
-      console.error('[signup] Error:', err);
-      console.error('[signup] Error details:', JSON.stringify(err?.errors || err?.message || err));
       const clerkErr = err?.errors?.[0];
       const code = clerkErr?.code;
       if (code === 'form_identifier_exists') {
@@ -270,7 +255,6 @@ function SignInContent() {
         // Email verification for sign-up
         result = await clerk.client.signUp.attemptEmailAddressVerification({ code: verificationCode });
       }
-      console.log('[verify] result status:', result?.status);
       if (result?.status === 'complete') {
         clearFieldErrors();
         setSuccess(true);
@@ -282,10 +266,8 @@ function SignInContent() {
         setFieldErrors({ code: 'Verification incomplete. Try again.' });
       }
     } catch (err) {
-      console.error('[verify] Error:', err?.errors?.[0] || err?.message || err);
       // Check if the sign-up actually completed despite the error
       const currentStatus = clerk.client?.signUp?.status;
-      console.log('[verify] signUp status after error:', currentStatus);
       if (currentStatus === 'complete' || clerk.client?.signUp?.createdSessionId) {
         clearFieldErrors();
         setSuccess(true);

@@ -12,27 +12,54 @@ function ext(path) {
 function detectLanguage(path) {
   const extension = ext(path);
   const map = {
+    ".c": "c",
+    ".cc": "cpp",
+    ".cpp": "cpp",
+    ".cs": "csharp",
     ".css": "css",
+    ".dart": "dart",
+    ".eex": "elixir",
+    ".elm": "elm",
+    ".erb": "ruby",
+    ".ex": "elixir",
+    ".exs": "elixir",
     ".go": "go",
+    ".h": "c",
+    ".hpp": "cpp",
     ".html": "html",
     ".htm": "html",
     ".java": "java",
     ".js": "javascript",
     ".json": "json",
     ".jsx": "javascript",
+    ".kt": "kotlin",
+    ".kts": "kotlin",
     ".less": "css",
+    ".lua": "lua",
     ".md": "markdown",
     ".mdx": "markdown",
     ".mjs": "javascript",
+    ".php": "php",
+    ".proto": "protobuf",
     ".py": "python",
+    ".r": "r",
     ".rb": "ruby",
     ".rs": "rust",
     ".sass": "css",
+    ".scala": "scala",
     ".scss": "css",
+    ".sh": "shell",
+    ".sql": "sql",
+    ".svelte": "svelte",
+    ".swift": "swift",
+    ".tf": "terraform",
+    ".toml": "toml",
     ".ts": "typescript",
     ".tsx": "typescript",
+    ".vue": "vue",
     ".yaml": "yaml",
     ".yml": "yaml",
+    ".zig": "zig",
   };
   return map[extension] || "generic";
 }
@@ -112,10 +139,21 @@ function parseGo(content) {
 }
 
 function parseJava(content) {
-  const classes = extractMatches(/class\s+([A-Za-z0-9_]+)/g, content, (m) => ({ name: m[1], kind: "class" }));
-  const methods = extractMatches(/(?:public|private|protected)\s+[A-Za-z0-9_<>\[\]]+\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)/g, content, (m) => ({ name: m[1], kind: "method", args: m[2] }));
-  const imports = extractMatches(/import\s+([A-Za-z0-9_\.]+);/g, content, (m) => m[1]);
-  return { functions: [], classes, imports, methods };
+  const classes = [
+    ...extractMatches(/\bclass\s+([A-Za-z0-9_]+)/g, content, (m) => ({ name: m[1], kind: "class" })),
+    ...extractMatches(/\binterface\s+([A-Za-z0-9_]+)/g, content, (m) => ({ name: m[1], kind: "interface" })),
+    ...extractMatches(/\benum\s+([A-Za-z0-9_]+)/g, content, (m) => ({ name: m[1], kind: "enum" })),
+  ];
+  const methods = [
+    // public/private/protected methods
+    ...extractMatches(/(?:public|private|protected)\s+(?:static\s+)?(?:final\s+)?[A-Za-z0-9_<>\[\],\s]+\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)/g, content, (m) => ({ name: m[1], kind: "method", args: m[2] })),
+    // Package-private methods (no modifier, but has return type)
+    ...extractMatches(/^\s+(?:static\s+)?(?:final\s+)?[A-Za-z0-9_<>\[\]]+\s+([a-z][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:\{|throws)/gm, content, (m) => ({ name: m[1], kind: "method", args: m[2] })),
+  ].filter(m => !/^(if|else|for|while|do|switch|catch|try|return|new|class|interface|enum)$/.test(m.name));
+  const imports = extractMatches(/import\s+(?:static\s+)?([A-Za-z0-9_.]+);/g, content, (m) => m[1]);
+  const functions = extractMatches(/@([A-Za-z]+)/g, content, (m) => ({ name: `@${m[1]}`, kind: "annotation" }))
+    .filter((v, i, a) => a.findIndex(x => x.name === v.name) === i).slice(0, 10);
+  return { functions, classes, imports, methods };
 }
 
 function parseStylesheet(content) {
@@ -155,13 +193,42 @@ function parseYaml(content) {
 }
 
 function parseGeneric(content) {
+  // Multi-language import detection
+  const imports = [
+    // Rust: use crate::module, use std::io
+    ...extractMatches(/\buse\s+([\w:]+(?:::\w+)*)/g, content, (m) => m[1]),
+    // Ruby: require 'module', require_relative 'path'
+    ...extractMatches(/\brequire(?:_relative)?\s+['"]([^'"]+)['"]/g, content, (m) => m[1]),
+    // C#: using Namespace.Module
+    ...extractMatches(/\busing\s+([\w.]+)\s*;/g, content, (m) => m[1]),
+    // PHP: use Namespace\Class
+    ...extractMatches(/\buse\s+([\w\\]+)\s*;/g, content, (m) => m[1]),
+    // Swift: import Module
+    ...extractMatches(/\bimport\s+(\w+)/g, content, (m) => m[1]),
+    // Kotlin: import package.Class
+    ...extractMatches(/\bimport\s+([\w.]+)/g, content, (m) => m[1]),
+    // Elixir: import Module, alias Module
+    ...extractMatches(/\b(?:import|alias|use)\s+([A-Z][\w.]*)/g, content, (m) => m[1]),
+    // C/C++: #include "file" or <file>
+    ...extractMatches(/#include\s+[<"]([^>"]+)[>"]/g, content, (m) => m[1]),
+    // Scala: import package.Class
+    ...extractMatches(/\bimport\s+([\w.{},\s]+)/g, content, (m) => m[1].trim()),
+  ].slice(0, 25);
+
   return {
     functions: extractMatches(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*\{/g, content, (m) => ({ name: m[1], kind: "function", args: m[2] }))
       .filter(m => !/^(if|else|for|while|do|switch|catch|finally|try|return|throw|new|delete|typeof|void|with|yield|await|async|class|function|const|let|var|import|export|default|break|continue|debugger|in|of|instanceof|super|this|case)$/.test(m.name))
       .slice(0, 15),
     classes: extractMatches(/\bclass\s+([A-Za-z0-9_]+)/g, content, (m) => ({ name: m[1], kind: "class" })).slice(0, 10),
-    imports: [],
-    methods: [],
+    imports,
+    methods: [
+      // Rust: fn name(), pub fn name()
+      ...extractMatches(/\b(?:pub\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g, content, (m) => ({ name: m[1], kind: "method", args: m[2] })),
+      // Ruby: def method_name
+      ...extractMatches(/\bdef\s+([A-Za-z_][A-Za-z0-9_?!]*)/g, content, (m) => ({ name: m[1], kind: "method" })),
+      // Elixir: def/defp function_name
+      ...extractMatches(/\bdefp?\s+([A-Za-z_][A-Za-z0-9_?!]*)/g, content, (m) => ({ name: m[1], kind: "method" })),
+    ].slice(0, 15),
     selectors: [],
     customProperties: [],
     animations: [],
@@ -181,18 +248,23 @@ function parseLanguage(path, content) {
   if (language === "html") return { language, ...parseHtml(content) };
   if (language === "json") return { language, ...parseJson(content) };
   if (language === "markdown") return { language, ...parseMarkdown(content) };
-  if (language === "yaml") return { language, ...parseYaml(content) };
+  if (language === "yaml" || language === "toml") return { language, ...parseYaml(content) };
   return { language, ...parseGeneric(content) };
 }
 
 function inferFilePurpose(path, parsed) {
-  if (/test|spec/i.test(path)) return "Test file";
-  if (parsed.language === "css") return "Stylesheet file";
-  if (parsed.language === "html") return "Markup/template file";
-  if (parsed.language === "json" || parsed.language === "yaml") return "Configuration or data file";
-  if (parsed.language === "markdown") return "Documentation file";
-  if (/route|controller|api/i.test(path)) return "API or request handling file";
-  if (/component|view|page/i.test(path)) return "UI/rendering file";
+  const lowerPath = path.toLowerCase();
+  if (/test|spec|__test__|_test\./i.test(lowerPath)) return "Test file";
+  if (parsed.language === "css" || /\.scss$|\.less$|\.sass$/i.test(lowerPath)) return "Stylesheet file";
+  if (parsed.language === "html" || /\.erb$|\.hbs$|\.ejs$|\.pug$|\.blade\.php$/i.test(lowerPath)) return "Template/markup file";
+  if (parsed.language === "json" || parsed.language === "yaml" || /\.toml$|\.ini$|\.cfg$/i.test(lowerPath)) return "Configuration or data file";
+  if (parsed.language === "markdown" || /\.rst$|\.adoc$/i.test(lowerPath)) return "Documentation file";
+  if (/route|controller|handler|endpoint|api|resolver|resource/i.test(lowerPath)) return "API or request handling file";
+  if (/component|view|page|template|widget|screen|layout/i.test(lowerPath)) return "UI/rendering file";
+  if (/model|schema|entity|migration|seed|fixture/i.test(lowerPath)) return "Data model or schema file";
+  if (/service|usecase|interactor|manager|helper|util/i.test(lowerPath)) return "Service or utility file";
+  if (/config|setup|init|boot|startup/i.test(lowerPath)) return "Configuration or entry point";
+  if (/middleware|interceptor|filter|guard|pipe/i.test(lowerPath)) return "Middleware or interceptor";
   if (parsed.classes.length > 0) return "Class-based module";
   if (parsed.functions.length > 0) return "Function-oriented module";
   return "Project source file";

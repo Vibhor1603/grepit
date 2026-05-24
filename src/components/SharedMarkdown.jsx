@@ -24,16 +24,70 @@ const viboCodeTheme = {
 function MermaidDiagram({ code }) {
   const containerRef = useRef(null);
   const [svg, setSvg] = useState('');
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    if (!code) return;
     let cancelled = false;
-    import('mermaid').then(({ default: mermaid }) => {
-      mermaid.initialize({ startOnLoad: false, theme: 'dark', themeVariables: { primaryColor: '#E0FC10', primaryTextColor: '#eaeaec', lineColor: '#4a4a54', secondaryColor: '#111113', tertiaryColor: '#19191c' } });
-      const id = `mermaid-shared-${Math.random().toString(36).slice(2)}`;
-      mermaid.render(id, code).then(({ svg: rendered }) => {
+    (async () => {
+      try {
+        const mermaid = (await import('mermaid')).default;
+        mermaid.initialize({
+          startOnLoad: false,
+          suppressErrors: true,
+          logLevel: 'fatal',
+          securityLevel: 'loose',
+          theme: 'dark',
+          themeVariables: {
+            primaryColor: '#1e1e24',
+            primaryTextColor: '#eaeaec',
+            primaryBorderColor: '#E0FC10',
+            lineColor: '#5c5c66',
+            secondaryColor: '#16161a',
+            tertiaryColor: '#1c1c20',
+            background: '#0a0a0c',
+          },
+          flowchart: { htmlLabels: false, curve: 'basis', nodeSpacing: 30, rankSpacing: 50, padding: 15 },
+        });
+
+        // Sanitize: move classDef/class lines to end, fix common issues
+        let lines = code.split('\n');
+        const classLines = [];
+        const otherLines = [];
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('classDef ') || trimmed.startsWith('class ')) {
+            classLines.push(trimmed);
+          } else {
+            otherLines.push(line);
+          }
+        }
+        const sanitized = [...otherLines, ...classLines].join('\n')
+          .replace(/\|>/g, '|')
+          .replace(/[\u201C\u201D]/g, '"')
+          .replace(/\["([^"]*?)"\]/g, (_, label) => {
+            const clean = label.replace(/[./\\<>(){}]/g, ' ').replace(/\s+/g, ' ').trim();
+            return `["${clean}"]`;
+          })
+          .replace(/\|"([^"]*?)"\|/g, (_, label) => {
+            const clean = label.replace(/[/\\<>(){}]/g, ' ').replace(/\s+/g, ' ').trim();
+            return `|"${clean}"|`;
+          })
+          .replace(/-->\|([^"|][^|]*)\|/g, (match, label) => {
+            if (/[/\\.<>(){}]/.test(label)) {
+              const clean = label.replace(/[/\\<>(){}]/g, ' ').replace(/\s+/g, ' ').trim();
+              return `-->|"${clean}"|`;
+            }
+            return match;
+          });
+
+        const id = `mermaid-shared-${Math.random().toString(36).slice(2, 8)}`;
+        const { svg: rendered } = await mermaid.render(id, sanitized);
         if (!cancelled) setSvg(rendered);
-      }).catch(() => {});
-    }).catch(() => {});
+      } catch (e) {
+        if (!cancelled) setFailed(true);
+      }
+    })();
     return () => { cancelled = true; };
   }, [code]);
 
