@@ -1722,7 +1722,7 @@ export default function LandingPage() {
   const taglineParts = hero.tagline.split(hero.taglineAccent);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-[#eaeaec] relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a0c] text-[#eaeaec] relative">
       <GridBackground />
 
       {/* NAV */}

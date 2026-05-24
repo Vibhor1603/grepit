@@ -13,10 +13,7 @@
 
   html {
     scroll-behavior: smooth;
-  }
-
-  body {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }

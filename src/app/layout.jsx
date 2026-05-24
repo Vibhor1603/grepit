@@ -18,7 +18,7 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans bg-vb-bg text-vb-ink antialiased overflow-x-hidden">
+      <body className="font-sans bg-vb-bg text-vb-ink antialiased">
         <Providers>{children}</Providers>
         <MobileNotice />
         <Analytics />

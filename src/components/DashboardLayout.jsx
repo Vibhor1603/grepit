@@ -350,7 +350,7 @@ function FileTreeSidebar({ analysis, selectedFile, onSelectFile, score, onCollap
         return (
           <button key={value.__path} onClick={() => onSelectFile(value.__path)}
             style={{ paddingLeft: `${indent + 8}px` }}
-            className={`w-full flex items-center gap-2 py-[5px] pr-2 rounded-md text-[12px] transition-colors duration-150 ${selectedFile === value.__path ? 'bg-vb-accent/10 text-vb-accent' : 'text-vb-ink2 hover:text-vb-ink hover:bg-white/[0.04]'}`}>
+            className={`w-full flex items-center gap-2 py-[5px] pr-2 rounded-md text-[12px] transition-colors duration-150 ${selectedFile === value.__path ? 'bg-vb-accent/10 text-vb-accent' : 'text-[#d4d4d8] hover:text-vb-ink hover:bg-white/[0.04]'}`}>
             <FileText size={13} className="flex-shrink-0 opacity-50" />
             <span className="truncate">{name}</span>
           </button>
@@ -896,7 +896,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
               <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mb-10">
                 {suggestions.map((s, i) => (
                   <button key={i} onClick={() => handleSend(s)}
-                    className="group/chip relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[12px] text-vb-ink3 transition-all duration-200 ease-out overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.14] hover:text-vb-ink cursor-pointer active:scale-[0.97]">
+                    className="group/chip relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[12px] text-[#d4d4d8] transition-all duration-200 ease-out overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.14] hover:text-vb-ink cursor-pointer active:scale-[0.97]">
                     <span className="absolute bottom-0 left-0 h-[1px] w-full bg-vb-accent/20 md:w-0 md:left-1/2 md:bg-vb-accent/40 transition-all duration-300 ease-out group-hover/chip:w-3/4 group-hover/chip:left-[12.5%] rounded-full" />
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-vb-accent/40 flex-shrink-0"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     {s}
