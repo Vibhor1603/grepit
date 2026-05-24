@@ -1,14 +1,14 @@
 import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
-import { rateLimit, rateLimitKey, getCachedResponse, setCachedResponse, buildCacheKey, checkTokenBudget, recordTokenUsage } from "../lib/rateLimit";
+import { rateLimit, rateLimitKey, checkTokenBudget, recordTokenUsage } from "../lib/rateLimit";
 import { getAnalysisRecord, createQueryHistory, getRecentQueries, getConversationMessages, getConversationMessageCount } from "../lib/analysis-store";
 import { buildQueryResponse } from "../lib/analysis";
 import { isAIConfigured } from "../lib/env";
 import { getAIHeaders, getAIApiUrl, getAIModel, FALLBACK_MODELS } from "../lib/ai";
 import { getCurrentSession, getSessionOwner } from "../lib/server-session";
-import { queryCodebase } from "../lib/codebase-index";
-import { checkGate, logUsage, isUserPro, getUserPlan } from "../lib/subscription-gate";
+import { checkGate, logUsage, getUserPlan } from "../lib/subscription-gate";
 import { getPlan } from "../config/plans";
+import { searchEmbeddings } from "../lib/embeddings";
 
 // Streaming query endpoint — returns SSE
 export async function handleStreamPost(request) {
@@ -66,125 +66,106 @@ export async function handleStreamPost(request) {
     return new Response(JSON.stringify({ error: "AI not configured", fallback }), { status: 503, headers: { 'Content-Type': 'application/json' } });
   }
 
-  // Build context — with configured chat model (1M context) we can be generous
-  const queryResult = queryCodebase(analysis, query, { maxFiles: 12, maxSymbols: 15, maxGraphDepth: 3 });
+  // ── Semantic search via vector embeddings (primary) ──
+  // Falls back to file metadata if embeddings aren't available
   const files = analysis?.results?.files || [];
   const fileByPath = new Map(files.map(f => [f.path, f]));
-  let relevantFiles = queryResult.fileMatches.map(m => fileByPath.get(m.path)).filter(Boolean);
-
-  console.log(`[stream] Top file matches: ${relevantFiles.slice(0, 5).map(f => f.path).join(', ')}`);
-
-  // ── Follow imports for thin wrapper files ──
-  // If a matched file is tiny (< 500 chars, e.g., a route.js that just re-exports),
-  // also include the files it imports — that's where the actual implementation lives.
-  const importedExtras = [];
-  const seenPaths = new Set(relevantFiles.map(f => f.path));
-
-  // Log thin files for debugging
-  const thinFiles = relevantFiles.filter(f => (f.code || '').length < 500);
-  if (thinFiles.length > 0) {
-    console.log(`[stream] Thin wrapper files found: ${thinFiles.map(f => `${f.path} (imports: ${(f.imports || []).join(', ')})`).join(' | ')}`);
-  }
-
-  for (const file of relevantFiles) {
-    const codeLen = (file.code || '').length;
-    if (codeLen < 500 && (file.imports || []).length > 0) {
-      for (const imp of file.imports) {
-        // Resolve: strip leading dots/slashes, keep the full module path
-        // Don't strip .controller, .service, etc — only strip actual file extensions
-        const normalized = imp
-          .replace(/^[./]+/g, '')
-          .replace(/\.(js|ts|jsx|tsx|mjs|cjs|json)$/, '');
-        if (!normalized) continue;
-        const candidates = files.filter(f =>
-          f.path.includes(normalized) && !seenPaths.has(f.path)
-        );
-        for (const candidate of candidates.slice(0, 2)) {
-          importedExtras.push(candidate);
-          seenPaths.add(candidate.path);
-          console.log(`[stream] Import-follow: ${file.path} → ${candidate.path}`);
-        }
-      }
-    }
-  }
-
-  // Prepend imported files (they have the actual code) before the thin wrappers
-  if (importedExtras.length > 0) {
-    relevantFiles = [...importedExtras, ...relevantFiles];
-  }
 
   // Force-include user-tagged files
   const forcedFiles = (forcedFilePaths || [])
     .map(p => fileByPath.get(p) || files.find(f => f.path.endsWith(p)))
     .filter(Boolean);
 
-  const forcedPaths = new Set(forcedFiles.map(f => f.path));
-  const otherFiles = relevantFiles.filter(f => !forcedPaths.has(f.path)).slice(0, 8);
+  // Vector search — find the most semantically relevant code chunks
+  const vectorResults = await searchEmbeddings(analysis.id, query, { limit: 10 }).catch(() => null);
 
-  // Build context — prioritize actual code over metadata
+  // Build context from vector results or fallback
   const contextParts = [
     `Repository: ${analysis.repo_name}`,
     `Summary: ${analysis.summary}`,
     `Languages: ${JSON.stringify(analysis.languages)}`,
-    `File tree (${(analysis.file_tree || []).length} files): ${JSON.stringify((analysis.file_tree || []).slice(0, 150).map(f => f.path))}`,
+    `File tree (${(analysis.file_tree || []).length} files): ${JSON.stringify((analysis.file_tree || []).slice(0, 120).map(f => f.path))}`,
   ];
 
-  // ── Adaptive context sizing based on query complexity ──
-  // Simple questions (what does X do, where is Y) need less context
-  // Complex questions (how does the auth flow work, explain architecture) need more
-  const isSimpleQuery = /^(what|where|which|show|find|list)\b/i.test(query) && query.length < 80;
-  const isArchitectureQuery = /\b(architect|flow|pipeline|system|how does .+ work|end.to.end|overview|explain the)\b/i.test(query);
-  const hasFileAttached = forcedFiles.length > 0;
+  if (vectorResults && vectorResults.length > 0) {
+    // ── Vector search succeeded — use semantic results ──
+    console.log(`[stream] Using vector search: ${vectorResults.length} chunks (top: ${vectorResults[0].filePath}, sim: ${vectorResults[0].similarity.toFixed(3)})`);
 
-  // Context budget per file (chars)
-  const CODE_BUDGET = hasFileAttached
-    ? { tagged: 30000, top: 16000, rest: 6000 }   // User tagged a file — give it full code, less for others
-    : isArchitectureQuery
-      ? { tagged: 0, top: 20000, rest: 10000 }     // Architecture — spread code across more files
-      : isSimpleQuery
-        ? { tagged: 0, top: 12000, rest: 4000 }    // Simple — less context needed
-        : { tagged: 0, top: 18000, rest: 8000 };   // Default — balanced
+    // Tagged files always get full code
+    if (forcedFiles.length > 0) {
+      contextParts.push(`User-specified files (BASE YOUR ANSWER ON THESE):\n${JSON.stringify(forcedFiles.map(file => ({
+        path: file.path, summary: file.summary,
+        functions: (file.functions || []).map(i => ({ name: i.name, args: i.args })),
+        classes: (file.classes || []).map(i => i.name),
+        imports: file.imports || [],
+        code: (file.code || "").slice(0, 30000),
+      })))}`);
+    }
 
-  // Tagged files get full code
-  if (forcedFiles.length > 0) {
-    contextParts.push(`User-specified files (BASE YOUR ANSWER ON THESE):\n${JSON.stringify(forcedFiles.map(file => ({
-      path: file.path, summary: file.summary,
-      functions: (file.functions || []).map(i => ({ name: i.name, args: i.args })),
-      classes: (file.classes || []).map(i => i.name),
-      imports: file.imports || [],
-      code: (file.code || "").slice(0, CODE_BUDGET.tagged),
-    })))}`);
+    // Vector results — these are the actual relevant code chunks
+    // Group by file for cleaner context
+    const fileChunks = new Map();
+    for (const result of vectorResults) {
+      if (!fileChunks.has(result.filePath)) {
+        fileChunks.set(result.filePath, []);
+      }
+      fileChunks.get(result.filePath).push(result);
+    }
+
+    const relevantCode = [];
+    for (const [filePath, chunks] of fileChunks) {
+      // Combine chunks from the same file
+      const combined = chunks
+        .sort((a, b) => a.startLine - b.startLine)
+        .map(c => c.content)
+        .join("\n\n");
+      
+      // Also include file metadata from the analysis
+      const fileMeta = fileByPath.get(filePath);
+      relevantCode.push({
+        path: filePath,
+        summary: fileMeta?.summary || "",
+        functions: (fileMeta?.functions || []).map(i => ({ name: i.name, args: i.args })),
+        classes: (fileMeta?.classes || []).map(i => i.name),
+        imports: fileMeta?.imports || [],
+        code: combined,
+        similarity: chunks[0].similarity,
+      });
+    }
+
+    contextParts.push(`Relevant code (found via semantic search, ordered by relevance):\n${JSON.stringify(relevantCode)}`);
+  } else {
+    // ── Fallback: use file metadata when embeddings aren't available ──
+    console.log(`[stream] Vector search unavailable, using file metadata fallback`);
+
+    if (forcedFiles.length > 0) {
+      contextParts.push(`User-specified files (BASE YOUR ANSWER ON THESE):\n${JSON.stringify(forcedFiles.map(file => ({
+        path: file.path, summary: file.summary,
+        functions: (file.functions || []).map(i => ({ name: i.name, args: i.args })),
+        classes: (file.classes || []).map(i => i.name),
+        imports: file.imports || [],
+        code: (file.code || "").slice(0, 30000),
+      })))}`);
+    }
+
+    // Use file summaries and metadata as context
+    const relevantFiles = files
+      .filter(f => f.summary && f.code)
+      .slice(0, 8)
+      .map(file => ({
+        path: file.path,
+        summary: file.summary,
+        functions: (file.functions || []).map(i => i.name),
+        classes: (file.classes || []).map(i => i.name),
+        code: (file.code || "").slice(0, 8000),
+      }));
+
+    contextParts.push(`Available files:\n${JSON.stringify(relevantFiles)}`);
   }
-
-  // Top 3 relevant files get generous code, rest get less
-  const topFiles = otherFiles.slice(0, 3);
-  const restFiles = otherFiles.slice(3);
-
-  if (topFiles.length > 0) {
-    contextParts.push(`Most relevant files:\n${JSON.stringify(topFiles.map(file => ({
-      path: file.path, summary: file.summary,
-      functions: (file.functions || []).map(i => ({ name: i.name, args: i.args })),
-      classes: (file.classes || []).map(i => i.name),
-      imports: file.imports || [],
-      code: (file.code || "").slice(0, CODE_BUDGET.top),
-    })))}`);
-  }
-
-  if (restFiles.length > 0) {
-    contextParts.push(`Additional context files:\n${JSON.stringify(restFiles.map(file => ({
-      path: file.path, summary: file.summary,
-      functions: (file.functions || []).map(i => i.name),
-      classes: (file.classes || []).map(i => i.name),
-      code: (file.code || "").slice(0, CODE_BUDGET.rest),
-    })))}`);
-  }
-
-  contextParts.push(`Symbols: ${JSON.stringify((queryResult.symbolMatches || []).slice(0, 12))}`);
 
   let context = contextParts.join("\n");
-  // Adaptive cap based on query type
-  const contextCap = isSimpleQuery ? 60000 : isArchitectureQuery ? 150000 : 100000;
-  if (context.length > contextCap) context = context.slice(0, contextCap);
+  // Cap at 150K chars — generous but bounded
+  if (context.length > 150000) context = context.slice(0, 150000);
 
   console.log(`[stream] Context: ${context.length} chars, query: ${query.length} chars`);
 

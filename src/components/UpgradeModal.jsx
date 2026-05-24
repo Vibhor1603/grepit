@@ -36,9 +36,11 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
       period: plan.period,
       features: plan.features,
       isDowngrade: currentPlan === 'pro' && id === 'starter',
-      // Highlight the recommended next step
-      highlighted: (currentPlan === 'free' && id === 'starter') || (currentPlan === 'starter' && id === 'pro'),
-    }));
+      // Pro is always highlighted as the best value option
+      highlighted: id === 'pro',
+    }))
+    // Show Pro first (highlighted), then Starter
+    .sort((a, b) => (b.highlighted ? 1 : 0) - (a.highlighted ? 1 : 0));
 
   const handleClose = () => {
     // Don't close while a payment redirect is in progress (loading state means we're about to redirect)

@@ -12,6 +12,7 @@ import { createGitHubSnapshot } from "../lib/repository-snapshot";
 import { buildCodeIntelligence } from "../lib/code-intel";
 import { buildCodebaseIndex, buildTraversalArchitecture } from "../lib/codebase-index";
 import { checkGate, logUsage } from "../lib/subscription-gate";
+import { storeEmbeddings } from "../lib/embeddings";
 
 /**
  * Parses React component props from source code by matching common patterns.
@@ -453,11 +454,11 @@ export async function handleAnalyzePost(request) {
     detailedComponents = enrichedComponents;
     console.log(`[analyze] Code intel complete: ${codeIntel.files.length} files indexed (limit: ${codeIntelLimit})`);
 
-    console.log(`[analyze] Building codebase index + AI enhancement (parallel)...`);
+    console.log(`[analyze] Building codebase index + AI enhancement + embeddings (parallel)...`);
     let codebaseIndex, persistedCodebaseIndex, mergedEndpoints;
     
-    // Run codebase index building and AI enhancement IN PARALLEL
-    // They're independent: AI uses code intel results, index uses file tree + symbols
+    // Run codebase index building, AI enhancement, AND embedding generation IN PARALLEL
+    // They're all independent: AI uses code intel results, index uses file tree + symbols, embeddings use file code
     const indexPromise = !isTimedOut() ? Promise.resolve().then(() => {
       const idx = buildCodebaseIndex({
         fileTree: filteredTree,
@@ -482,6 +483,12 @@ export async function handleAnalyzePost(request) {
     }) : Promise.resolve(result);
 
     const [indexResult, aiResult] = await Promise.all([indexPromise, aiPromise]);
+
+    // Generate embeddings in background (non-blocking — don't wait for it)
+    // Uses the analysis ID so we can search later at query time
+    storeEmbeddings(analysis.id, codeIntel.files).catch(err => {
+      console.warn(`[analyze] Embedding generation failed (non-fatal):`, err.message);
+    });
 
     if (indexResult) {
       codebaseIndex = indexResult;

@@ -16,7 +16,7 @@ export default function RefundPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">1. General Policy</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
-          All paid subscriptions to grepit — including starter ($12/mo, 3 repositories) and Pro ($30/mo, 7 repositories) — are billed on a recurring monthly basis. We do not provide refunds for:
+          All paid subscriptions to grepit — including Starter ($15/mo, 3 repositories) and Pro ($30/mo, 7 repositories) — are billed on a recurring monthly basis. We do not provide refunds for:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li>Partial billing periods or unused days remaining in a billing cycle.</li>

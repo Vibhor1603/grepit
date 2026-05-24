@@ -279,8 +279,8 @@ export default function ProfilePage() {
                       ? `Switching to ${subData.scheduledChangePlan?.charAt(0).toUpperCase() + subData.scheduledChangePlan?.slice(1)} on ${subData?.entitlementEndsAt ? new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'next cycle'}`
                       : subData?.cancelAtPeriodEnd
                         ? `Cancels ${subData?.entitlementEndsAt ? new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'at period end'}`
-                        : subData?.entitlementEndsAt ? `Renews ${new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : `${PLANS[subData?.plan || 'starter']?.price || '$12'}/month`
-                    : `${PLANS.free.maxRepos} ${PLANS.free.maxRepos === 1 ? 'repository' : 'repositories'} · ${PLANS.free.maxAiQueriesPerDay} AI queries/day`}
+                        : subData?.entitlementEndsAt ? `Renews ${new Date(subData.entitlementEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : `${PLANS[subData?.plan || 'starter']?.price || '$15'}/month`
+                    : `${PLANS.free.maxRepos} ${PLANS.free.maxRepos === 1 ? 'repository' : 'repositories'} · ${Math.round(PLANS.free.maxTokensPerDay / 1000)}K tokens/day`}
                 </p>
               </div>
               {isPaid ? (

@@ -44,11 +44,12 @@ export async function GET(request) {
     const database = analyzeDatabase(filePaths, files);
 
     // Gate security issues for free users at the API level (can't bypass with devtools)
+    // Free users see 50% of the report — enough to demonstrate value, gated enough to convert
     const plan = await getUserPlan(session.userId);
     if (plan === 'free' && securityReport.issues?.length > 2) {
       securityReport.gatedIssueCount = securityReport.issues.length;
-      // Keep first 2 issues fully visible, show only titles for the rest
-      const visibleIssues = securityReport.issues.slice(0, 2);
+      const halfCount = Math.ceil(securityReport.issues.length / 2);
+      const visibleIssues = securityReport.issues.slice(0, halfCount);
       securityReport.issues = visibleIssues;
       securityReport.gated = true;
     }

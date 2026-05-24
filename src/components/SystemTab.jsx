@@ -238,43 +238,23 @@ export default function SystemTab({ analysisId, onContinueInChat, userPlan = 'fr
 
                   return (
                     <>
-                      {/* First issue — fully visible */}
-                      {entries.length > 0 && (
-                        <IssueCard cat={entries[0][0]} items={entries[0][1]} onHowToFix={handleHowToFix} />
-                      )}
+                      {/* Visible issues (50% of total) */}
+                      {entries.map(([cat, items]) => (
+                        <IssueCard key={cat} cat={cat} items={items} onHowToFix={handleHowToFix} />
+                      ))}
 
-                      {/* Locked section — second issue title + blurred content as one unified block */}
+                      {/* Locked section — blurred teaser for remaining issues */}
                       <div className="relative rounded-xl overflow-hidden">
-                        {/* Content that's partially visible / blurred */}
                         <div className="pointer-events-none select-none">
-                          {/* Second issue — title visible, content blurred */}
-                          {entries.length > 1 && (
-                            <div className="bg-[#222226] rounded-t-lg border border-white/[0.06] border-b-0">
-                              <div className="flex items-center justify-between px-5 py-3">
-                                <div className="flex items-center gap-2">
-                                  <span className={`w-2 h-2 rounded-full ${entries[1][1][0]?.severity === 'high' ? 'bg-red-500' : 'bg-yellow-500'}`} />
-                                  <h3 className="text-[14px] text-vb-ink font-medium">{entries[1][0]}</h3>
-                                </div>
-                                <span className="text-[11px] text-vb-ink3">{entries[1][1].length} found</span>
-                              </div>
-                            </div>
-                          )}
-                          {/* Blurred area — looks like more content behind */}
-                          <div className="blur-[5px] opacity-50 space-y-3 px-5 pb-5 pt-2 bg-[#222226] border-x border-white/[0.06]">
-                            <div className="h-3 w-3/4 rounded bg-white/[0.06]" />
+                          <div className="blur-[5px] opacity-50 space-y-3 px-5 pb-5 pt-4 bg-[#222226] rounded-lg border border-white/[0.06]">
+                            <div className="h-3.5 w-40 rounded bg-white/[0.06]" />
                             <div className="h-9 rounded bg-white/[0.04]" />
                             <div className="h-9 rounded bg-white/[0.04]" />
-                          </div>
-                          <div className="blur-[7px] opacity-40 space-y-4 p-4">
-                            <div className="bg-[#222226] rounded-lg border border-white/[0.06] p-5 space-y-2">
-                              <div className="h-3.5 w-36 rounded bg-white/[0.06]" />
-                              <div className="h-3 w-2/3 rounded bg-white/[0.04]" />
-                              <div className="h-8 rounded bg-white/[0.03]" />
-                            </div>
+                            <div className="h-3.5 w-32 rounded bg-white/[0.06] mt-4" />
+                            <div className="h-9 rounded bg-white/[0.04]" />
                           </div>
                         </div>
-                        {/* Overlay — positioned to cover from the blurred content area */}
-                        <div className="absolute inset-0 top-12 flex items-start justify-center pt-10 bg-gradient-to-b from-[#1a1a1e]/20 via-[#1a1a1e]/60 to-[#1a1a1e]/90">
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-[#1a1a1e]/20 via-[#1a1a1e]/60 to-[#1a1a1e]/90">
                           <div className="text-center space-y-2.5">
                             <div className="w-10 h-10 mx-auto rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center">
                               <Lock size={16} className="text-vb-ink3" />
