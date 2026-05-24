@@ -1944,7 +1944,7 @@ export default function LandingPage() {
             {/* Rows */}
             {[
               { feature: 'Repositories', free: String(PLANS.free.maxRepos), pro: String(PLANS.starter.maxRepos), team: String(PLANS.pro.maxRepos) },
-              { feature: 'Daily token budget', free: '250K', pro: '500K', team: '2M' },
+              { feature: 'Daily token budget', free: '150K', pro: '750K', team: '3M' },
               { feature: 'Messages per chat', free: String(PLANS.free.maxMessagesPerChat), pro: String(PLANS.starter.maxMessagesPerChat), team: String(PLANS.pro.maxMessagesPerChat) },
               { feature: 'Re-analysis frequency', free: '1 / week', pro: 'Unlimited', team: 'Unlimited' },
               { feature: 'Chat sharing', free: '2 total', pro: 'Unlimited', team: 'Unlimited' },

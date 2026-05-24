@@ -1187,12 +1187,13 @@ export default function DashboardLayout() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        const isGateError = data.code === 'QUERY_LIMIT_REACHED' || data.code === 'TOKEN_BUDGET_EXCEEDED' || data.code === 'PRO_FEATURE_ONLY';
+        const isGateError = data.code === 'TOKEN_BUDGET_EXCEEDED' || data.code === 'CHAT_MESSAGE_LIMIT' || data.code === 'PRO_FEATURE_ONLY';
         const errorMsg = isGateError
           ? `${data.error}\n\n[Upgrade your plan →](/?scrollTo=pricing)`
           : data.error || 'Something went wrong';
         setMessages(prev => { const copy = [...prev]; copy[copy.length - 1] = { role: 'system', content: errorMsg }; return copy; });
-        if (res.status === 429) showToast(getRateLimitMessage(30), 'error');
+        if (isGateError) setShowUpgradeModal(true);
+        if (res.status === 429) showToast('Too many requests. Slow down a bit.', 'error');
         setChatLoading(false);
         return;
       }
