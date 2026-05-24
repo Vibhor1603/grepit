@@ -227,7 +227,7 @@ const MarkdownMessage = memo(function MarkdownMessage({ content, onNavigateToFil
       elements.push(<InlineDiagramRender key={key} mermaidCode={codeLines.join('\n')} />);
     } else {
       elements.push(
-        <div key={key} className="mb-4 min-w-[60%] max-w-full rounded-xl border border-white/[0.08] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
+        <div key={key} className="mb-4 max-w-full rounded-xl border border-white/[0.08] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] bg-white/[0.03]">
             <div className="flex items-center gap-[5px]">
               <span className="w-[8px] h-[8px] rounded-full bg-[#ff5f57]" />
@@ -277,7 +277,7 @@ const MarkdownMessage = memo(function MarkdownMessage({ content, onNavigateToFil
   else if (codeLines.length > 0) {
     // Show streaming code as a placeholder while incomplete
     elements.push(
-      <div key="streaming-code" className="mb-4 min-w-[60%] max-w-full rounded-xl border border-white/[0.08] overflow-hidden">
+      <div key="streaming-code" className="mb-4 max-w-full rounded-xl border border-white/[0.08] overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] bg-white/[0.03]">
           <div className="flex items-center gap-[5px]">
             <span className="w-[8px] h-[8px] rounded-full bg-[#ff5f57]" />
@@ -885,7 +885,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
             <PanelLeftOpen size={14} />
           </button>
         )}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6" onMouseDown={() => { if (document.activeElement?.tagName === 'INPUT') document.activeElement.blur(); }}>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-6 overflow-x-hidden" onMouseDown={() => { if (document.activeElement?.tagName === 'INPUT') document.activeElement.blur(); }}>
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center">
               <div className="flex items-center gap-2 mb-3">
@@ -917,7 +917,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                   <div key={i} className="group" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 80px' }}>
                     {msg.role === 'user' ? (
                       <div className="flex justify-end">
-                        <div className="max-w-[70%]">
+                        <div className="max-w-[85%] md:max-w-[70%]">
                           {msg._files?.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-1.5 justify-end">
                               {msg._files.map(f => (
@@ -945,7 +945,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                     ) : msg.role === 'system' ? (
                       <div className="px-1 py-2 text-[13px] text-vb-red">{msg.content}</div>
                     ) : (
-                      <div className="py-2">
+                      <div className="py-2 max-w-full overflow-hidden">
                         <MarkdownMessage content={body} onNavigateToFile={onNavigateToFile} />
                         <div className="flex justify-start mt-1">
                           <CopyButton text={msg.content} />
@@ -953,10 +953,10 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                       </div>
                     )}
                     {followUps.length > 0 && !loading && (
-                      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-white/[0.04]">
+                      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-white/[0.04] max-w-full overflow-hidden">
                         {followUps.map((q, j) => (
                           <button key={j} onClick={() => handleSend(q)}
-                            className="text-[12px] text-vb-accent-dim px-3 py-1.5 rounded-md border border-vb-accent/10 bg-vb-accent/[0.02] hover:bg-vb-accent/[0.06] hover:border-vb-accent/20 hover:text-vb-accent transition-colors duration-150 cursor-pointer">
+                            className="text-[12px] text-vb-accent-dim px-3 py-1.5 rounded-md border border-vb-accent/10 bg-vb-accent/[0.02] hover:bg-vb-accent/[0.06] hover:border-vb-accent/20 hover:text-vb-accent transition-colors duration-150 cursor-pointer max-w-full truncate">
                             {q}
                           </button>
                         ))}
@@ -1404,7 +1404,7 @@ export default function DashboardLayout() {
   if (error) return <div className="min-h-screen bg-vb-bg flex items-center justify-center"><div className="text-center space-y-3"><p className="text-vb-red text-[14px]">{getRandomMessage(ERROR_MESSAGES)}</p><p className="text-[12px] text-vb-ink4 font-mono">{error}</p><a href="/" className="inline-block mt-2 text-[13px] text-vb-ink3 underline hover:text-vb-ink transition-colors">← Go back</a></div></div>;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-vb-bg text-vb-ink">
+    <div className="flex h-[100dvh] overflow-hidden bg-vb-bg text-vb-ink">
       {/* Left sidebar — hidden on small screens */}
       {!leftPanel.collapsed && (
         <>
@@ -1418,7 +1418,7 @@ export default function DashboardLayout() {
       {/* Center */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar */}
-        <div className="h-[48px] md:h-[64px] border-b border-white/[0.06] flex items-center px-3 md:px-4 flex-shrink-0 overflow-hidden">
+        <div className="h-[56px] md:h-[64px] border-b border-white/[0.06] flex items-center px-3 md:px-4 flex-shrink-0 overflow-hidden">
           <div className="flex items-center gap-1.5 md:gap-2 text-[13px] min-w-0">
             {leftPanel.collapsed && (
               <button onClick={() => leftPanel.setCollapsed(false)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-white/[0.04] transition-colors mr-1 hidden md:block" title="Show file explorer">
@@ -1467,11 +1467,11 @@ export default function DashboardLayout() {
                 <Zap size={10} className="text-vb-accent" /> Upgrade
               </button>
             )}
-            <button onClick={() => router.push('/profile')} className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[11px] md:text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="Profile">
+            <button onClick={() => router.push('/profile')} className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-lg text-[12px] md:text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="Profile">
               <UserCircle size={12} />
               <span className="hidden md:inline">Profile</span>
             </button>
-            <button onClick={() => router.push('/')} className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[11px] md:text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="New analysis">
+            <button onClick={() => router.push('/')} className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-lg text-[12px] md:text-[12px] text-vb-accent border border-vb-accent/20 bg-vb-accent/[0.04] hover:bg-vb-accent/[0.08] transition-colors duration-150" title="New analysis">
               <Plus size={12} />
               <span className="hidden md:inline">New</span>
             </button>
@@ -1488,8 +1488,8 @@ export default function DashboardLayout() {
         {activeTab === 'system' && <SystemTabComponent analysisId={analysisId} userPlan={userPlan} onUpgrade={() => setShowUpgradeModal(true)} onContinueInChat={(userQuery, hiddenContext) => { setMessages([]); setActiveChatId(crypto.randomUUID()); setActiveTab('chat'); setTimeout(() => handleSend(userQuery, [], hiddenContext), 50); }} />}
 
         {/* Mobile bottom tab bar */}
-        <div className="md:hidden flex-shrink-0 border-t border-white/[0.06] bg-vb-bg1 safe-area-bottom">
-          <div className="flex items-center justify-around py-2">
+        <div className="md:hidden flex-shrink-0 border-t border-white/[0.06] bg-vb-bg1" style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
+          <div className="flex items-center justify-around py-2.5">
             {[
               { id: 'explore', Icon: LayoutGrid, label: 'Explore' },
               { id: 'chat', Icon: MessageSquare, label: 'Chat' },

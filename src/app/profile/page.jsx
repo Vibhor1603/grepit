@@ -239,18 +239,18 @@ export default function ProfilePage() {
         success: { iconTheme: { primary: '#E0FC10', secondary: '#0a0a0c' } },
         error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
       }} />
-      <header className="h-16 bg-vb-bg/70 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-6 sticky top-0 z-50">
+      <header className="h-14 md:h-16 bg-vb-bg/70 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-4 md:px-6 sticky top-0 z-50">
         <div className="cursor-pointer flex items-center gap-2.5" onClick={() => router.push('/')}>
-          <span className="text-[20px] font-semibold tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
+          <span className="text-[18px] md:text-[20px] font-semibold tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
         </div>
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-vb-ink3 hover:text-vb-accent transition-colors ml-6">
-          <ArrowLeft size={16} /> <span className="text-[13px]">Back</span>
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-vb-ink3 hover:text-vb-accent transition-colors ml-4 md:ml-6">
+          <ArrowLeft size={14} /> <span className="text-[12px] md:text-[13px]">Back</span>
         </button>
-        <div className="ml-auto flex items-center gap-3">
-          <button onClick={() => router.push("/")} className="text-[12px] font-medium text-vb-bg bg-vb-accent px-4 py-2 rounded-lg hover:bg-vb-accent-bright transition-all">
+        <div className="ml-auto flex items-center gap-2 md:gap-3">
+          <button onClick={() => router.push("/")} className="text-[11px] md:text-[12px] font-medium text-vb-bg bg-vb-accent px-3 md:px-4 py-1.5 md:py-2 rounded-lg hover:bg-vb-accent-bright transition-all">
             New Analysis
           </button>
-          <SignOutButton><button className="text-[12px] text-vb-ink2 hover:text-vb-accent px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-vb-accent/20 transition-all">Sign out</button></SignOutButton>
+          <SignOutButton><button className="text-[11px] md:text-[12px] text-vb-ink2 hover:text-vb-accent px-2.5 md:px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-vb-accent/20 transition-all">Sign out</button></SignOutButton>
         </div>
       </header>
 

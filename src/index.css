@@ -16,6 +16,18 @@
     overflow-x: clip;
   }
 
+  /* Prevent text overflow on mobile */
+  p, li, td, span, div {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Code blocks should scroll horizontally instead of breaking */
+  pre, code {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
