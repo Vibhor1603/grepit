@@ -1758,6 +1758,10 @@ export default function LandingPage() {
       <section className="min-h-[94vh] flex flex-col items-center justify-center px-6 md:px-8 pt-[160px] pb-32 relative text-center">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="relative z-[2]">
+          {/* Product Hunt badge */}
+          <a href="https://www.producthunt.com/products/grepit-understand-any-codebase/reviews/new?utm_source=badge-product_review&utm_medium=badge&utm_source=badge-grepit-understand-any-codebase" target="_blank" rel="noopener noreferrer" className="inline-block mb-6 md:mb-8 hover:opacity-90 transition-opacity">
+            <img src="https://api.producthunt.com/widgets/embed-image/v1/product_review.svg?product_id=1232130&theme=dark" alt="grepit on Product Hunt" width="250" height="54" className="w-[160px] md:w-[200px] h-auto" />
+          </a>
           <h1 className="font-semibold tracking-tight leading-[1.05] max-w-[820px] mb-7 mx-auto"
             style={{ fontSize: 'clamp(48px, 6vw, 80px)' }}>
             {taglineParts[0]}<span className="text-[#E0FC10]">{hero.taglineAccent}</span>{taglineParts[1]}
