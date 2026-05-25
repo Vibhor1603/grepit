@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Trash2, ChevronRight, Clock, CheckCircle, AlertCircle, Loader2, Crown, Zap } from "lucide-react";
+import { ArrowLeft, Trash2, ChevronRight, Clock, CheckCircle, AlertCircle, Loader2, Crown, Zap, CreditCard } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import dynamic from "next/dynamic";
 import { PLANS } from "../../config/plans";
@@ -29,7 +29,6 @@ export default function ProfilePage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
@@ -135,8 +134,18 @@ export default function ProfilePage() {
     }
   };
 
-  const handleManageBilling = async () => {
-    setShowCancelModal(true);
+  const handleOpenBillingPortal = async () => {
+    try {
+      const res = await fetch("/api/dodo/customer-portal", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.open(data.url, '_blank');
+      } else {
+        toast.error(data.error || "Could not open billing portal.", { duration: 10000 });
+      }
+    } catch {
+      toast.error("Could not open billing portal. Please try again.", { duration: 10000 });
+    }
   };
 
   const handleUndoCancel = async () => {
@@ -152,24 +161,6 @@ export default function ProfilePage() {
       }
     } catch {
       toast.error('Could not undo change. Please try again or contact support@grepit.co', { duration: 10000 });
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    setShowCancelModal(false);
-    try {
-      const res = await fetch("/api/dodo/cancel", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        const endDate = data.currentPeriodEnd ? new Date(data.currentPeriodEnd).toLocaleDateString() : 'the end of your billing period';
-        toast.success(`Subscription cancelled. You'll keep access until ${endDate}.`, { duration: 10000 });
-        // Immediately refresh subscription data without full page reload
-        queryClient.invalidateQueries({ queryKey: ['profile-subscription', userId] });
-      } else {
-        toast.error(data.error || "Could not cancel subscription", { duration: 10000 });
-      }
-    } catch {
-      toast.error("Could not cancel subscription. Please try again or contact support@grepit.co", { duration: 10000 });
     }
   };
 
@@ -296,7 +287,7 @@ export default function ProfilePage() {
                 </p>
               </div>
               {isPaid ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {subData?.scheduledChange ? (
                     <button onClick={handleUndoCancel} className="flex items-center gap-1.5 text-[11px] text-vb-accent hover:text-vb-accent-bright transition-colors border border-vb-accent/20 hover:border-vb-accent/40 rounded-lg px-3 py-1.5">
                       Undo {subData.scheduledChange === 'cancel' ? 'cancellation' : 'plan change'}
@@ -304,10 +295,10 @@ export default function ProfilePage() {
                   ) : (
                     <>
                       <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors border border-white/[0.06] hover:border-vb-accent/20 rounded-lg px-3 py-1.5">
-                        Modify
+                        Modify plan
                       </button>
-                      <button onClick={handleManageBilling} className="flex items-center gap-1.5 text-[11px] text-vb-ink2 hover:text-red-400 transition-colors border border-white/[0.08] hover:border-red-400/20 rounded-lg px-3 py-1.5">
-                        Cancel
+                      <button onClick={handleOpenBillingPortal} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-ink transition-colors border border-white/[0.06] hover:border-white/[0.12] rounded-lg px-3 py-1.5">
+                        <CreditCard size={11} /> Manage billing
                       </button>
                     </>
                   )}
@@ -470,36 +461,6 @@ export default function ProfilePage() {
                 className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-white bg-vb-red hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
                 {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 {deleting ? 'Deleting...' : 'Delete my account'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cancel Subscription Modal */}
-      {showCancelModal && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowCancelModal(false)}>
-          <div className="w-full max-w-[380px] bg-[#111113] border border-white/[0.08] rounded-xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)]" onClick={e => e.stopPropagation()}>
-            <h3 className="text-[15px] font-semibold text-vb-ink mb-2">Cancel subscription?</h3>
-            <p className="text-[12px] text-vb-ink3 leading-relaxed mb-1">
-              Your <span className="text-vb-ink font-medium">{planLabel}</span> plan will remain active until{' '}
-              <span className="text-vb-accent font-medium">
-                {subData?.currentPeriodEnd
-                  ? new Date(subData.currentPeriodEnd).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-                  : 'the end of your billing period'}
-              </span>.
-            </p>
-            <p className="text-[11px] text-vb-ink4 mb-5">
-              After that, you'll be moved to the Free plan. No further charges will be made.
-            </p>
-            <div className="flex gap-2">
-              <button onClick={() => setShowCancelModal(false)}
-                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
-                Keep plan
-              </button>
-              <button onClick={handleCancelSubscription}
-                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-red-400 border border-red-400/20 bg-red-400/[0.06] hover:bg-red-400/[0.12] transition-colors">
-                Cancel subscription
               </button>
             </div>
           </div>
