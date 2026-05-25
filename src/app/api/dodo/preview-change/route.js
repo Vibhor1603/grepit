@@ -42,22 +42,27 @@ export async function POST(request) {
       return NextResponse.json({ available: false });
     }
 
+    console.log("[preview-change] Dodo response:", JSON.stringify(preview, null, 2).slice(0, 1000));
+
     // immediate_charge.summary.total_amount is in smallest currency unit (cents/paise/etc.)
     const totalAmount = preview.immediate_charge?.summary?.total_amount;
-    const currency = preview.new_plan?.currency || "USD";
+    const currency = preview.immediate_charge?.currency || preview.new_plan?.currency || preview.currency || "USD";
 
-    // Format using the currency's native locale so symbols are correct (₹ for INR, $ for USD, etc.)
+    // Format using Intl so symbols are correct (₹ for INR, $ for USD, € for EUR, etc.)
     let formattedAmount = null;
     if (totalAmount != null) {
       try {
-        // Use undefined locale so Intl picks the best locale for the currency
-        formattedAmount = new Intl.NumberFormat(undefined, {
+        // Determine divisor — most currencies use 100 (cents/paise), some use 1000
+        const divisor = ['BHD', 'KWD', 'OMR'].includes(currency) ? 1000 : 100;
+        const value = totalAmount / divisor;
+
+        formattedAmount = new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency,
-          maximumFractionDigits: currency === 'INR' ? 0 : 2, // INR doesn't use decimals typically
-        }).format(totalAmount / 100);
+          maximumFractionDigits: ['INR', 'JPY', 'KRW'].includes(currency) ? 0 : 2,
+        }).format(value);
       } catch {
-        // Fallback: just show amount with currency code
+        // Fallback: show amount with currency code
         formattedAmount = `${currency} ${(totalAmount / 100).toFixed(2)}`;
       }
     }

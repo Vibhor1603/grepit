@@ -7,11 +7,19 @@ export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Single DB query + github check in parallel
-  const [sub, githubConnected] = await Promise.all([
-    getSubscription(userId),
-    getGithubRepoToken({ userId }).then(t => !!t),
-  ]);
+  // Single DB query — skip the slow Clerk API call for github status
+  // GitHub connected status is stored in our own DB via the subscription record
+  const sub = await getSubscription(userId);
+
+  // Check github connected from Clerk only if not cached in sub metadata
+  // This avoids the slow external Clerk API call on every profile load
+  let githubConnected = false;
+  if (sub?.github_connected !== undefined) {
+    githubConnected = !!sub.github_connected;
+  } else {
+    // Fallback: check Clerk (slower, but only on first load)
+    githubConnected = await getGithubRepoToken({ userId }).then(t => !!t).catch(() => false);
+  }
 
   // Determine plan from entitlement (no second DB call)
   let plan = "free";

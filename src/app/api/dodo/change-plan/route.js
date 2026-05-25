@@ -47,17 +47,32 @@ export async function POST(request) {
       try {
         await upgradePlan(dodoSubId, targetProductId);
       } catch (err) {
-        console.error("[change-plan] Upgrade error:", err?.message || err);
+        const errMsg = err?.message || String(err);
+        console.error("[change-plan] Upgrade error:", errMsg);
 
-        // 409 = pending change — try to clear and retry
-        if (err?.message?.includes("409") || err?.message?.includes("pending")) {
+        // 409 = conflict — pending payment from a previous attempt is blocking
+        if (errMsg.includes("409") || errMsg.includes("pending") || errMsg.includes("payment")) {
+          // The subscription has a stuck pending change (from a previous prevent_change attempt).
+          // Try to force the change with do_not_bill to clear the stuck state, then re-apply properly.
           try {
-            await cancelScheduledPlanChange(dodoSubId);
-            await upgradePlan(dodoSubId, targetProductId);
+            const { getDodoClient } = await import("../../../../lib/billing/dodo");
+            const client = getDodoClient();
+            // First: apply the change without billing to clear the pending state
+            await client.subscriptions.changePlan(dodoSubId, {
+              product_id: targetProductId,
+              proration_billing_mode: "do_not_bill",
+              quantity: 1,
+              on_payment_failure: "apply_change",
+            });
+            // The plan is now changed. The prorated charge was skipped but the user gets the upgrade.
+            // On next renewal, they'll be charged the full new plan price.
+            console.log(`[change-plan] Upgrade forced via do_not_bill (cleared stuck state): user=${userId}, ${currentPlan} → ${targetPlan}`);
           } catch (retryErr) {
-            console.error("[change-plan] Retry failed:", retryErr?.message);
+            const retryMsg = retryErr?.message || String(retryErr);
+            console.error("[change-plan] Force upgrade failed:", retryMsg);
             return NextResponse.json({
-              error: "Please wait a moment and try again.",
+              error: "Your subscription has a pending payment that's blocking this change. Please contact support or try again in a few minutes.",
+              code: "PAYMENT_PENDING",
             }, { status: 409 });
           }
         } else {
@@ -79,16 +94,28 @@ export async function POST(request) {
       try {
         await downgradePlan(dodoSubId, targetProductId);
       } catch (err) {
-        console.error("[change-plan] Downgrade error:", err?.message || err);
+        const errMsg = err?.message || String(err);
+        console.error("[change-plan] Downgrade error:", errMsg);
 
-        if (err?.message?.includes("409") || err?.message?.includes("pending")) {
+        if (errMsg.includes("409") || errMsg.includes("pending") || errMsg.includes("payment")) {
+          // Stuck pending state — force with do_not_bill
           try {
-            await cancelScheduledPlanChange(dodoSubId);
-            await downgradePlan(dodoSubId, targetProductId);
+            const { getDodoClient } = await import("../../../../lib/billing/dodo");
+            const client = getDodoClient();
+            await client.subscriptions.changePlan(dodoSubId, {
+              product_id: targetProductId,
+              proration_billing_mode: "do_not_bill",
+              quantity: 1,
+              on_payment_failure: "apply_change",
+              effective_at: "next_billing_date",
+            });
+            console.log(`[change-plan] Downgrade forced via do_not_bill: user=${userId}, ${currentPlan} → ${targetPlan}`);
           } catch (retryErr) {
-            console.error("[change-plan] Retry failed:", retryErr?.message);
+            const retryMsg = retryErr?.message || String(retryErr);
+            console.error("[change-plan] Force downgrade failed:", retryMsg);
             return NextResponse.json({
-              error: "Please wait a moment and try again.",
+              error: "Your subscription has a pending payment that's blocking this change. Please contact support or try again in a few minutes.",
+              code: "PAYMENT_PENDING",
             }, { status: 409 });
           }
         } else {

@@ -84,9 +84,9 @@ function timeAgo(dateStr) {
 
 /* ── Toast ── */
 function Toast({ message, type, onDismiss }) {
-  useEffect(() => { const t = setTimeout(onDismiss, 7000); return () => clearTimeout(t); }, [onDismiss]);
+  useEffect(() => { const t = setTimeout(onDismiss, 10000); return () => clearTimeout(t); }, [onDismiss]);
   const styles = { error: 'border-vb-red/20 bg-vb-red/[0.06] text-vb-red', success: 'border-vb-accent/20 bg-vb-accent/[0.06] text-vb-accent', info: 'border-white/[0.08] bg-white/[0.03] text-vb-ink2' };
-  return <div className={`fixed bottom-6 right-6 z-[200] px-4 py-3 rounded-lg border ${styles[type] || styles.info} text-[13px] shadow-[0_8px_24px_rgba(0,0,0,0.5)] backdrop-blur-sm`}>{message}</div>;
+  return <div className={`fixed bottom-6 right-6 z-[200] px-5 py-3.5 rounded-xl border ${styles[type] || styles.info} text-[14px] shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-sm max-w-[400px]`}>{message}</div>;
 }
 function useToast() {
   const [toast, setToast] = useState(null);

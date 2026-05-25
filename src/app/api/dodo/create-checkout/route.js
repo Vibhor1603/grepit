@@ -41,7 +41,7 @@ export async function POST(request) {
     console.log("[create-checkout] user=%s, currentPlan=%s, requestedPlan=%s", userId, currentPlan, requestedPlan);
 
     if (currentPlan !== "free") {
-      return NextResponse.json({ error: "You already have an active subscription. Use plan change instead." }, { status: 400 });
+      return NextResponse.json({ error: "You already have an active subscription. Use plan change instead.", currentPlan }, { status: 400 });
     }
 
     // Get user info for checkout pre-fill

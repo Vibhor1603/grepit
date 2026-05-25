@@ -7,10 +7,10 @@
 export const SITE_CONFIG = {
   // Hero section
   hero: {
-    tagline: 'Understand any codebase instantly.',
-    taglineAccent: 'codebase', // word highlighted in accent color
-    subtitle: 'Drop a repo link or upload your code. Get architecture maps, security audits, and an AI that knows every line.',
-    inputPlaceholder: 'https://github.com/owner/repository',
+    tagline: 'Talk to any codebase.',
+    taglineAccent: 'any', // word highlighted in accent color
+    subtitle: 'Paste a link. Get architecture maps, security audits, and an AI that answers from the actual code.',
+    inputPlaceholder: 'https://github.com/owner/repository or upload a folder',
     analyzeButton: 'Analyze',
     suggestedRepos: ['shadcn-ui/ui', 'pmndrs/zustand', 'hono-js/hono', 't3-oss/create-t3-app', 'colinhacks/zod'],
     stats: [
@@ -59,7 +59,7 @@ export const SITE_CONFIG = {
       {
         icon: 'FolderTree',
         title: 'Full File Explorer',
-        desc: 'Browse source code with syntax highlighting, search, and live GitHub fetching.',
+        desc: 'Browse source code with syntax highlighting, search, and live file fetching.',
         color: '#7dd3a8',
       },
     ],
@@ -85,7 +85,7 @@ export const SITE_CONFIG = {
     title: 'From link to full understanding',
     subtitle: 'Four steps. Under a minute. Zero configuration.',
     items: [
-      { title: 'Paste a link', desc: 'GitHub URL or upload a ZIP. Public or private, any language.' },
+      { title: 'Paste a link', desc: 'Repo URL or upload a folder. Public or private, any language.' },
       { title: 'Instant analysis', desc: '40+ file types parsed. Architecture, APIs, security — all extracted in seconds.' },
       { title: 'AI enrichment', desc: 'LLM-powered summaries, insights, and natural-language explanations layered on top.' },
       { title: 'Explore & ask', desc: 'Interactive dashboard. Chat with the AI. Export reports. Understand everything.' },
@@ -113,7 +113,7 @@ export const SITE_CONFIG = {
   // CTA section
   cta: {
     title: 'Ready to try it?',
-    subtitle: 'Free to start. No credit card. No install. Just paste a GitHub URL and see what grepit finds.',
+    subtitle: 'Free to start. No credit card. No install. Just paste a repo URL and see what grepit finds.',
     button: 'Analyze a codebase',
   },
 };

@@ -13,17 +13,29 @@ function SignInContent() {
   const clerk = useClerk();
   const searchParams = useSearchParams();
   // Validate redirect URL — only allow relative paths (prevent open redirect)
-  const rawRedirect = searchParams.get('redirect_url') || '/';
-  const redirectUrl = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/';
+  const rawRedirect = searchParams.get('redirect_url') || '/profile';
+  const redirectUrl = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/profile';
   const connectGithub = searchParams.get('connect_github') === '1';
   const router = useRouter();
+
+  // Determine final redirect — if there's a pending repo analysis, go to homepage to trigger it
+  const [finalRedirect, setFinalRedirect] = useState(redirectUrl);
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem("grepit-pending-repo");
+      const pendingUpload = sessionStorage.getItem("grepit-pending-upload");
+      if (pending || pendingUpload) {
+        setFinalRedirect('/');
+      }
+    } catch {}
+  }, []);
 
   // If already signed in AND not trying to connect GitHub, redirect immediately
   useEffect(() => {
     if (userLoaded && isSignedIn && !connectGithub) {
-      router.replace(redirectUrl);
+      router.replace(finalRedirect);
     }
-  }, [userLoaded, isSignedIn, redirectUrl, router, connectGithub]);
+  }, [userLoaded, isSignedIn, finalRedirect, router, connectGithub]);
 
   // Auto-trigger GitHub OAuth if connect_github=1
   useEffect(() => {
@@ -39,7 +51,7 @@ function SignInContent() {
       const { error } = await signIn.sso({
         strategy: 'oauth_github',
         redirectCallbackUrl: '/sso-callback',
-        redirectUrl: '/',
+        redirectUrl: finalRedirect,
       });
     } catch (err) {
     }
@@ -89,7 +101,7 @@ function SignInContent() {
       const { error } = await signIn.sso({
         strategy,
         redirectCallbackUrl: '/sso-callback',
-        redirectUrl: redirectUrl,
+        redirectUrl: finalRedirect,
       });
       if (error) {
         toast.error(error?.longMessage || error?.message || 'OAuth failed');
@@ -133,7 +145,7 @@ function SignInContent() {
         setSuccess(true);
         const sessionId = result?.createdSessionId || signIn?.createdSessionId;
         await setActive({ session: sessionId });
-        setTimeout(() => router.replace(redirectUrl), 400);
+        setTimeout(() => router.replace(finalRedirect), 400);
       } else if (status === 'needs_second_factor') {
         // Clerk requires email verification for untrusted devices
         try {
@@ -215,7 +227,7 @@ function SignInContent() {
       if (signUpResource.status === 'complete') {
         setSuccess(true);
         await setActive({ session: signUpResource.createdSessionId });
-        setTimeout(() => router.replace(redirectUrl), 400);
+        setTimeout(() => router.replace(finalRedirect), 400);
       } else {
         await signUpResource.prepareEmailAddressVerification({ strategy: 'email_code' });
         setVerificationEmail(email);
@@ -232,7 +244,7 @@ function SignInContent() {
       } else if (code?.startsWith('form_password')) {
         setFieldErrors({ password: clerkErr?.longMessage || clerkErr?.message || 'Password does not meet requirements.' });
       } else if (code === 'session_exists') {
-        router.replace(redirectUrl);
+        router.replace(finalRedirect);
       } else {
         const msg = clerkErr?.longMessage || clerkErr?.message || '';
         toast.error(msg || 'Could not create account. Please try again.');
@@ -261,7 +273,7 @@ function SignInContent() {
         if (result.createdSessionId) {
           await setActive({ session: result.createdSessionId });
         }
-        setTimeout(() => router.replace(redirectUrl), 600);
+        setTimeout(() => router.replace(finalRedirect), 600);
       } else {
         setFieldErrors({ code: 'Verification incomplete. Try again.' });
       }
@@ -273,7 +285,7 @@ function SignInContent() {
         setSuccess(true);
         const sessionId = clerk.client.signUp.createdSessionId;
         if (sessionId) await setActive({ session: sessionId });
-        setTimeout(() => router.replace(redirectUrl), 600);
+        setTimeout(() => router.replace(finalRedirect), 600);
       } else {
         const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Invalid code. Check your email and try again.';
         setFieldErrors({ code: msg });
@@ -298,8 +310,8 @@ function SignInContent() {
       {/* Clerk CAPTCHA widget — must be in DOM before signUp.create() */}
       <div id="clerk-captcha" className="fixed bottom-0 left-0" />
       <Toaster position="top-center" toastOptions={{
-        duration: 7000,
-        style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', fontSize: '13px', padding: '12px 16px' },
+        duration: 10000,
+        style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', fontSize: '14px', padding: '14px 20px', maxWidth: '440px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' },
         success: { iconTheme: { primary: '#E0FC10', secondary: '#0a0a0c' } },
         error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
       }} />

@@ -90,6 +90,8 @@ export async function previewPlanChange(subscriptionId, newProductId) {
  * No redirect needed — charge happens server-side.
  * 
  * on_payment_failure: "prevent_change" ensures plan stays unchanged if charge fails.
+ * This means the user only gets upgraded AFTER successful payment.
+ * If payment fails, Dodo sends subscription.on_hold webhook and we can notify the user.
  * Webhook (subscription.plan_changed) confirms the switch.
  */
 export async function upgradePlan(subscriptionId, newProductId) {

@@ -11,6 +11,8 @@ import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'fra
 import dynamic from 'next/dynamic';
 import { trackAnalysisStarted, trackAnalysisFailed, trackCheckoutStarted, trackUpgradeClicked } from '../lib/analytics';
 import { NewEngineerAnswer, TechLeadAnswer, FreelancerAnswer, OSSContributorAnswer } from './UseCaseAnswers';
+import toast, { Toaster } from 'react-hot-toast';
+import { usePlan } from '../hooks/usePlan';
 
 const GridBackground = dynamic(() => import('./GridBackground'), { ssr: false });
 
@@ -1293,7 +1295,7 @@ function Whygrepit() {
 
 function HowItWorks() {
   const steps = [
-    { num: '01', title: 'Drop a link', desc: 'GitHub URL, private repo, or ZIP. Any language, any size. Just paste and go.' },
+    { num: '01', title: 'Drop a link', desc: 'Repo URL, private repo, or folder upload. Any language, any size. Just paste and go.' },
     { num: '02', title: 'Indexed in under a minute', desc: 'Architecture, dependencies, APIs, security — all extracted and structured.' },
     { num: '03', title: 'Ask anything, forever', desc: 'Your codebase is now queryable. Every answer cites the exact file and line.' },
     { num: '04', title: 'Export and share', desc: 'PDF reports, shareable links, architecture diagrams — ready for your team.' },
@@ -1443,7 +1445,7 @@ function PricingSection({ handlePricingAction, subscribing }) {
                     </div>
                     <button onClick={() => handlePricingAction(plan.name)} disabled={!!subscribing}
                       className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-[13px] font-medium mb-6 transition-all duration-200 disabled:opacity-50 ${
-                        isPro ? 'bg-[#E0FC10] text-[#0a0a0c] hover:bg-[#eafd60]' : 'bg-white/[0.04] border border-white/[0.08] text-[#b0b0b8] hover:bg-white/[0.06]'
+                        plan.name === 'Free' ? 'bg-white/[0.04] border border-white/[0.08] text-[#b0b0b8] hover:bg-white/[0.06]' : 'bg-[#E0FC10] text-[#0a0a0c] hover:bg-[#eafd60]'
                       }`}>
                       {subscribing === plan.name.toLowerCase() ? 'Redirecting...' : plan.cta}
                       {subscribing !== plan.name.toLowerCase() && <ArrowUpRight size={13} />}
@@ -1516,10 +1518,43 @@ export default function LandingPage() {
   const fileRef = useRef(null);
   const inputRef = useRef(null);
   const router = useRouter();
+  const { plan: currentUserPlan } = usePlan();
   const searchParams = useSearchParams();
   const { user, isSignedIn } = useUser();
 
   const { hero, testimonials, cta } = SITE_CONFIG;
+
+  // Fix blank sections when returning via browser back button (bfcache restore)
+  // The page is restored from cache but framer-motion animations with once:true
+  // don't re-trigger, leaving sections at opacity:0
+  useEffect(() => {
+    const handlePageShow = (e) => {
+      if (e.persisted) {
+        window.location.reload();
+      }
+    };
+    // Some browsers don't fire pageshow with persisted on SPA navigations
+    // Use visibilitychange as a fallback — if page becomes visible and was hidden
+    let wasHidden = false;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        wasHidden = true;
+      } else if (wasHidden) {
+        wasHidden = false;
+        // Check if any animated sections are stuck at opacity 0
+        const sections = document.querySelectorAll('[style*="opacity: 0"]');
+        if (sections.length > 3) {
+          window.location.reload();
+        }
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
 
   // Scroll to input and highlight it — used by CTA buttons throughout the page
   const scrollToInput = () => {
@@ -1588,7 +1623,7 @@ export default function LandingPage() {
       router.push('/sign-in');
       return;
     }
-    if (!target.match(/^https?:\/\/(www\.)?github\.com\/[\w.-]+\/[\w.-]+/)) { setError('Enter a valid GitHub URL (https://github.com/owner/repository)'); return; }
+    if (!target.match(/^https?:\/\/(www\.)?github\.com\/[\w.-]+\/[\w.-]+/)) { setError('Enter a valid repository URL (https://github.com/owner/repository)'); return; }
     setLoading(true); setError('');
     try {
       trackAnalysisStarted(target, 'github');
@@ -1689,20 +1724,42 @@ export default function LandingPage() {
   const handlePricingAction = async (planName) => {
     if (!isSignedIn) { router.push('/sign-in'); return; }
     if (planName === 'Free' || planName === 'free') { scrollToInput(); return; }
-    setSubscribing(planName.toLowerCase());
-    try {
-      trackCheckoutStarted(planName.toLowerCase());
 
-      // Single provider: Dodo Payments (handles both INR and USD)
+    const targetPlan = planName.toLowerCase();
+
+    // Already on this plan — show toast
+    if (currentUserPlan === targetPlan) {
+      toast(`You're already on the ${planName} plan.`, { icon: '✓', duration: 7000 });
+      return;
+    }
+
+    // Pro user clicking Starter — downgrade info
+    if (currentUserPlan === 'pro' && targetPlan === 'starter') {
+      toast('You can downgrade anytime from your profile page.', { icon: 'ℹ️', duration: 7000 });
+      return;
+    }
+
+    // Subscribed user clicking a higher plan — redirect to profile with upgrade modal
+    if (currentUserPlan !== 'free' && targetPlan !== currentUserPlan) {
+      router.push('/profile?upgrade=' + targetPlan);
+      setSubscribing(null);
+      return;
+    }
+
+    setSubscribing(targetPlan);
+    trackCheckoutStarted(targetPlan);
+
+    try {
+      // Free → paid: create Dodo checkout session
       const res = await fetch('/api/dodo/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planName.toLowerCase() }),
+        body: JSON.stringify({ plan: targetPlan }),
       });
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Could not start checkout. Please try again or contact support@grepit.co');
+        toast.error(data.error || 'Could not start checkout. Please try again.', { duration: 10000 });
         setSubscribing(null);
         return;
       }
@@ -1710,11 +1767,11 @@ export default function LandingPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError('Checkout could not be created. Please try again.');
+        toast.error('Checkout could not be created. Please try again.', { duration: 10000 });
         setSubscribing(null);
       }
     } catch {
-      setError('Could not start checkout. Check your connection and try again.');
+      toast.error('Something went wrong. Please try again.', { duration: 10000 });
       setSubscribing(null);
     }
   };
@@ -1724,6 +1781,12 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-[#eaeaec] relative">
       <GridBackground />
+      <Toaster position="top-center" toastOptions={{
+        duration: 10000,
+        style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', fontSize: '14px', padding: '14px 20px', maxWidth: '440px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' },
+        success: { iconTheme: { primary: '#E0FC10', secondary: '#0a0a0c' } },
+        error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+      }} />
 
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 h-16 bg-[#0a0a0c]/70 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-6 md:px-10 z-[100]">
@@ -1772,7 +1835,7 @@ export default function LandingPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-[620px] relative z-[2]">
           <div className="flex items-center gap-1 mb-3">
-            {[['url', 'GitHub URL'], ['upload', 'Upload']].map(([m, label]) => (
+            {[['url', 'Repo URL'], ['upload', 'Upload']].map(([m, label]) => (
               <button key={m} onClick={() => setMode(m)}
                 className={`text-[12px] px-3.5 py-1.5 rounded-lg font-medium transition-all duration-200 ${
                   mode === m ? 'bg-[#E0FC10]/[0.1] text-[#E0FC10] border border-[#E0FC10]/20' : 'text-[#4a4a54] hover:text-[#787884] border border-transparent'

@@ -76,6 +76,12 @@ export default function ProfilePage() {
       // Poll until webhook updates the plan
       pollForUpgrade();
     }
+    // Auto-open upgrade modal when redirected from homepage pricing
+    const upgradeTarget = params.get('upgrade');
+    if (upgradeTarget && upgradeTarget !== 'pending' && ['starter', 'pro'].includes(upgradeTarget)) {
+      setShowUpgradeModal(true);
+      window.history.replaceState({}, '', '/profile');
+    }
   }, [isLoaded, isSignedIn]);
 
   // Verify checkout with Dodo directly (fallback when webhook is missed)
@@ -138,13 +144,14 @@ export default function ProfilePage() {
       const res = await fetch("/api/dodo/undo-cancel", { method: "POST" });
       const data = await res.json();
       if (data.success) {
-        toast.success(data.message || 'Change undone. Your subscription will continue as normal.');
-        setTimeout(() => window.location.reload(), 1500);
+        toast.success(data.message || 'Change undone. Your subscription will continue as normal.', { duration: 10000 });
+        // Immediately refresh subscription data without full page reload
+        queryClient.invalidateQueries({ queryKey: ['profile-subscription', userId] });
       } else {
-        toast.error(data.error || 'Could not undo change');
+        toast.error(data.error || 'Could not undo change', { duration: 10000 });
       }
     } catch {
-      toast.error('Could not undo change. Please try again or contact support@grepit.co');
+      toast.error('Could not undo change. Please try again or contact support@grepit.co', { duration: 10000 });
     }
   };
 
@@ -155,13 +162,14 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.success) {
         const endDate = data.currentPeriodEnd ? new Date(data.currentPeriodEnd).toLocaleDateString() : 'the end of your billing period';
-        toast.success(`Subscription cancelled. You can still use your plan until ${endDate}.`);
-        setTimeout(() => window.location.reload(), 2000);
+        toast.success(`Subscription cancelled. You'll keep access until ${endDate}.`, { duration: 10000 });
+        // Immediately refresh subscription data without full page reload
+        queryClient.invalidateQueries({ queryKey: ['profile-subscription', userId] });
       } else {
-        toast.error(data.error || "Could not cancel subscription");
+        toast.error(data.error || "Could not cancel subscription", { duration: 10000 });
       }
     } catch {
-      toast.error("Could not cancel subscription. Please try again or contact support@grepit.co");
+      toast.error("Could not cancel subscription. Please try again or contact support@grepit.co", { duration: 10000 });
     }
   };
 
@@ -238,8 +246,8 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-vb-bg text-vb-ink flex flex-col">
       <Toaster position="top-center" toastOptions={{
-        duration: 7000,
-        style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', fontSize: '13px', padding: '12px 16px' },
+        duration: 10000,
+        style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', fontSize: '14px', padding: '14px 20px', maxWidth: '440px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' },
         success: { iconTheme: { primary: '#E0FC10', secondary: '#0a0a0c' } },
         error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
       }} />

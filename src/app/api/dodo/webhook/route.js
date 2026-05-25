@@ -186,22 +186,32 @@ export async function POST(request) {
         const existingSub = await findUserBySubscriptionId(db, subId);
         if (!existingSub) break;
 
-        const nextBilling = eventData?.next_billing_date;
-        const hasTimeLeft = nextBilling && new Date(nextBilling) > new Date();
+        // Per Dodo support:
+        // - If status = "cancelled" → immediate cancellation, revoke now
+        // - If cancel_at_next_billing_date = true → scheduled (handled by subscription.updated)
+        //   and this event fires later when the term actually ends
+        // Since this event fires, the subscription IS cancelled — check status to confirm
+        const dodoStatus = eventData?.status;
+        const isImmediate = dodoStatus === "cancelled";
 
-        if (hasTimeLeft) {
+        if (isImmediate) {
+          // Immediate cancellation — revoke access now
           await db.update(subscriptions)
             .set({
+              entitlement_plan: "free",
+              plan: "free",
+              status: "cancelled",
               dodo_status: "cancelled",
               auto_renew: false,
-              cancel_at_period_end: true,
-              scheduled_change_type: "cancel",
-              scheduled_change_plan: "free",
-              scheduled_change_at: new Date(nextBilling).toISOString(),
+              cancel_at_period_end: false,
+              scheduled_change_type: null,
+              scheduled_change_plan: null,
+              scheduled_change_at: null,
               updated_at: new Date().toISOString(),
             })
             .where(eq(subscriptions.user_id, existingSub.user_id));
         } else {
+          // End-of-term cancellation (term just ended) — also revoke
           await db.update(subscriptions)
             .set({
               entitlement_plan: "free",
@@ -219,7 +229,7 @@ export async function POST(request) {
         }
 
         await invalidateSubscriptionCache(existingSub.user_id);
-        console.log(`[webhook] Cancelled: user=${existingSub.user_id}, hasTimeLeft=${hasTimeLeft}`);
+        console.log(`[webhook] Cancelled: user=${existingSub.user_id}, status=${dodoStatus}`);
         break;
       }
 
@@ -255,13 +265,36 @@ export async function POST(request) {
 
         const cancelAtNext = eventData?.cancel_at_next_billing_date;
         if (cancelAtNext !== undefined) {
-          await db.update(subscriptions)
-            .set({ cancel_at_period_end: cancelAtNext, updated_at: new Date().toISOString() })
-            .where(eq(subscriptions.user_id, existingSub.user_id));
+          const nextBilling = eventData?.next_billing_date;
+          if (cancelAtNext) {
+            // Scheduled cancellation — user keeps access until end of period
+            await db.update(subscriptions)
+              .set({
+                cancel_at_period_end: true,
+                auto_renew: false,
+                scheduled_change_type: "cancel",
+                scheduled_change_plan: "free",
+                scheduled_change_at: nextBilling ? new Date(nextBilling).toISOString() : null,
+                updated_at: new Date().toISOString(),
+              })
+              .where(eq(subscriptions.user_id, existingSub.user_id));
+          } else {
+            // Undo cancellation — user reactivated
+            await db.update(subscriptions)
+              .set({
+                cancel_at_period_end: false,
+                auto_renew: true,
+                scheduled_change_type: null,
+                scheduled_change_plan: null,
+                scheduled_change_at: null,
+                updated_at: new Date().toISOString(),
+              })
+              .where(eq(subscriptions.user_id, existingSub.user_id));
+          }
           await invalidateSubscriptionCache(existingSub.user_id);
         }
 
-        console.log(`[webhook] Updated: user=${existingSub.user_id}`);
+        console.log(`[webhook] Updated: user=${existingSub.user_id}, cancelAtNext=${cancelAtNext}`);
         break;
       }
 

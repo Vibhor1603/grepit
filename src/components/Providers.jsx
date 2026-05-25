@@ -41,6 +41,8 @@ export default function Providers({ children }) {
 
   return (
     <ClerkProvider
+      afterSignInUrl="/profile"
+      afterSignUpUrl="/profile"
       appearance={{
         layout: {
           socialButtonsPlacement: 'top',
