@@ -5,9 +5,11 @@ import { useUser, SignOutButton } from "@clerk/nextjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Trash2, ChevronRight, Clock, CheckCircle, AlertCircle, Loader2, Crown, Zap } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
-import UpgradeModal from "../../components/UpgradeModal";
-import Footer from "../../components/Footer";
+import dynamic from "next/dynamic";
 import { PLANS } from "../../config/plans";
+
+const UpgradeModal = dynamic(() => import("../../components/UpgradeModal"), { ssr: false });
+const Footer = dynamic(() => import("../../components/Footer"), { ssr: false });
 
 function Github({ size = 18, className = "" }) {
   return (

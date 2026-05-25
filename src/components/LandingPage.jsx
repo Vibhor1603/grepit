@@ -326,7 +326,7 @@ function PersistentMemory({ onCta }) {
   ];
 
   return (
-    <section ref={containerRef} className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden" id="features">
+    <section ref={containerRef} className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#E0FC10]/[0.02] rounded-full blur-[120px]" />
@@ -487,7 +487,7 @@ function UseCases({ onCta }) {
   const active = features[activeTab];
 
   return (
-    <section className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden" id="features">
+    <section className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden">
       <div className="max-w-[1100px] mx-auto">
         <div className="text-center mb-16">
           <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
@@ -744,7 +744,7 @@ function DivisionOfLabour({ onCta }) {
   const isInView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section ref={ref} className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden" id="features">
+    <section ref={ref} className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden">
       <div className="max-w-[1100px] mx-auto">
         <div className="text-center mb-20">
           <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
@@ -1097,7 +1097,7 @@ function UseCaseScenarios({ onCta }) {
   const activeAnswerJsx = answerComponents[activeScenario];
 
   return (
-    <section className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden">
+    <section className="relative z-[1] py-32 px-6 md:px-8 overflow-hidden" id="features">
       <div className="max-w-[1100px] mx-auto">
         <div className="text-center mb-16">
           <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
