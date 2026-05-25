@@ -134,7 +134,11 @@ export default function ProfilePage() {
     }
   };
 
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [undoLoading, setUndoLoading] = useState(false);
+
   const handleOpenBillingPortal = async () => {
+    setBillingLoading(true);
     try {
       const res = await fetch("/api/dodo/customer-portal", { method: "POST" });
       const data = await res.json();
@@ -146,15 +150,16 @@ export default function ProfilePage() {
     } catch {
       toast.error("Could not open billing portal. Please try again.", { duration: 10000 });
     }
+    setBillingLoading(false);
   };
 
   const handleUndoCancel = async () => {
+    setUndoLoading(true);
     try {
       const res = await fetch("/api/dodo/undo-cancel", { method: "POST" });
       const data = await res.json();
       if (data.success) {
         toast.success(data.message || 'Change undone. Your subscription will continue as normal.', { duration: 10000 });
-        // Immediately refresh subscription data without full page reload
         queryClient.invalidateQueries({ queryKey: ['profile-subscription', userId] });
       } else {
         toast.error(data.error || 'Could not undo change', { duration: 10000 });
@@ -162,6 +167,7 @@ export default function ProfilePage() {
     } catch {
       toast.error('Could not undo change. Please try again or contact support@grepit.co', { duration: 10000 });
     }
+    setUndoLoading(false);
   };
 
   const handleDeleteAccount = async () => {
@@ -289,7 +295,8 @@ export default function ProfilePage() {
               {isPaid ? (
                 <div className="flex flex-wrap items-center gap-2">
                   {subData?.scheduledChange ? (
-                    <button onClick={handleUndoCancel} className="flex items-center gap-1.5 text-[11px] text-vb-accent hover:text-vb-accent-bright transition-colors border border-vb-accent/20 hover:border-vb-accent/40 rounded-lg px-3 py-1.5">
+                    <button onClick={handleUndoCancel} disabled={undoLoading} className="flex items-center gap-1.5 text-[11px] text-vb-accent hover:text-vb-accent-bright transition-colors border border-vb-accent/20 hover:border-vb-accent/40 rounded-lg px-3 py-1.5 disabled:opacity-50">
+                      {undoLoading ? <Loader2 size={11} className="animate-spin" /> : null}
                       Undo {subData.scheduledChange === 'cancel' ? 'cancellation' : 'plan change'}
                     </button>
                   ) : (
@@ -297,8 +304,8 @@ export default function ProfilePage() {
                       <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors border border-white/[0.06] hover:border-vb-accent/20 rounded-lg px-3 py-1.5">
                         Modify plan
                       </button>
-                      <button onClick={handleOpenBillingPortal} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-ink transition-colors border border-white/[0.06] hover:border-white/[0.12] rounded-lg px-3 py-1.5">
-                        <CreditCard size={11} /> Manage billing
+                      <button onClick={handleOpenBillingPortal} disabled={billingLoading} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-ink transition-colors border border-white/[0.06] hover:border-white/[0.12] rounded-lg px-3 py-1.5 disabled:opacity-50">
+                        {billingLoading ? <Loader2 size={11} className="animate-spin" /> : <CreditCard size={11} />} Manage billing
                       </button>
                     </>
                   )}
