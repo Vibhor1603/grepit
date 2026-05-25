@@ -42,27 +42,39 @@ export async function POST(request) {
       return NextResponse.json({ available: false });
     }
 
-    console.log("[preview-change] Dodo response:", JSON.stringify(preview, null, 2).slice(0, 1000));
+    console.log("[preview-change] Dodo response:", JSON.stringify(preview, null, 2).slice(0, 2000));
 
-    // immediate_charge.summary.total_amount is in smallest currency unit (cents/paise/etc.)
-    const totalAmount = preview.immediate_charge?.summary?.total_amount;
-    const currency = preview.immediate_charge?.currency || preview.new_plan?.currency || preview.currency || "USD";
+    // Extract amount and currency from Dodo's preview response
+    // Dodo returns amount in minor units (cents/paise) — we need to find the right fields
+    const totalAmount = preview.immediate_charge?.summary?.total_amount 
+      ?? preview.immediate_charge?.amount 
+      ?? preview.amount;
+    
+    // Search for currency in multiple possible locations
+    const currency = preview.immediate_charge?.summary?.currency
+      || preview.immediate_charge?.currency 
+      || preview.new_plan?.currency 
+      || preview.currency 
+      || "USD";
+
+    console.log("[preview-change] Extracted: amount=%s, currency=%s", totalAmount, currency);
 
     // Format using Intl so symbols are correct (₹ for INR, $ for USD, € for EUR, etc.)
     let formattedAmount = null;
     if (totalAmount != null) {
       try {
-        // Determine divisor — most currencies use 100 (cents/paise), some use 1000
-        const divisor = ['BHD', 'KWD', 'OMR'].includes(currency) ? 1000 : 100;
+        // Zero-decimal currencies don't need division
+        const zeroDecimal = ['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'UGX', 'RWF'];
+        const divisor = zeroDecimal.includes(currency) ? 1 : 100;
         const value = totalAmount / divisor;
 
         formattedAmount = new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency,
-          maximumFractionDigits: ['INR', 'JPY', 'KRW'].includes(currency) ? 0 : 2,
+          minimumFractionDigits: zeroDecimal.includes(currency) ? 0 : 2,
+          maximumFractionDigits: zeroDecimal.includes(currency) ? 0 : 2,
         }).format(value);
       } catch {
-        // Fallback: show amount with currency code
         formattedAmount = `${currency} ${(totalAmount / 100).toFixed(2)}`;
       }
     }
