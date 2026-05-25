@@ -1,10 +1,31 @@
 "use client";
-import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkProvider, useUser } from "@clerk/nextjs";
 import { ThemeProvider } from "./ThemeProvider";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
 import PostHogProviderWrapper from "./PostHogProvider";
 import CookieConsent from "./CookieConsent";
+
+/**
+ * Clears all React Query cache when the user changes (sign out → sign in as different user).
+ * Prevents stale data from a previous user being shown to the new user.
+ */
+function CacheClearOnUserChange() {
+  const { user } = useUser();
+  const queryClient = useQueryClient();
+  const prevUserId = useRef(null);
+
+  useEffect(() => {
+    const currentId = user?.id || null;
+    if (prevUserId.current && currentId && prevUserId.current !== currentId) {
+      // User changed — clear all cached data
+      queryClient.clear();
+    }
+    prevUserId.current = currentId;
+  }, [user?.id, queryClient]);
+
+  return null;
+}
 
 export default function Providers({ children }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -72,6 +93,7 @@ export default function Providers({ children }) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <PostHogProviderWrapper>
+            <CacheClearOnUserChange />
             {children}
             <CookieConsent />
           </PostHogProviderWrapper>

@@ -9,7 +9,7 @@ export const SITE_CONFIG = {
   hero: {
     tagline: 'Understand any codebase instantly.',
     taglineAccent: 'codebase', // word highlighted in accent color
-    subtitle: 'Drop a GitHub link or upload your code. In seconds, get a full architecture breakdown, security audit, and an AI that can answer anything about the codebase.',
+    subtitle: 'Drop a repo link or upload your code. Get architecture maps, security audits, and an AI that knows every line.',
     inputPlaceholder: 'https://github.com/owner/repository',
     analyzeButton: 'Analyze',
     suggestedRepos: ['shadcn-ui/ui', 'pmndrs/zustand', 'hono-js/hono', 't3-oss/create-t3-app', 'colinhacks/zod'],

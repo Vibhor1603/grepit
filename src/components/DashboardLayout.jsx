@@ -291,7 +291,7 @@ const MarkdownMessage = memo(function MarkdownMessage({ content, onNavigateToFil
       </div>
     );
   }
-  return <div>{elements}</div>;
+  return <div className="min-w-0 max-w-full">{elements}</div>;
 });
 
 /* ── File Tree Sidebar ── */
@@ -885,7 +885,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
             <PanelLeftOpen size={14} />
           </button>
         )}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-6 overflow-x-hidden" onMouseDown={() => { if (document.activeElement?.tagName === 'INPUT') document.activeElement.blur(); }}>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 md:px-6 py-4 md:py-6 min-w-0" onMouseDown={() => { if (document.activeElement?.tagName === 'INPUT') document.activeElement.blur(); }}>
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center">
               <div className="flex items-center gap-2 mb-3">
@@ -909,7 +909,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
               </div>
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-5 min-w-0 w-full">
               {messages.map((msg, i) => {
                 const isAI = msg.role === 'assistant';
                 const { body, followUps } = isAI ? parseFollowUps(msg.content) : { body: msg.content, followUps: [] };
@@ -945,7 +945,7 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                     ) : msg.role === 'system' ? (
                       <div className="px-1 py-2 text-[13px] text-vb-red">{msg.content}</div>
                     ) : (
-                      <div className="py-2 max-w-full overflow-hidden">
+                      <div className="py-2 max-w-full min-w-0 overflow-hidden">
                         <MarkdownMessage content={body} onNavigateToFile={onNavigateToFile} />
                         <div className="flex justify-start mt-1">
                           <CopyButton text={msg.content} />

@@ -34,16 +34,18 @@ export default function ProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   // React Query for caching — profile data loads instantly on revisit
+  // Include user.id in query key so switching accounts doesn't show stale data
+  const userId = user?.id;
   const { data: subData, isLoading: subLoading } = useQuery({
-    queryKey: ['profile-subscription'],
+    queryKey: ['profile-subscription', userId],
     queryFn: () => fetch("/api/profile/subscription").then(r => r.json()),
-    enabled: isSignedIn,
+    enabled: isSignedIn && !!userId,
     staleTime: 60_000, // Cache for 1 min
   });
   const { data: analysesData, isLoading: analysesLoading } = useQuery({
-    queryKey: ['profile-analyses'],
+    queryKey: ['profile-analyses', userId],
     queryFn: () => fetch("/api/profile/analyses").then(r => r.json()),
-    enabled: isSignedIn,
+    enabled: isSignedIn && !!userId,
     staleTime: 60_000,
   });
 
@@ -84,7 +86,7 @@ export default function ProfilePage() {
 
       if (data.verified && data.plan !== "free") {
         toast.success(`${data.plan.charAt(0).toUpperCase() + data.plan.slice(1)} plan activated! Welcome aboard.`);
-        queryClient.invalidateQueries({ queryKey: ['profile-subscription'] });
+        queryClient.invalidateQueries({ queryKey: ['profile-subscription', userId] });
         return;
       }
 
@@ -110,7 +112,7 @@ export default function ProfilePage() {
       if (data.plan && data.plan !== "free" && data.plan !== "starter") {
         // Plan upgraded
         toast.success(`${data.plan.charAt(0).toUpperCase() + data.plan.slice(1)} plan activated!`);
-        queryClient.invalidateQueries({ queryKey: ['profile-subscription'] });
+        queryClient.invalidateQueries({ queryKey: ['profile-subscription', userId] });
         return;
       }
 
@@ -256,15 +258,15 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <main className="max-w-[900px] mx-auto px-6 py-10">
-        <div className="flex items-center gap-4 mb-10">
-          {user?.imageUrl && <img src={user.imageUrl} alt="" className="w-12 h-12 rounded-full border border-white/[0.08]" />}
-          <div>
-            <h1 className="text-[20px] font-semibold">{user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.emailAddresses?.[0]?.emailAddress}</h1>
-            <p className="text-[12px] text-vb-ink4">{user?.emailAddresses?.[0]?.emailAddress}</p>
+      <main className="max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-10">
+        <div className="flex items-start md:items-center gap-3 md:gap-4 mb-8 md:mb-10">
+          {user?.imageUrl && <img src={user.imageUrl} alt="" className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/[0.08] flex-shrink-0" />}
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[16px] md:text-[20px] font-semibold truncate">{user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.emailAddresses?.[0]?.emailAddress}</h1>
+            <p className="text-[11px] md:text-[12px] text-vb-ink4 truncate">{user?.emailAddresses?.[0]?.emailAddress}</p>
           </div>
-          {isPaid && <span className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold bg-vb-accent/10 text-vb-accent px-3 py-1.5 rounded-full border border-vb-accent/20"><Crown size={12} /> {planLabel}</span>}
-          {!isPaid && <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium bg-white/[0.04] text-vb-ink3 px-3 py-1.5 rounded-full border border-white/[0.06]">Free</span>}
+          {isPaid && <span className="flex-shrink-0 flex items-center gap-1.5 text-[10px] md:text-[11px] font-semibold bg-vb-accent/10 text-vb-accent px-2.5 md:px-3 py-1 md:py-1.5 rounded-full border border-vb-accent/20"><Crown size={11} /> {planLabel}</span>}
+          {!isPaid && <span className="flex-shrink-0 flex items-center gap-1.5 text-[10px] md:text-[11px] font-medium bg-white/[0.04] text-vb-ink3 px-2.5 md:px-3 py-1 md:py-1.5 rounded-full border border-white/[0.06]">Free</span>}
         </div>
 
         {/* Two-column grid for subscription + github */}
@@ -375,14 +377,14 @@ export default function ProfilePage() {
         {/* Danger Zone */}
         <section className="mt-10">
           <h2 className="text-[11px] text-vb-red uppercase tracking-wider font-medium mb-3">Danger Zone</h2>
-          <div className="bg-[#111113] border border-vb-red/20 rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[13px] font-medium text-vb-ink">Delete account</p>
-                <p className="text-[11px] text-vb-ink4 mt-0.5">Permanently delete your account and all data. This cannot be undone.</p>
+          <div className="bg-[#111113] border border-vb-red/20 rounded-xl p-4 md:p-5">
+            <div className="flex items-start md:items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[12px] md:text-[13px] font-medium text-vb-ink">Delete account</p>
+                <p className="text-[10px] md:text-[11px] text-vb-ink4 mt-0.5">Permanently delete your account and all data. This cannot be undone.</p>
               </div>
               <button onClick={() => setShowDeleteModal(true)}
-                className="flex items-center gap-1.5 text-[11px] text-vb-red border border-vb-red/20 hover:bg-vb-red/[0.06] rounded-lg px-3 py-1.5 transition-all">
+                className="flex-shrink-0 flex items-center gap-1.5 text-[11px] text-vb-red border border-vb-red/20 hover:bg-vb-red/[0.06] rounded-lg px-3 py-1.5 transition-all whitespace-nowrap">
                 <Trash2 size={11} /> Delete
               </button>
             </div>
