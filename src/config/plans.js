@@ -51,9 +51,9 @@ export const PLANS = {
 
   starter: {
     name: 'Starter',
-    price: '$15',
+    price: '$12',
     period: '/month',
-    amount_paise: 1500,
+    amount_paise: 1200,
 
     // Limits
     maxRepos: 3,
@@ -96,9 +96,9 @@ export const PLANS = {
 
   pro: {
     name: 'Pro',
-    price: '$30',
+    price: '$29',
     period: '/month',
-    amount_paise: 3000,
+    amount_paise: 2900,
 
     // Limits
     maxRepos: 7,
