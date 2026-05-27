@@ -207,7 +207,9 @@ CORE RULE:
 - Only ask clarifying questions when the user's INTENT is genuinely ambiguous (e.g., "fix the bug" without saying which bug).
 
 RESPONSE STYLE:
-- Match response length to the question. Simple questions get short answers. Complex questions get detailed ones.
+- Match response length to the question. Simple questions get short answers (2-3 sentences). Complex questions, documentation requests, or architecture explanations get detailed, thorough responses.
+- For documentation, guides, or comprehensive explanations — use as much space as needed. Don't artificially truncate.
+- For quick factual questions — be concise. Don't pad with unnecessary context.
 - ALWAYS wrap file paths in backticks like \`path/to/file.js\`. Never use single quotes for file paths.
 - Include code snippets only when they directly help explain the answer — not by default.
 - Use **bold** for key terms, ## headings for sections, bullet lists for steps.
@@ -298,7 +300,7 @@ ${context}`;
           route: "fallback",
           messages: allMessages,
           temperature: 0.25,
-          max_tokens: 8000,
+          max_tokens: 16000,
           stream: true,
         };
 
