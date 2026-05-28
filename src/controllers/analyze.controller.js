@@ -8,7 +8,7 @@ import { buildRepositoryAnalysis, maybeEnhanceAnalysisWithGroq, mergeAnalysisDet
 import { createAnalysisRecord, deleteAnalysisRecord, findLatestAnalysisByRepo, getAnalysisRecord, listAnalysisRecords, serializeAnalysisRecord, updateAnalysisRecord } from "../lib/analysis-store";
 import { fetchGitHubFileText, normalizeGitHubRepoUrl } from "../lib/github";
 import { getCurrentSession, getGithubAccessToken, getSessionOwner } from "../lib/server-session";
-import { createGitHubSnapshot } from "../lib/repository-snapshot";
+import { createGitHubSnapshot, scopeSnapshotToPaths } from "../lib/repository-snapshot";
 import { buildCodeIntelligence } from "../lib/code-intel";
 import { buildCodebaseIndex, buildTraversalArchitecture } from "../lib/codebase-index";
 import { checkGate, logUsage } from "../lib/subscription-gate";
@@ -363,28 +363,18 @@ export async function handleAnalyzePost(request) {
     const fileCount = snapshot.fileTree.length;
     console.log(`[analyze] Snapshot complete: ${fileCount} files`);
 
-    // Hard limit — repos with 5000+ source files (after filtering) are too large for real-time analysis
     const sourceFiles = snapshot.fileTree.filter(f => {
       const p = f.path.toLowerCase();
       return f.type === 'blob' && !p.includes('node_modules/') && !p.includes('.git/') &&
              !p.includes('vendor/') && !p.includes('dist/') && !p.includes('build/') &&
              !p.includes('.next/') && !p.includes('__pycache__/') && !p.includes('.cache/');
     });
-    
-    if (sourceFiles.length > 5000) {
-      // Clean up the processing record
-      await deleteAnalysisRecord(analysis.id).catch(() => {});
-      return NextResponse.json({
-        error: "large_codebase",
-        message: `This codebase has ${sourceFiles.length.toLocaleString()} source files — it's too large for real-time analysis right now. We're building support for large-scale codebases. Stay tuned.`,
-        fileCount: sourceFiles.length,
-      }, { status: 422 });
-    }
 
     // Large repo detection — adjust processing based on size
+    const isMassiveRepo = sourceFiles.length > 5000;
     const isLargeRepo = sourceFiles.length > 1000;
     const isHugeRepo = sourceFiles.length > 3000;
-    const fileTreeLimit = isHugeRepo ? 3000 : isLargeRepo ? 4000 : 5000;
+    const fileTreeLimit = isMassiveRepo ? 5000 : isHugeRepo ? 3000 : isLargeRepo ? 4000 : 5000;
 
     // Filter out noise from file tree (node_modules, build outputs, etc.)
     const filteredTree = snapshot.fileTree.filter(f => {
@@ -409,7 +399,7 @@ export async function handleAnalyzePost(request) {
       await updateAnalysisRecord(analysis.id, {
         status: "PROCESSING",
         repo_name: result.repoName,
-        summary: `Analyzing ${fileCount} files... This is a large repository.`,
+        summary: `Analyzing ${fileCount} files... This is a large repository, so deep indexing is being focused on the most relevant source files first.`,
         total_files: fileCount,
         languages: result.languages,
         file_tree: filteredTree,
@@ -425,7 +415,7 @@ export async function handleAnalyzePost(request) {
     console.log(`[analyze] Building code intelligence + enriching components (parallel)...`);
     
     // For huge repos, limit code-intel to most important files (prioritize source over tests/docs)
-    const codeIntelLimit = isHugeRepo ? 1000 : isLargeRepo ? 1500 : filteredTree.length;
+    const codeIntelLimit = isMassiveRepo ? 600 : isHugeRepo ? 1000 : isLargeRepo ? 1500 : filteredTree.length;
     const prioritizedTree = filteredTree
       .filter(f => f.type === 'blob')
       .sort((a, b) => {
@@ -441,8 +431,7 @@ export async function handleAnalyzePost(request) {
         return score(a.path) - score(b.path);
       })
       .slice(0, codeIntelLimit);
-    
-    const codeIntelSnapshot = { ...snapshot, fileTree: prioritizedTree };
+    const codeIntelSnapshot = scopeSnapshotToPaths(snapshot, prioritizedTree);
 
     // Parallel: code intel + component enrichment
     const [codeIntel, enrichedComponents] = await Promise.all([
@@ -470,7 +459,7 @@ export async function handleAnalyzePost(request) {
       return idx;
     }) : Promise.resolve(null);
 
-    const aiPromise = !isTimedOut() ? Promise.race([
+    const aiPromise = !isTimedOut() && !isMassiveRepo ? Promise.race([
       maybeEnhanceAnalysisWithGroq(result, { snapshot: codeIntelSnapshot, codeIntel }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), Math.min(30000, ANALYSIS_TIMEOUT - (Date.now() - startTime) - 5000))),
     ]).catch((err) => {
@@ -486,9 +475,11 @@ export async function handleAnalyzePost(request) {
 
     // Generate embeddings in background (non-blocking — don't wait for it)
     // Uses the analysis ID so we can search later at query time
-    storeEmbeddings(analysis.id, codeIntel.files).catch(err => {
-      console.warn(`[analyze] Embedding generation failed (non-fatal):`, err.message);
-    });
+    if (!isMassiveRepo) {
+      storeEmbeddings(analysis.id, codeIntel.files).catch(err => {
+        console.warn(`[analyze] Embedding generation failed (non-fatal):`, err.message);
+      });
+    }
 
     if (indexResult) {
       codebaseIndex = indexResult;
@@ -523,7 +514,18 @@ export async function handleAnalyzePost(request) {
       security: codeIntel.security,
       performance: codeIntel.performance,
       incremental: codeIntel.incremental,
+      indexCoverage: {
+        totalSourceFiles: sourceFiles.length,
+        totalTextFiles: snapshot.textFiles.length,
+        indexedTextFiles: codeIntel.files.length,
+        indexedFileBudget: codeIntelLimit,
+        partialIndexing: snapshot.textFiles.length > codeIntel.files.length,
+        liveFetchEnabled: true,
+      },
     });
+    if (snapshot.textFiles.length > codeIntel.files.length) {
+      result.summary = `${result.summary} Deep index coverage is focused: analyzed ${codeIntel.files.length} of ${snapshot.textFiles.length} text files, with live fetch enabled for query-time gaps.`;
+    }
     console.log(`[analyze] Saving results...`);
     const updated = await updateAnalysisRecord(analysis.id, {
       status: "COMPLETED",

@@ -8,9 +8,11 @@ import { buildQueryResponse } from "../lib/analysis";
 import { createQueryHistory, getAnalysisRecord, getRecentQueries, deleteQueryHistory, getConversations, getConversationMessages, deleteConversation } from "../lib/analysis-store";
 import { isAIConfigured } from "../lib/env";
 import { buildReasoningRequest, getAIModel, aiFetch } from "../lib/ai";
-import { getCurrentSession, getSessionOwner } from "../lib/server-session";
+import { getCurrentSession, getGithubAccessToken, getSessionOwner } from "../lib/server-session";
 import { queryCodebase } from "../lib/codebase-index";
 import { checkGate, logUsage } from "../lib/subscription-gate";
+import { getPromptSecurityPreamble, normalizeAssistantOpening } from "../lib/prompt-security";
+import { collectRelevantContext, hydratePromptFiles } from "../lib/query-context";
 
 // ── Context builder ────────────────────────────────────────────────────────
 // Hard-cap at ~48,000 chars (~12,000 tokens) before sending to the AI provider.
@@ -152,6 +154,7 @@ export async function handleQueryPost(request) {
   // Auth + ownership check BEFORE rate limiting
   const session    = await getCurrentSession();
   const ownerEmail = await getSessionOwner(session);
+  const accessToken = await getGithubAccessToken(session);
 
   const analysis = await getAnalysisRecord(analysisId).catch(() => null);
   if (!analysis) {
@@ -181,26 +184,26 @@ export async function handleQueryPost(request) {
     let response = buildQueryResponse(analysis, query);
 
     if (isAIConfigured()) {
-      const queryResult = queryCodebase(analysis, query, { maxFiles: 6, maxSymbols: 10, maxGraphDepth: 2 });
-
-      // Build context from query results
-      const files = analysis?.results?.files || [];
-      const fileByPath = new Map(files.map(f => [f.path, f]));
-      const relevantFiles = queryResult.fileMatches.map(m => fileByPath.get(m.path)).filter(Boolean);
+      const { queryResult, promptFiles: basePromptFiles, missingCandidates, promptSecurity } = collectRelevantContext(analysis, query, {
+        maxFiles: 6,
+        maxCodeCharsPerFile: 4000,
+      });
+      const promptFiles = await hydratePromptFiles(analysis, basePromptFiles, missingCandidates, {
+        accessToken,
+        maxExtraFiles: 2,
+        maxCodeCharsPerFile: 4000,
+      });
 
       const contextParts = [
+        promptSecurity.note,
         `Repository: ${analysis.repo_name}`,
         `Summary: ${analysis.summary}`,
         `Languages: ${JSON.stringify(analysis.languages)}`,
         `File tree (first 50): ${JSON.stringify((analysis.file_tree || []).slice(0, 50).map(f => f.path))}`,
-        `Relevant files: ${JSON.stringify(relevantFiles.slice(0, 4).map(file => ({
-          path: file.path, summary: file.summary,
-          functions: (file.functions || []).map(i => i.name).slice(0, 6),
-          classes: (file.classes || []).map(i => i.name).slice(0, 4),
-          imports: (file.imports || []).slice(0, 6),
-          code: (file.code || "").slice(0, 1500),
-        })))}`,
+        `Relevant files: ${JSON.stringify(promptFiles)}`,
         `Relevant symbols: ${JSON.stringify((queryResult.symbolMatches || []).slice(0, 8))}`,
+        `Traversal seeds: ${JSON.stringify(queryResult.traversal?.seedFiles || [])}`,
+        `Traversal path: ${JSON.stringify(queryResult.traversal?.path || [])}`,
       ];
       let context = contextParts.join("\n");
       if (context.length > 24000) context = context.slice(0, 24000);
@@ -219,15 +222,22 @@ export async function handleQueryPost(request) {
         messages: [
           {
             role: "system",
-            content: `You are an expert code analyst helping a developer understand a codebase. 
+            content: `${getPromptSecurityPreamble()}
+
+You are an expert code analyst helping a developer understand a codebase.
 
 SCOPE:
 - You can ONLY answer questions about THIS specific codebase based on the context provided.
 - If the user asks about something not in the codebase context (general programming, unrelated topics, external services), respond: "This doesn't appear to be part of the analyzed codebase. I can only help with questions about the files and code in this repository."
-- If a function/file the user asks about doesn't exist in the context, say so clearly.
+- If a function/file truly is not present in the retrieved context, say so clearly.
 
 RESPONSE GUIDELINES:
 - Give thorough, explanatory answers. Cover the "what", "why", and "how".
+- Default to a slightly conversational tone that helps the user understand the code. Sound like a smart teammate explaining what they found, unless the user explicitly asks for a strict format.
+- Separate VERIFIED facts from partial evidence. If you only have metadata for a file, say that explicitly.
+- Never invent missing implementations or security controls. If code is absent, say exactly what is confirmed and what is unconfirmed.
+- If a route file imports a controller/service and that imported file is present in context, use that file instead of claiming the implementation is missing.
+- Do NOT start with meta phrases like "Based on the code/context provided", "From the files in context", or "Here's the answer based on...". Start directly with the answer in natural language.
 - ALWAYS include the file path when referencing code: \`path/to/file.js\`
 - ALWAYS include relevant code snippets in fenced code blocks when explaining functionality.
 - When mentioning functions, classes, or variables, wrap them in backticks with the file path: \`functionName\` in \`src/path/file.js\`
@@ -252,8 +262,12 @@ FORMATTING:
 
 Always end with:
 
-## Follow-up questions
-Write 3 questions the USER would naturally ask next, from their perspective (e.g. "How does X work?" or "Where is Y defined?").
+## Follow-up suggestions
+Write 3 short user-style follow-up suggestion chips from the USER'S perspective.
+- They do NOT have to be questions.
+- Good examples: "Show me the controller flow", "Trace this endpoint", "Where is auth checked?"
+- Keep each suggestion under 8 words.
+- Never write them from the AI's perspective.
 
 Codebase Context:
 ${context}`,
@@ -275,6 +289,7 @@ ${context}`,
             .replace(/^(User|Assistant|System):\s*/gim, '')
             .replace(/^\[?(Internal|Thinking|Reasoning)\]?:.*$/gim, '')
             .trim();
+          aiContent = normalizeAssistantOpening(aiContent);
           response = aiContent;
           console.log("[query] AI responded, length:", aiContent.length, "chars");
         } else {

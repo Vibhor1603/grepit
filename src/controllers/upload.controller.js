@@ -5,7 +5,7 @@ import { rateLimit, rateLimitKey } from "../lib/rateLimit";
 import { buildRepositoryAnalysis, maybeEnhanceAnalysisWithGroq, mergeAnalysisDetails } from "../lib/analysis";
 import { createAnalysisRecord, findLatestAnalysisByRepo, updateAnalysisRecord } from "../lib/analysis-store";
 import { getCurrentSession, getSessionOwner } from "../lib/server-session";
-import { createUploadSnapshot } from "../lib/repository-snapshot";
+import { createFolderUploadSnapshot, createUploadSnapshot, scopeSnapshotToPaths } from "../lib/repository-snapshot";
 import { buildCodeIntelligence } from "../lib/code-intel";
 import { buildCodebaseIndex, buildTraversalArchitecture } from "../lib/codebase-index";
 
@@ -67,38 +67,11 @@ export async function handleUploadPost(request) {
         return NextResponse.json({ error: "Upload too large (max 50MB total)" }, { status: 400 });
       }
 
-      // Safety: validate paths — no traversal, no dangerous files
-      const BLOCKED_PATTERNS = /node_modules\/|\.git\/|\.env$|\.ssh|\.aws|id_rsa|\.pem$|\.key$/i;
-      const BLOCKED_EXTENSIONS = /\.(exe|dll|so|dylib|bin|dmg|iso|msi|bat|cmd|ps1)$/i;
+      snapshot = await createFolderUploadSnapshot(folderFiles, String(folderName));
 
-      const fileTree = [];
-      for (const f of folderFiles) {
-        const path = f.name;
-        if (!path || path.includes('..') || path.startsWith('/')) continue;
-        if (BLOCKED_PATTERNS.test(path)) continue;
-        if (BLOCKED_EXTENSIONS.test(path)) continue;
-        if (f.size > 5 * 1024 * 1024) continue;
-        fileTree.push({ path, type: 'blob', size: f.size });
-      }
-
-      if (fileTree.length === 0) {
+      if (!snapshot.fileTree || snapshot.fileTree.length === 0) {
         return NextResponse.json({ error: "No valid source files found in the upload." }, { status: 400 });
       }
-
-      const languages = {};
-      for (const entry of fileTree) {
-        const ext = entry.path.split('.').pop()?.toLowerCase();
-        if (ext) languages[ext] = (languages[ext] || 0) + 1;
-      }
-
-      snapshot = {
-        repoUrl: `upload://${folderName}`,
-        repoName: String(folderName).slice(0, 100),
-        fileTree,
-        languages,
-        repoData: {},
-        defaultBranch: 'main',
-      };
     } else if (singleFile) {
       if (!singleFile.name.endsWith(".zip")) return NextResponse.json({ error: "Only .zip files or folders supported" }, { status: 400 });
       if (singleFile.size > 50 * 1024 * 1024) return NextResponse.json({ error: "File too large (max 50MB)" }, { status: 400 });
@@ -125,6 +98,26 @@ export async function handleUploadPost(request) {
       owner_email: ownerEmail,
     });
 
+    const isLargeUpload = snapshot.fileTree.length > 1500;
+    const isHugeUpload = snapshot.fileTree.length > 3000;
+    const codeIntelLimit = isHugeUpload ? 800 : isLargeUpload ? 1500 : snapshot.fileTree.length;
+    const prioritizedTree = snapshot.fileTree
+      .filter((entry) => entry.type === "blob")
+      .sort((a, b) => {
+        const score = (path) => {
+          const name = path.split("/").pop() || "";
+          if (/^(index|main|app|server)\./i.test(name)) return 0;
+          if (/src\//i.test(path) && !/test|spec|__test/i.test(path)) return 1;
+          if (/lib\//i.test(path)) return 2;
+          if (/component/i.test(path)) return 3;
+          if (/test|spec|__test/i.test(path)) return 9;
+          return 5;
+        };
+        return score(a.path) - score(b.path);
+      })
+      .slice(0, codeIntelLimit);
+    const codeIntelSnapshot = scopeSnapshotToPaths(snapshot, prioritizedTree);
+
     let result = buildRepositoryAnalysis({
       repoUrl: snapshot.repoUrl,
       repoName,
@@ -133,7 +126,7 @@ export async function handleUploadPost(request) {
       repoData: {},
       source: "upload",
     });
-    const codeIntel = buildCodeIntelligence(snapshot, previous);
+    const codeIntel = buildCodeIntelligence(codeIntelSnapshot, previous);
     const codebaseIndex = buildCodebaseIndex({
       fileTree: snapshot.fileTree.slice(0, 5000),
       files: codeIntel.files,
@@ -159,8 +152,19 @@ export async function handleUploadPost(request) {
       security: codeIntel.security,
       performance: codeIntel.performance,
       incremental: codeIntel.incremental,
+      indexCoverage: {
+        totalSourceFiles: snapshot.fileTree.length,
+        totalTextFiles: snapshot.textFiles.length,
+        indexedTextFiles: codeIntel.files.length,
+        indexedFileBudget: codeIntelLimit,
+        partialIndexing: snapshot.textFiles.length > codeIntel.files.length,
+        liveFetchEnabled: false,
+      },
     });
-    result = await maybeEnhanceAnalysisWithGroq(result, { snapshot, codeIntel });
+    if (snapshot.textFiles.length > codeIntel.files.length) {
+      result.summary = `${result.summary} Deep index coverage is focused: analyzed ${codeIntel.files.length} of ${snapshot.textFiles.length} text files.`;
+    }
+    result = await maybeEnhanceAnalysisWithGroq(result, { snapshot: codeIntelSnapshot, codeIntel });
 
     const updated = await updateAnalysisRecord(analysis.id, {
       status: "COMPLETED",

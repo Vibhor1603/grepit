@@ -5,10 +5,12 @@ import { getAnalysisRecord, createQueryHistory, getRecentQueries, getConversatio
 import { buildQueryResponse } from "../lib/analysis";
 import { isAIConfigured } from "../lib/env";
 import { getAIHeaders, getAIApiUrl, getAIModel, FALLBACK_MODELS } from "../lib/ai";
-import { getCurrentSession, getSessionOwner } from "../lib/server-session";
+import { getCurrentSession, getGithubAccessToken, getSessionOwner } from "../lib/server-session";
 import { checkGate, logUsage, getUserPlan } from "../lib/subscription-gate";
 import { getPlan } from "../config/plans";
 import { searchEmbeddings } from "../lib/embeddings";
+import { collectRelevantContext, hydratePromptFiles } from "../lib/query-context";
+import { getPromptSecurityPreamble, sanitizeUntrustedTextForPrompt } from "../lib/prompt-security";
 
 // Streaming query endpoint — returns SSE
 export async function handleStreamPost(request) {
@@ -34,6 +36,7 @@ export async function handleStreamPost(request) {
 
   const session = await getCurrentSession();
   const ownerEmail = await getSessionOwner(session);
+  const accessToken = await getGithubAccessToken(session);
 
   const analysis = await getAnalysisRecord(analysisId).catch(() => null);
   if (!analysis) return new Response(JSON.stringify({ error: "Analysis not found" }), { status: 404, headers: { 'Content-Type': 'application/json' } });
@@ -71,39 +74,36 @@ export async function handleStreamPost(request) {
   const files = analysis?.results?.files || [];
   const fileByPath = new Map(files.map(f => [f.path, f]));
 
-  // Force-include user-tagged files
-  const forcedFiles = (forcedFilePaths || [])
-    .map(p => fileByPath.get(p) || files.find(f => f.path.endsWith(p)))
-    .filter(Boolean);
-
   // Vector search — find the most semantically relevant code chunks
   const vectorResults = await searchEmbeddings(analysis.id, query, { limit: 10 }).catch(() => null);
+  const { queryResult, promptFiles: basePromptFiles, missingCandidates, promptSecurity } = collectRelevantContext(analysis, query, {
+    forcedFilePaths,
+    vectorResults: vectorResults || [],
+    maxFiles: 8,
+    maxCodeCharsPerFile: 12_000,
+  });
+  const promptFiles = await hydratePromptFiles(analysis, basePromptFiles, missingCandidates, {
+    accessToken,
+    maxExtraFiles: 3,
+    maxCodeCharsPerFile: 12_000,
+  });
 
-  // Build context from vector results or fallback
+  // Build context from graph/path retrieval plus semantic chunks
   const contextParts = [
+    promptSecurity.note,
     `Repository: ${analysis.repo_name}`,
     `Summary: ${analysis.summary}`,
     `Languages: ${JSON.stringify(analysis.languages)}`,
     `File tree (${(analysis.file_tree || []).length} files): ${JSON.stringify((analysis.file_tree || []).slice(0, 120).map(f => f.path))}`,
+    `Relevant files (path + graph retrieval):\n${JSON.stringify(promptFiles)}`,
+    `Relevant symbols: ${JSON.stringify((queryResult.symbolMatches || []).slice(0, 10))}`,
+    `Matched folders: ${JSON.stringify((queryResult.folderMatches || []).map(folder => folder.path))}`,
+    `Traversal seeds: ${JSON.stringify(queryResult.traversal?.seedFiles || [])}`,
+    `Traversal path: ${JSON.stringify(queryResult.traversal?.path || [])}`,
   ];
 
   if (vectorResults && vectorResults.length > 0) {
-    // ── Vector search succeeded — use semantic results ──
     console.log(`[stream] Using vector search: ${vectorResults.length} chunks (top: ${vectorResults[0].filePath}, sim: ${vectorResults[0].similarity.toFixed(3)})`);
-
-    // Tagged files always get full code
-    if (forcedFiles.length > 0) {
-      contextParts.push(`User-specified files (BASE YOUR ANSWER ON THESE):\n${JSON.stringify(forcedFiles.map(file => ({
-        path: file.path, summary: file.summary,
-        functions: (file.functions || []).map(i => ({ name: i.name, args: i.args })),
-        classes: (file.classes || []).map(i => i.name),
-        imports: file.imports || [],
-        code: (file.code || "").slice(0, 30000),
-      })))}`);
-    }
-
-    // Vector results — these are the actual relevant code chunks
-    // Group by file for cleaner context
     const fileChunks = new Map();
     for (const result of vectorResults) {
       if (!fileChunks.has(result.filePath)) {
@@ -114,53 +114,27 @@ export async function handleStreamPost(request) {
 
     const relevantCode = [];
     for (const [filePath, chunks] of fileChunks) {
-      // Combine chunks from the same file
       const combined = chunks
         .sort((a, b) => a.startLine - b.startLine)
         .map(c => c.content)
         .join("\n\n");
-      
-      // Also include file metadata from the analysis
       const fileMeta = fileByPath.get(filePath);
+      const sanitized = sanitizeUntrustedTextForPrompt(combined, { path: filePath, maxChars: 20_000 });
       relevantCode.push({
         path: filePath,
         summary: fileMeta?.summary || "",
         functions: (fileMeta?.functions || []).map(i => ({ name: i.name, args: i.args })),
         classes: (fileMeta?.classes || []).map(i => i.name),
         imports: fileMeta?.imports || [],
-        code: combined,
+        code: sanitized.text,
+        promptSecurity: sanitized.meta,
         similarity: chunks[0].similarity,
       });
     }
 
     contextParts.push(`Relevant code (found via semantic search, ordered by relevance):\n${JSON.stringify(relevantCode)}`);
   } else {
-    // ── Fallback: use file metadata when embeddings aren't available ──
-    console.log(`[stream] Vector search unavailable, using file metadata fallback`);
-
-    if (forcedFiles.length > 0) {
-      contextParts.push(`User-specified files (BASE YOUR ANSWER ON THESE):\n${JSON.stringify(forcedFiles.map(file => ({
-        path: file.path, summary: file.summary,
-        functions: (file.functions || []).map(i => ({ name: i.name, args: i.args })),
-        classes: (file.classes || []).map(i => i.name),
-        imports: file.imports || [],
-        code: (file.code || "").slice(0, 30000),
-      })))}`);
-    }
-
-    // Use file summaries and metadata as context
-    const relevantFiles = files
-      .filter(f => f.summary && f.code)
-      .slice(0, 8)
-      .map(file => ({
-        path: file.path,
-        summary: file.summary,
-        functions: (file.functions || []).map(i => i.name),
-        classes: (file.classes || []).map(i => i.name),
-        code: (file.code || "").slice(0, 8000),
-      }));
-
-    contextParts.push(`Available files:\n${JSON.stringify(relevantFiles)}`);
+    console.log(`[stream] Vector search unavailable, using structured retrieval fallback`);
   }
 
   let context = contextParts.join("\n");
@@ -198,18 +172,24 @@ export async function handleStreamPost(request) {
     ]);
   }
 
-  const systemPrompt = `You are an expert code analyst for this codebase. Answer ONLY about this codebase.
+  const systemPrompt = `${getPromptSecurityPreamble()}
+
+You are an expert code analyst for this codebase. Answer ONLY about this codebase.
 
 CORE RULE:
 - ALWAYS give a direct, actionable answer. NEVER ask the user to provide information that exists in the codebase context. If you can see a file path in the file tree, reference it directly. If you can infer the answer from the code structure, do so.
 - NEVER say "point me to the file" or "can you tell me which file" — YOU are the expert. Find it yourself from the context.
-- If you don't have the exact code but can see the file exists, explain what the fix likely is based on the file's purpose and the codebase patterns you can see.
+- Separate VERIFIED facts from partial evidence. If the context includes only metadata for a file, say that explicitly.
+- Never invent missing implementations, security controls, or sanitization steps. If code is absent, say exactly what is confirmed and what is unconfirmed.
+- If a route imports a controller or service that is present in context, use that imported implementation instead of claiming it is missing.
 - Only ask clarifying questions when the user's INTENT is genuinely ambiguous (e.g., "fix the bug" without saying which bug).
 
 RESPONSE STYLE:
 - Match response length to the question. Simple questions get short answers (2-3 sentences). Complex questions, documentation requests, or architecture explanations get detailed, thorough responses.
 - For documentation, guides, or comprehensive explanations — use as much space as needed. Don't artificially truncate.
 - For quick factual questions — be concise. Don't pad with unnecessary context.
+- Default to a slightly conversational tone focused on helping the user understand what the code is doing. Sound like a thoughtful teammate unless the user explicitly requests a stricter format.
+- Do NOT begin with meta phrasing like "Based on the code/context provided", "From the full code in context", or "Here's the answer based on...". Start directly and naturally.
 - ALWAYS wrap file paths in backticks like \`path/to/file.js\`. Never use single quotes for file paths.
 - Include code snippets only when they directly help explain the answer — not by default.
 - Use **bold** for key terms, ## headings for sections, bullet lists for steps.
@@ -268,8 +248,13 @@ If the user asks for a "use case diagram", "UML diagram", "class diagram", "sequ
 Rules for all diagram types: use simple node IDs (A, B, C or short names), no slashes or special chars in labels, keep labels under 5 words.
 
 MANDATORY — End EVERY response with:
-## Follow-up questions
-3 short questions (under 8 words) that the USER would naturally ask next. Write them as if the user is typing them — first person, like "How does the auth flow work?" or "Where is the database schema?" NEVER write questions from the AI's perspective. NEVER skip this section. This applies even when your response contains a diagram, code block, or table — always end with follow-up questions after the diagram/code.
+## Follow-up suggestions
+3 short user-style follow-up suggestion chips.
+- They do NOT have to be questions.
+- Write them from the USER'S perspective, like "Show me the controller flow", "Trace the auth path", or "Where is the database schema?"
+- Keep each under 8 words.
+- NEVER write them from the AI's perspective.
+- NEVER skip this section. This applies even when your response contains a diagram, code block, or table.
 
 Context:
 ${context}`;

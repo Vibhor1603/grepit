@@ -1,6 +1,8 @@
 import * as Sentry from "@sentry/nextjs";
 import { isAIConfigured } from "./env";
 import { buildStructuredRequest, aiFetch } from "./ai";
+import { getPromptSecurityPreamble } from "./prompt-security";
+import { queryCodebase } from "./codebase-index";
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
@@ -617,7 +619,7 @@ export async function maybeEnhanceAnalysisWithGroq(baseAnalysis, context = {}) {
         {
           role: "system",
           content:
-            "You analyze software repositories for developers. Base every claim on the provided evidence. Prefer concrete product behavior over abstract file statistics. If the evidence is incomplete, say the repository 'appears to' do something instead of overstating it. `summary` should be a concise high-level repo description. `userFacingPurpose` should explain what the product or system does in plain English. `mainCapabilities` should be a short list of real end-user or developer-facing capabilities grounded in the files, endpoints, and code samples provided.",
+            `${getPromptSecurityPreamble()}\n\nYou analyze software repositories for developers. Base every claim on the provided evidence. Prefer concrete product behavior over abstract file statistics. If the evidence is incomplete, say the repository 'appears to' do something instead of overstating it. \`summary\` should be a concise high-level repo description. \`userFacingPurpose\` should explain what the product or system does in plain English. \`mainCapabilities\` should be a short list of real end-user or developer-facing capabilities grounded in the files, endpoints, and code samples provided.`,
         },
         {
           role: "user",
@@ -695,65 +697,50 @@ export function mergeAnalysisDetails(baseAnalysis, details = {}) {
 }
 
 export function buildQueryResponse(analysis, question) {
-  const lower = question.toLowerCase();
-  const architecture = analysis?.architecture || {};
+  const repoName = analysis?.repo_name || analysis?.repoName || "Unknown repository";
+  const files = analysis?.results?.files || [];
+  const fileByPath = new Map(files.map((file) => [file.path, file]));
+  const queryResult = queryCodebase(analysis, question, { maxFiles: 5, maxSymbols: 6, maxGraphDepth: 2 });
 
-  if (lower.includes("security")) {
-    const issues = architecture.securityIssues || [];
-    if (issues.length === 0) {
-      return "No obvious security issues were inferred from the repository structure alone. I would still add secret scanning, auth tests, and dependency auditing.";
-    }
-    return issues
-      .map((issue) => `- ${issue.severity.toUpperCase()}: ${issue.title} (${issue.file})`)
-      .join("\n");
+  if ((queryResult.fileMatches || []).length === 0 && (queryResult.symbolMatches || []).length === 0) {
+    return [
+      `I couldn't find a confident indexed match for "${question}" in \`${repoName}\`.`,
+      "If you mention a file path, endpoint, function name, or folder, I can anchor the explanation to more specific code.",
+    ].join("\n");
   }
 
-  if (lower.includes("setup")) {
-    const steps = architecture.setupSteps || [];
-    return steps.length > 0 ? steps.map((step, index) => `${index + 1}. ${step}`).join("\n") : "No setup guide was inferred.";
+  const matchedFiles = (queryResult.fileMatches || []).map((match) => {
+    const file = fileByPath.get(match.path);
+    return {
+      path: match.path,
+      summary: file?.summary || "Indexed source file",
+      reasons: match.reasons || [],
+      functions: (file?.functions || []).map((item) => item.name).slice(0, 5),
+      classes: (file?.classes || []).map((item) => item.name).slice(0, 4),
+    };
+  });
+
+  const lines = [
+    `Here are the strongest indexed matches I found for "${question}" in \`${repoName}\`.`,
+    "",
+    "Relevant files:",
+    ...matchedFiles.map((file) => `- \`${file.path}\` — ${file.summary}${file.reasons.length ? ` (${file.reasons.join("; ")})` : ""}`),
+  ];
+
+  const symbolLines = (queryResult.symbolMatches || [])
+    .slice(0, 4)
+    .map((symbol) => `- \`${symbol.name}\` in \`${symbol.file}\` (${(symbol.reasons || []).join("; ")})`);
+  if (symbolLines.length > 0) {
+    lines.push("", "Relevant symbols:", ...symbolLines);
   }
 
-  if (lower.includes("api")) {
-    const endpoints = architecture.apiEndpoints || [];
-    return endpoints.length > 0
-      ? endpoints.map((endpoint) => `- ${endpoint.method} ${endpoint.path} from ${endpoint.file}`).join("\n")
-      : "No API endpoints were inferred from the current analysis.";
+  const firstWithDetails = matchedFiles.find((file) => file.functions.length > 0 || file.classes.length > 0);
+  if (firstWithDetails) {
+    const detailBits = [];
+    if (firstWithDetails.functions.length > 0) detailBits.push(`functions: ${firstWithDetails.functions.join(", ")}`);
+    if (firstWithDetails.classes.length > 0) detailBits.push(`classes: ${firstWithDetails.classes.join(", ")}`);
+    lines.push("", `A good next file to inspect is \`${firstWithDetails.path}\` (${detailBits.join(" | ")})`);
   }
 
-  if (lower.includes("component")) {
-    const components = architecture.components || [];
-    return components.length > 0
-      ? components.map((component) => `- ${component.name} (${component.file})`).join("\n")
-      : "No frontend components were inferred from the repository structure.";
-  }
-
-  if (lower.includes("entry")) {
-    const entries = architecture.entryPoints || [];
-    return entries.length ? entries.map((entry) => `- ${entry}`).join("\n") : "No obvious entry points were inferred.";
-  }
-
-  if (lower.includes("folder") || lower.includes("directory")) {
-    const folders = architecture.keyFolders || [];
-    return folders.length
-      ? folders.map((folder) => `- ${folder.name}: ${folder.purpose}`).join("\n")
-      : "No key folder breakdown is available.";
-  }
-
-  if (lower.includes("query") || lower.includes("search") || lower.includes("travers")) {
-    const queryArchitecture = analysis?.results?.queryArchitecture || architecture.queryArchitecture;
-    if (queryArchitecture) {
-      return [
-        `Strategy: ${queryArchitecture.strategy}`,
-        queryArchitecture.summary,
-        ...(queryArchitecture.phases || []).map((phase) => `- ${phase}`),
-      ].join("\n");
-    }
-  }
-
-  return [
-    `Repository: ${analysis?.repo_name || analysis?.repoName || "Unknown"}`,
-    `Summary: ${analysis?.summary || "No summary available."}`,
-    `Tech stack: ${(architecture.techStack || []).join(", ") || "Unknown"}`,
-    `Key layers: ${(architecture.layers || []).map((layer) => layer.name).join(", ") || "Unknown"}`,
-  ].join("\n");
+  return lines.join("\n");
 }

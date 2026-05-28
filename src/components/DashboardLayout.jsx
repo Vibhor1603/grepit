@@ -12,7 +12,7 @@ import dynamic from 'next/dynamic';
 import ChatInputComponent from './ChatInput';
 import { ViboMark } from './ViboLogo';
 import { Highlight, themes } from 'prism-react-renderer';
-import { healthScore, getIdentityProfile, getHighTrafficFiles, parseFollowUps } from '../utils/client/formatting';
+import { healthScore, getIdentityProfile, getHighTrafficFiles, normalizeAssistantOpening, parseFollowUps } from '../utils/client/formatting';
 
 // ── Lazy-loaded components (not needed on initial render) ──
 const SystemTabComponent = dynamic(() => import('./SystemTab'), {
@@ -912,7 +912,8 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
             <div className="space-y-5 min-w-0 w-full">
               {messages.map((msg, i) => {
                 const isAI = msg.role === 'assistant';
-                const { body, followUps } = isAI ? parseFollowUps(msg.content) : { body: msg.content, followUps: [] };
+                const normalizedContent = isAI ? normalizeAssistantOpening(msg.content) : msg.content;
+                const { body, followUps } = isAI ? parseFollowUps(normalizedContent) : { body: normalizedContent, followUps: [] };
                 return (
                   <div key={i} className="group" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 80px' }}>
                     {msg.role === 'user' ? (
@@ -945,10 +946,10 @@ function ChatView({ analysis, messages, loading, query, setQuery, handleSend, su
                     ) : msg.role === 'system' ? (
                       <div className="px-1 py-2 text-[13px] text-vb-red">{msg.content}</div>
                     ) : (
-                      <div className="py-2 max-w-full min-w-0 overflow-hidden">
-                        <MarkdownMessage content={body} onNavigateToFile={onNavigateToFile} />
+                        <div className="py-2 max-w-full min-w-0 overflow-hidden">
+                          <MarkdownMessage content={body} onNavigateToFile={onNavigateToFile} />
                         <div className="flex justify-start mt-1">
-                          <CopyButton text={msg.content} />
+                          <CopyButton text={normalizedContent} />
                         </div>
                       </div>
                     )}
@@ -1571,4 +1572,3 @@ export default function DashboardLayout() {
     </div>
   );
 }
-

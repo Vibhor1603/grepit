@@ -1,22 +1,26 @@
 // Utils: client/formatting — extracted from src/components/DashboardLayout.jsx
 
 /**
- * Parses follow-up questions from AI response content.
- * Splits the response into the main body and an array of follow-up question strings.
+ * Parses follow-up suggestions from AI response content.
+ * Splits the response into the main body and an array of user-style suggestion strings.
  *
  * @param {string} content - The full AI response text
- * @returns {{ body: string, followUps: string[] }} Parsed body and follow-up questions
+ * @returns {{ body: string, followUps: string[] }} Parsed body and follow-up suggestions
  */
 export function parseFollowUps(content) {
   const patterns = [
-    /## Follow-up questions?.*\n/i,
-    /## Follow-up\s*\n/i,
-    /\*\*Follow-up questions?.*\*\*\s*\n/i,
-    /\*\*Follow-up questions?[^*]*\n/i,
-    /\*\*Follow-up:?\*\*\s*\n/i,
-    /Follow-up questions?:?\s*\n/i,
-    /### Follow-up.*\n/i,
-    /#{1,3}\s*Follow[\s-]?up.*\n/i,
+    /^##\s*Follow-up suggestions?.*\n/im,
+    /^##\s*Follow-up questions?.*\n/im,
+    /^##\s*Follow-up\s*\n/im,
+    /^\*\*Follow-up suggestions?.*\*\*\s*\n/im,
+    /^\*\*Follow-up questions?.*\*\*\s*\n/im,
+    /^\*\*Follow-up suggestions?[^*]*\n/im,
+    /^\*\*Follow-up questions?[^*]*\n/im,
+    /^\*\*Follow-up:?\*\*\s*\n/im,
+    /^Follow-up suggestions?:?\s*\n/im,
+    /^Follow-up questions?:?\s*\n/im,
+    /^###\s*Follow-up.*\n/im,
+    /^#{1,3}\s*Follow[\s-]?up.*\n/im,
   ];
   let idx = -1;
   let matchLen = 0;
@@ -37,6 +41,15 @@ export function parseFollowUps(content) {
     .filter(l => l.length > 5)
     .slice(0, 3);
   return { body, followUps };
+}
+
+export function normalizeAssistantOpening(content) {
+  return String(content || "")
+    .replace(/^based on (?:the )?(?:full )?(?:code|file|context|files)[^:\n]*:\s*/i, "")
+    .replace(/^from (?:the )?(?:full )?(?:code|file|context|files)[^:\n]*:\s*/i, "")
+    .replace(/^here(?:'s| is) the answer based on[^:\n]*:\s*/i, "")
+    .replace(/^according to (?:the )?(?:code|file|context)[^:\n]*:\s*/i, "")
+    .trimStart();
 }
 
 /**
