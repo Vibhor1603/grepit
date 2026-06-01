@@ -6,7 +6,7 @@ export default function PrivacyPage() {
       <Link href="/" className="text-[13px] text-vb-accent hover:underline mb-8 inline-block">&larr; Back to home</Link>
 
       <h1 className="text-[32px] font-semibold tracking-tight mb-2">Privacy Policy</h1>
-      <p className="text-[13px] text-vb-ink4 mb-10">Last updated: May 19, 2026</p>
+      <p className="text-[13px] text-vb-ink4 mb-10">Last updated: June 1, 2026</p>
 
       <p className="text-[14px] text-vb-ink2 leading-relaxed mb-10">
         This Privacy Policy describes how grepit (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;), operated at grepit.co, collects, uses, shares, and protects your personal information when you use our codebase analysis platform and related services (collectively, the &ldquo;Service&rdquo;). By using the Service, you acknowledge that you have read and understood this Privacy Policy.
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
         </p>
 
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
-          <strong>Payment Data:</strong> When you subscribe to a paid plan, Razorpay collects and processes your payment information (UPI, credit/debit card, netbanking). We receive only a payment reference ID and subscription status — never your full payment credentials.
+          <strong>Payment Data:</strong> When you subscribe to a paid plan, Dodo Payments collects and processes your payment information (credit/debit card and other methods supported in your region). We receive only a payment reference ID and subscription status. We never receive your full payment credentials.
         </p>
 
         <p className="text-[14px] text-vb-ink2 leading-relaxed">
@@ -45,7 +45,7 @@ export default function PrivacyPage() {
           <li><strong>Account Management:</strong> To create and maintain your account, authenticate sessions, and manage access permissions.</li>
           <li><strong>Billing &amp; Subscriptions:</strong> To process payments, manage subscription tiers, enforce usage limits, and send billing-related communications.</li>
           <li><strong>Service Improvement:</strong> To understand usage patterns, identify bugs, optimize performance, and develop new features based on aggregated analytics.</li>
-          <li><strong>Communication:</strong> To send transactional emails (account verification, password resets, billing receipts), service announcements, and — with your consent — product updates.</li>
+          <li><strong>Communication:</strong> To send transactional emails (account verification, password resets, billing receipts), service announcements, and, with your consent, product updates.</li>
           <li><strong>Security &amp; Fraud Prevention:</strong> To detect and prevent unauthorized access, abuse, rate limit violations, and other malicious activity.</li>
           <li><strong>Legal Compliance:</strong> To comply with applicable laws, regulations, legal processes, or enforceable governmental requests.</li>
         </ul>
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li><strong>Performance of Contract (Art. 6(1)(b) GDPR):</strong> Processing necessary to provide the Service you have subscribed to, including account creation, repository analysis, and subscription management.</li>
           <li><strong>Consent (Art. 6(1)(a) GDPR):</strong> Where you have given explicit consent, such as opting in to marketing communications or enabling optional analytics tracking.</li>
-          <li><strong>Legitimate Interest (Art. 6(1)(f) GDPR):</strong> Processing necessary for our legitimate interests, including service improvement, security monitoring, fraud prevention, and product analytics — balanced against your rights and freedoms.</li>
+          <li><strong>Legitimate Interest (Art. 6(1)(f) GDPR):</strong> Processing necessary for our legitimate interests, including service improvement, security monitoring, fraud prevention, and product analytics, balanced against your rights and freedoms.</li>
           <li><strong>Legal Obligation (Art. 6(1)(c) GDPR):</strong> Processing necessary to comply with legal obligations, such as tax reporting and responding to lawful data access requests.</li>
         </ul>
       </section>
@@ -73,18 +73,18 @@ export default function PrivacyPage() {
         </p>
 
         <ul className="list-disc pl-6 space-y-3 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>Clerk</strong> (authentication &amp; user management) — Receives your email, name, profile picture, OAuth tokens, and session data to manage authentication and user identity.</li>
-          <li><strong>Razorpay</strong> (payment processing) — Receives your payment method details and email to process payments and manage subscriptions.</li>
-          <li><strong>GitHub API</strong> (repository access) — Receives your OAuth access token to fetch repository metadata and source code content on your behalf. Access is scoped to permissions you explicitly grant.</li>
-          <li><strong>OpenRouter</strong> (AI inference) — Receives code snippets and contextual data from your repositories to generate analysis results, answer queries, and produce insights. No personally identifiable information is sent beyond the code content.</li>
-          <li><strong>Additional AI providers</strong> (when configured) — Receives the same code analysis data as OpenRouter when used as a fallback inference provider for faster response times.</li>
-          <li><strong>Neon</strong> (PostgreSQL database hosting) — Stores your account data, analysis results, subscription records, and usage metadata in encrypted databases hosted in the United States.</li>
-          <li><strong>Sentry</strong> (error monitoring &amp; session replay) — Receives error logs, stack traces, browser metadata, session replay data, and performance metrics to help us identify and fix bugs.</li>
-          <li><strong>PostHog</strong> (product analytics) — Receives anonymized usage events, page views, feature interactions, session recordings, and device metadata to help us understand product usage and improve the Service.</li>
-          <li><strong>Upstash Redis</strong> (rate limiting &amp; caching) — Stores temporary rate limit counters and cached data keyed by user identifiers to enforce usage limits and improve performance.</li>
-          <li><strong>Resend</strong> (transactional email) — Receives your email address and name to deliver account notifications, billing receipts, and service communications.</li>
-          <li><strong>Vercel</strong> (hosting &amp; infrastructure) — Processes all HTTP requests through their edge network and CDN. Receives IP addresses, request headers, and serves the application. Logs are retained per Vercel&apos;s data retention policies.</li>
-          <li><strong>CheckDisposable Email</strong> (email validation) — Receives the domain portion of your email address during sign-up to verify it is not a disposable/temporary email provider. No full email addresses are stored by this service.</li>
+          <li><strong>Clerk</strong> (authentication &amp; user management): Receives your email, name, profile picture, OAuth tokens, and session data to manage authentication and user identity.</li>
+          <li><strong>Dodo Payments</strong> (payment processing): Receives your payment method details and email to process payments and manage subscriptions.</li>
+          <li><strong>GitHub API</strong> (repository access): Receives your OAuth access token to fetch repository metadata and source code content on your behalf. Access is scoped to permissions you explicitly grant.</li>
+          <li><strong>OpenRouter</strong> (AI inference): Receives code snippets and contextual data from your repositories to generate analysis results, answer queries, and produce insights. No personally identifiable information is sent beyond the code content.</li>
+          <li><strong>Additional AI providers</strong> (when configured): Receives the same code analysis data as OpenRouter when used as a fallback inference provider for faster response times.</li>
+          <li><strong>Neon</strong> (PostgreSQL database hosting): Stores your account data, analysis results, architecture maps, indexed metadata, subscription records, and usage data in encrypted databases hosted in the United States.</li>
+          <li><strong>Sentry</strong> (error monitoring &amp; session replay): Receives error logs, stack traces, browser metadata, session replay data, and performance metrics to help us identify and fix bugs.</li>
+          <li><strong>PostHog</strong> (product analytics): Receives anonymized usage events, page views, feature interactions, session recordings, and device metadata to help us understand product usage and improve the Service.</li>
+          <li><strong>Upstash Redis</strong> (rate limiting &amp; caching): Stores temporary rate limit counters and cached data keyed by user identifiers to enforce usage limits and improve performance.</li>
+          <li><strong>Resend</strong> (transactional email): Receives your email address and name to deliver account notifications, billing receipts, and service communications.</li>
+          <li><strong>Vercel</strong> (hosting &amp; infrastructure): Processes all HTTP requests through their edge network and CDN. Receives IP addresses, request headers, and serves the application. Logs are retained per Vercel&apos;s data retention policies.</li>
+          <li><strong>CheckDisposable Email</strong> (email validation): Receives the domain portion of your email address during sign-up to verify it is not a disposable/temporary email provider. No full email addresses are stored by this service.</li>
         </ul>
 
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-4">
@@ -96,7 +96,8 @@ export default function PrivacyPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">5. Data Retention</h2>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>Account Data:</strong> Retained for the duration of your account. Upon account deletion, personal data is purged within 30 days, except where retention is required by law.</li>
+          <li><strong>Account Data:</strong> Retained for the duration of your account. Upon account deletion, most personal data and analysis results are purged within 30 days, except where retention is required by law.</li>
+          <li><strong>Contact After Account Deletion:</strong> If you delete your account, we may retain your email address and name (if provided) in a separate contact archive so we can send important service-related messages, honor unsubscribe preferences, and understand product usage among former users. You may opt out of non-essential emails at any time by contacting <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a>.</li>
           <li><strong>Analysis Results:</strong> Retained while your account is active. Deleted within 30 days of account deletion or upon your explicit request.</li>
           <li><strong>Raw Source Code:</strong> Processed transiently during analysis and not permanently stored. Temporary caches are purged within 24 hours.</li>
           <li><strong>Payment Records:</strong> Retained for 7 years as required by tax and financial regulations.</li>
@@ -227,11 +228,12 @@ export default function PrivacyPage() {
           We take the privacy of your source code seriously. Here is how we handle repository data:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>No Permanent Storage of Raw Source Code:</strong> We do not permanently store your raw source code. Code is fetched from GitHub, processed for analysis, and discarded. Only the generated analysis results (summaries, insights, metrics, diagrams) are retained.</li>
+          <li><strong>No Permanent Storage of Raw Source Code:</strong> We do not permanently store your raw source code. Code is fetched from GitHub, processed for analysis, and discarded. We retain generated analysis results (summaries, architecture maps, Start Here paths, insights, metrics, diagrams) and searchable indexed metadata derived from your repository.</li>
+          <li><strong>Indexed Metadata &amp; Embeddings:</strong> To power grounded answers and semantic search, we store structural metadata and vector embeddings derived from your code. These are not full file copies but mathematical representations used to retrieve relevant context when you ask questions.</li>
           <li><strong>Temporary Processing:</strong> During analysis, code may be temporarily held in memory or short-lived caches (Upstash Redis) for processing efficiency. These caches are automatically purged within 24 hours.</li>
           <li><strong>No Sharing with Third Parties:</strong> Your repository content is never shared with, sold to, or made accessible to third parties beyond the AI inference providers necessary to generate analysis results (see Section 13).</li>
           <li><strong>Access Scope:</strong> We only access repositories you explicitly authorize. We request the minimum GitHub permissions necessary to perform analysis.</li>
-          <li><strong>Deletion:</strong> When you disconnect a repository or delete your account, all associated analysis results are permanently deleted within 30 days.</li>
+          <li><strong>Deletion:</strong> When you disconnect a repository or delete your account, associated analysis results and operational data are permanently deleted within 30 days. Your email and display name may be retained as described in our data retention policy for former-account communications.</li>
         </ul>
       </section>
 

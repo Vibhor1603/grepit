@@ -18,17 +18,31 @@ function ensureReadAccess(analysis, ownerEmail) {
 }
 
 async function resolveFileCode({ analysis, indexedFile, filePath, accessToken }) {
+  let code = indexedFile?.code || "";
+  let truncated = Boolean(indexedFile?.truncated);
+  let source = "analysis-cache";
+
   if (analysis.source === "github" && analysis.repo_url) {
     try {
       const normalized = normalizeGitHubRepoUrl(analysis.repo_url);
-      const ref = analysis?.results?.incremental?.revision || "HEAD";
-      const code = await fetchGitHubFileText(normalized.repoPath, ref, filePath, accessToken);
-      if (code != null) return { code, source: "github-live", truncated: false };
+      const ref =
+        analysis?.results?.repoData?.defaultBranch
+        || analysis?.architecture?.defaultBranch
+        || "main";
+      const live = await fetchGitHubFileText(normalized.repoPath, ref, filePath, accessToken);
+      if (live != null && live.length > 0) {
+        return { code: live, truncated: false, source: "github-live" };
+      }
     } catch {
       // fall through to cache
     }
   }
-  return { code: indexedFile.code || "", truncated: Boolean(indexedFile.truncated), source: "analysis-cache" };
+
+  if (!code && indexedFile?.content) {
+    code = indexedFile.content;
+  }
+
+  return { code, truncated, source };
 }
 
 function buildLocalFileInsight(indexedFile) {
@@ -78,9 +92,15 @@ export async function GET(request) {
     ensureReadAccess(analysis, ownerEmail);
 
     const indexedFile = (analysis?.results?.files || []).find(f => f.path === filePath);
-    if (!indexedFile) return NextResponse.json({ error: "File not found in this analysis." }, { status: 404 });
+    const inTree = (analysis?.file_tree || []).some((f) => f.path === filePath && f.type === "blob");
+    if (!indexedFile && !inTree) {
+      return NextResponse.json({ error: "File not found in this analysis." }, { status: 404 });
+    }
 
     const resolved = await resolveFileCode({ analysis, indexedFile, filePath, accessToken });
+    if (!resolved.code) {
+      return NextResponse.json({ error: "Could not load file contents." }, { status: 502 });
+    }
     return NextResponse.json({ path: filePath, code: resolved.code, truncated: resolved.truncated, source: resolved.source });
   } catch (error) {
     if (error.status !== 403 && error.status !== 404) {

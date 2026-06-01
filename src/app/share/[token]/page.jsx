@@ -69,18 +69,18 @@ export default function SharedChatPage() {
   return (
     <div className="h-screen bg-vb-bg1 text-vb-ink flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="h-14 border-b border-white/[0.06] flex items-center px-5 flex-shrink-0 bg-vb-bg1 z-50">
+      <header className="h-14 border-b border-c-line flex items-center px-5 flex-shrink-0 bg-vb-bg1 z-50">
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => router.push('/')}>
           <ViboMark size={18} />
           <span className="text-[15px] font-semibold tracking-tight">grep<span className="text-vb-accent">it</span></span>
         </div>
         <div className="ml-4 flex items-center gap-2">
-          <span className="text-[11px] text-vb-ink4 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.06]">Shared</span>
+          <span className="text-[11px] text-vb-ink4 bg-c-overlay-3 px-2 py-0.5 rounded-md border border-c-line">Shared</span>
           <span className="text-[12px] text-vb-ink3 truncate max-w-[200px]">{data.repoName}</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={handleCopyLink}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-vb-ink3 border border-white/[0.06] hover:bg-white/[0.04] transition-colors">
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-vb-ink3 border border-c-line hover:bg-c-overlay-3 transition-colors">
             {copied ? <Check size={12} className="text-vb-accent" /> : <Copy size={12} />}
             {copied ? 'Copied' : 'Copy link'}
           </button>
@@ -119,7 +119,7 @@ export default function SharedChatPage() {
             <div key={i} className="space-y-4">
               {/* User message */}
               <div className="flex justify-end">
-                <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl rounded-tr-sm px-4 py-3 max-w-[75%]">
+                <div className="bg-c-overlay-3 border border-c-line rounded-xl rounded-tr-sm px-4 py-3 max-w-[75%]">
                   <p className="text-[13px] text-vb-ink leading-relaxed">{msg.query}</p>
                 </div>
               </div>
@@ -140,10 +140,10 @@ export default function SharedChatPage() {
       </main>
 
       {/* Fake chat input — CTA to try the product */}
-      <div className="flex-shrink-0 px-6 md:px-10 pb-5 pt-3 bg-vb-bg1 border-t border-white/[0.04]">
+      <div className="flex-shrink-0 px-6 md:px-10 pb-5 pt-3 bg-vb-bg1 border-t border-c-line">
         <div className="max-w-[900px] mx-auto">
           <button onClick={() => router.push('/')}
-            className="w-full flex items-center border border-vb-accent/20 rounded-xl px-5 py-3.5 bg-vb-accent/[0.03] hover:bg-vb-accent/[0.06] hover:border-vb-accent/30 transition-all duration-300 group cursor-pointer shadow-[0_0_20px_rgba(224,252,16,0.03)] hover:shadow-[0_0_30px_rgba(224,252,16,0.06)]">
+            className="w-full flex items-center border border-c-accent-line rounded-xl px-5 py-3.5 bg-c-accent-soft hover:bg-c-accent-soft hover:border-c-accent-line transition-all duration-300 group cursor-pointer shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)]">
             <Sparkles size={14} className="mr-3 text-vb-accent group-hover:scale-110 transition-transform" />
             <span className="text-[13px] text-vb-ink3 group-hover:text-vb-ink2 transition-colors">Try asking about your own codebase...</span>
             <span className="ml-auto text-[11px] font-medium text-vb-accent opacity-70 group-hover:opacity-100 transition-opacity flex items-center gap-1">
@@ -156,7 +156,7 @@ export default function SharedChatPage() {
       {/* CTA Modal — appears after 10s */}
       {showCta && (
         <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center p-4 pointer-events-none">
-          <div className="pointer-events-auto w-full max-w-[400px] bg-[#111113] border border-white/[0.08] rounded-2xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)] animate-slide-up">
+          <div className="pointer-events-auto w-full max-w-[400px] bg-c-surface border border-c-line-2 rounded-2xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)] animate-slide-up">
             <button onClick={() => setShowCta(false)} className="absolute top-3 right-3 p-1 text-vb-ink4 hover:text-vb-ink3 transition-colors">
               <X size={14} />
             </button>

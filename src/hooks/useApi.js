@@ -26,10 +26,14 @@ export function useFileContent(analysisId, filePath) {
       const res = await fetch(`/api/file?id=${encodeURIComponent(analysisId)}&path=${encodeURIComponent(filePath)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load file');
-      return data.code || '// No content';
+      return {
+        code: data.code || '// No content',
+        truncated: Boolean(data.truncated),
+        source: data.source || 'unknown',
+      };
     },
     enabled: Boolean(analysisId && filePath),
-    staleTime: Infinity, // File content doesn't change — cache forever
+    staleTime: Infinity,
   });
 }
 
@@ -48,16 +52,90 @@ export function useChatHistory(analysisId) {
 }
 
 /* ── Fetch all messages in a conversation ── */
-export function useConversationMessages(conversationId) {
+export function useConversationMessages(conversationId, analysisId) {
   return useQuery({
-    queryKey: ['conversation', conversationId],
+    queryKey: ['conversation', analysisId, conversationId],
     queryFn: async () => {
-      const res = await fetch(`/api/query?conversationId=${conversationId}`);
+      const res = await fetch(`/api/query?analysisId=${encodeURIComponent(analysisId)}&conversationId=${encodeURIComponent(conversationId)}`);
       const data = await res.json();
       return data.messages || [];
     },
-    enabled: Boolean(conversationId),
+    enabled: Boolean(conversationId && analysisId),
     staleTime: 2_000,
+  });
+}
+
+/* ── Fetch conversation messages on demand ── */
+export function useFetchConversationMessages() {
+  return useMutation({
+    mutationFn: async ({ conversationId, analysisId }) => {
+      const res = await fetch(`/api/query?analysisId=${encodeURIComponent(analysisId)}&conversationId=${encodeURIComponent(conversationId)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load conversation');
+      return data.messages || [];
+    },
+  });
+}
+
+/* ── Stream chat answer (SSE) ── */
+export function useStreamChat() {
+  return useMutation({
+    mutationFn: async ({ query, analysisId, files = [], conversationId, signal }) => {
+      const res = await fetch('/api/query/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, analysisId, files, conversationId }),
+        signal,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const error = new Error(data.error || 'Stream failed');
+        error.status = res.status;
+        error.code = data.code;
+        throw error;
+      }
+      return res;
+    },
+  });
+}
+
+/* ── Share chat ── */
+export function useShareChat() {
+  return useMutation({
+    mutationFn: async ({ conversationId, analysisId }) => {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, analysisId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const error = new Error(data.error || 'Could not create share link');
+        error.code = data.code;
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/* ── Re-analyze repository ── */
+export function useReanalyzeRepo() {
+  return useMutation({
+    mutationFn: async ({ repoUrl, repoName }) => {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoUrl, repoName, force: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const error = new Error(data.error || data.message || 'Re-analysis failed');
+        error.code = data.code;
+        throw error;
+      }
+      return data;
+    },
   });
 }
 

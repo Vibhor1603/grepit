@@ -162,6 +162,33 @@ export const usage_logs = pgTable(
   ],
 );
 
+/** Internal admin login (password stored as scrypt hash; change only via DB). */
+export const admin_credentials = pgTable("admin_credentials", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  username: text("username").notNull().unique(),
+  password_hash: text("password_hash").notNull(),
+  password_salt: text("password_salt").notNull(),
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});
+
+/** Contact retained when a user deletes their account (for product comms / analytics). */
+export const deleted_user_contacts = pgTable(
+  "deleted_user_contacts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clerk_user_id: text("clerk_user_id"),
+    email: text("email").notNull().unique(),
+    name: text("name"),
+    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    metadata: jsonb("metadata").notNull().default({}),
+  },
+  (table) => [
+    index("deleted_user_contacts_email_idx").on(table.email),
+    index("deleted_user_contacts_deleted_at_idx").on(table.deleted_at),
+  ],
+);
+
 export const shared_chats = pgTable(
   "shared_chats",
   {

@@ -5,6 +5,7 @@ import { rateLimit, rateLimitKey } from "../../../lib/rateLimit";
 import { getAnalysisRecord } from "../../../lib/analysis-store";
 import { getCurrentSession, getSessionOwner } from "../../../lib/server-session";
 import { queryCodebase } from "../../../lib/codebase-index";
+import { enforceJsonBodySize, validateUserQueryInput } from "../../../lib/request-security";
 
 export async function POST(request) {
   const headersList = await headers();
@@ -16,6 +17,10 @@ export async function POST(request) {
   if (!ct.includes("application/json")) {
     return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
   }
+  const bodySizeCheck = enforceJsonBodySize(headersList, 16_384);
+  if (!bodySizeCheck.ok) {
+    return NextResponse.json({ error: bodySizeCheck.error }, { status: bodySizeCheck.status });
+  }
 
   let body;
   try { body = await request.json(); } catch {
@@ -26,12 +31,11 @@ export async function POST(request) {
   if (!analysisId || typeof analysisId !== "string") {
     return NextResponse.json({ error: "analysisId is required" }, { status: 400 });
   }
-  if (!q || typeof q !== "string" || q.trim().length === 0) {
-    return NextResponse.json({ error: "q is required" }, { status: 400 });
+  const queryValidation = validateUserQueryInput(q, { maxChars: 200 });
+  if (!queryValidation.ok) {
+    return NextResponse.json({ error: queryValidation.error, code: queryValidation.code }, { status: queryValidation.status });
   }
-  if (q.length > 200) {
-    return NextResponse.json({ error: "q too long (max 200 characters)" }, { status: 400 });
-  }
+  const safeQuery = queryValidation.value;
 
   const session = await getCurrentSession();
   const ownerEmail = await getSessionOwner(session);
@@ -42,7 +46,7 @@ export async function POST(request) {
     return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
   }
 
-  console.log("[search] query:", q.slice(0, 50), "analysisId:", analysisId);
+  console.log("[search] query:", safeQuery.slice(0, 50), "analysisId:", analysisId);
 
   try {
     const analysis = await getAnalysisRecord(analysisId);
@@ -53,12 +57,12 @@ export async function POST(request) {
       return NextResponse.json({ error: "You do not have access to this analysis." }, { status: 403 });
     }
 
-    const queryResult = queryCodebase(analysis, q, { maxFiles: 20, maxSymbols: 30, maxGraphDepth: 2 });
+    const queryResult = queryCodebase(analysis, safeQuery, { maxFiles: 20, maxSymbols: 30, maxGraphDepth: 2 });
     return NextResponse.json(queryResult);
   } catch (error) {
     Sentry.captureException(error, {
       tags: { route: "search" },
-      extra: { analysisId, q },
+      extra: { analysisId, q: safeQuery },
     });
     console.error("[search] error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });

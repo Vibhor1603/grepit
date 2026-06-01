@@ -120,17 +120,33 @@ export async function fetchGitHubRepository(repoPath, accessToken) {
 }
 
 export async function fetchGitHubFileText(repoPath, ref, filePath, accessToken) {
-  const response = await githubRequest(`/repos/${repoPath}/contents/${encodeURIComponent(filePath).replace(/%2F/g, "/")}?ref=${encodeURIComponent(ref)}`, accessToken);
+  const response = await githubRequest(
+    `/repos/${repoPath}/contents/${encodeURIComponent(filePath).replace(/%2F/g, "/")}?ref=${encodeURIComponent(ref)}`,
+    accessToken,
+  );
 
   if (!response.ok) {
     return null;
   }
 
   const payload = await response.json();
-  if (!payload?.content) {
-    return null;
+
+  if (payload?.content) {
+    const normalized = payload.content.replace(/\n/g, "");
+    return Buffer.from(normalized, "base64").toString("utf8");
   }
 
-  const normalized = payload.content.replace(/\n/g, "");
-  return Buffer.from(normalized, "base64").toString("utf8");
+  // GitHub returns download_url for files larger than ~1 MB via the contents API.
+  if (payload?.download_url) {
+    try {
+      const headers = { "User-Agent": "grepit-Code-Analyst" };
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+      const dl = await fetch(payload.download_url, { headers, cache: "no-store" });
+      if (dl.ok) return await dl.text();
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }

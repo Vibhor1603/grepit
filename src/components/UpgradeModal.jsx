@@ -158,11 +158,11 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
       onClick={handleClose}
     >
       <div
-        className="w-full max-h-[85vh] md:max-h-[90vh] md:max-w-[520px] bg-[#111113] border border-white/[0.08] rounded-t-2xl md:rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.7)] animate-slide-up overflow-y-auto"
+        className="w-full max-h-[85vh] md:max-h-[90vh] md:max-w-[520px] bg-c-surface border border-c-line-2 rounded-t-2xl md:rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.7)] animate-slide-up overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 md:px-7 pt-5 md:pt-6 pb-3 md:pb-4 sticky top-0 bg-[#111113] z-10">
+        <div className="flex items-center justify-between px-5 md:px-7 pt-5 md:pt-6 pb-3 md:pb-4 sticky top-0 bg-c-surface z-10">
           <div className="flex items-center gap-2.5">
             <Crown size={16} className="text-vb-accent" />
             <h3 className="text-[15px] md:text-[18px] font-semibold text-vb-ink">Change your plan</h3>
@@ -170,7 +170,8 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
           <button
             onClick={handleClose}
             disabled={!!loading}
-            className="p-1.5 rounded-lg text-vb-ink4 hover:text-vb-ink3 hover:bg-white/[0.04] transition-all disabled:opacity-30"
+            style={{ transition: 'color 160ms var(--ease-out-strong), background-color 160ms var(--ease-out-strong), transform 160ms var(--ease-out-strong)' }}
+            className="p-1.5 rounded-lg text-vb-ink4 hover:text-vb-ink3 hover:bg-c-overlay-3 disabled:opacity-30"
           >
             <X size={18} />
           </button>
@@ -181,10 +182,11 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
           {plans.map(plan => (
             <div
               key={plan.id}
-              className={`p-4 md:p-5 rounded-xl border transition-all ${
+              style={{ transition: 'border-color 240ms var(--ease-out-strong), background-color 240ms var(--ease-out-strong)' }}
+              className={`p-4 md:p-5 rounded-xl border ${
                 plan.highlighted
                   ? 'border-vb-accent/20 bg-vb-accent/[0.02]'
-                  : 'border-white/[0.06] bg-white/[0.02]'
+                  : 'border-c-line bg-c-overlay-1'
               }`}
             >
               {/* Plan header */}
@@ -250,11 +252,12 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
               <button
                 onClick={() => handlePlanClick(plan.id)}
                 disabled={!!loading}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 md:py-3 rounded-xl text-[12px] md:text-[13px] font-semibold transition-all disabled:opacity-50 ${
+                style={{ transition: 'background-color 200ms var(--ease-out-strong), border-color 200ms var(--ease-out-strong), transform 160ms var(--ease-out-strong)' }}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 md:py-3 rounded-xl text-[12px] md:text-[13px] font-semibold disabled:opacity-50 ${
                   plan.isDowngrade
                     ? confirmDowngrade === plan.id
                       ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
-                      : 'bg-white/[0.04] border border-white/[0.06] text-vb-ink2 hover:bg-white/[0.06]'
+                      : 'bg-c-overlay-3 border border-c-line text-vb-ink2 hover:bg-white/[0.06]'
                     : 'bg-vb-accent text-vb-bg hover:bg-vb-accent-bright'
                 }`}
               >
@@ -285,7 +288,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan = 'free' }) 
         </div>
 
         {/* Footer */}
-        <div className="px-5 md:px-7 py-3 md:py-4 border-t border-white/[0.04] bg-white/[0.01] sticky bottom-0">
+        <div className="px-5 md:px-7 py-3 md:py-4 border-t border-c-line bg-c-overlay-1 sticky bottom-0">
           <p className="text-[10px] md:text-[11px] text-vb-ink4 text-center">Cancel anytime from your profile. No long-term commitment.</p>
         </div>
       </div>

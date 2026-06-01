@@ -7,6 +7,7 @@ import { ArrowLeft, Trash2, ChevronRight, Clock, CheckCircle, AlertCircle, Loade
 import toast, { Toaster } from "react-hot-toast";
 import dynamic from "next/dynamic";
 import { PLANS } from "../../config/plans";
+import ThemeToggle from "../../components/ThemeToggle";
 
 const UpgradeModal = dynamic(() => import("../../components/UpgradeModal"), { ssr: false });
 const Footer = dynamic(() => import("../../components/Footer"), { ssr: false });
@@ -35,20 +36,21 @@ export default function ProfilePage() {
   // React Query for caching — profile data loads instantly on revisit
   // Include user.id in query key so switching accounts doesn't show stale data
   const userId = user?.id;
-  const { data: subData, isLoading: subLoading } = useQuery({
+  const { data: subData, isLoading: subLoadingRaw } = useQuery({
     queryKey: ['profile-subscription', userId],
     queryFn: () => fetch("/api/profile/subscription").then(r => r.json()),
     enabled: isSignedIn && !!userId,
     staleTime: 60_000, // Cache for 1 min
   });
-  const { data: analysesData, isLoading: analysesLoading } = useQuery({
+  const { data: analysesData, isLoading: analysesLoadingRaw } = useQuery({
     queryKey: ['profile-analyses', userId],
     queryFn: () => fetch("/api/profile/analyses").then(r => r.json()),
     enabled: isSignedIn && !!userId,
     staleTime: 60_000,
   });
 
-  const loading = subLoading || analysesLoading;
+  const subLoading = !subData && subLoadingRaw;
+  const analysesLoadingState = !analysesData && analysesLoadingRaw;
   const analyses = analysesData?.analyses?.slice(0, 5) || [];
 
   useEffect(() => {
@@ -206,34 +208,28 @@ export default function ProfilePage() {
   };
 
   const getStatusIcon = (status) => {
-    if (status === "PROCESSING") return <Loader2 size={14} className="animate-spin text-vb-accent" />;
-    if (status === "COMPLETED") return <CheckCircle size={14} className="text-green-400" />;
+    if (status === "PROCESSING") return <Loader2 size={14} className="animate-spin text-c-lime" />;
+    if (status === "COMPLETED") return <CheckCircle size={14} className="text-c-lime" />;
     if (status === "FAILED") return <AlertCircle size={14} className="text-red-400" />;
     return <Clock size={14} className="text-vb-ink4" />;
   };
 
-  if (loading || !isLoaded) {
+  if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-vb-bg">
-        <div className="h-16 border-b border-white/[0.06]" />
-        <div className="max-w-[900px] mx-auto px-6 py-10 space-y-6 animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/[0.04]" />
-            <div className="space-y-2"><div className="h-4 w-32 rounded bg-white/[0.04]" /><div className="h-3 w-48 rounded bg-white/[0.03]" /></div>
-          </div>
+      <div className="min-h-screen bg-c-bg">
+        <div className="h-14 md:h-16 border-b border-c-line" />
+        <div className="max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-10 animate-pulse space-y-6">
+          <div className="h-12 w-48 rounded-lg bg-c-overlay-2" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="h-28 rounded-xl bg-white/[0.03]" />
-            <div className="h-28 rounded-xl bg-white/[0.03]" />
-          </div>
-          <div className="space-y-2">
-            <div className="h-4 w-24 rounded bg-white/[0.04]" />
-            <div className="h-16 rounded-xl bg-white/[0.03]" />
-            <div className="h-16 rounded-xl bg-white/[0.03]" />
+            <div className="h-28 rounded-xl bg-c-overlay-2" />
+            <div className="h-28 rounded-xl bg-c-overlay-2" />
           </div>
         </div>
       </div>
     );
   }
+
+  if (!isSignedIn) return null;
 
   const isStarter = subData?.plan === "starter" && subData?.status === "active";
   const isPro = subData?.plan === "pro" && subData?.status === "active";
@@ -241,44 +237,51 @@ export default function ProfilePage() {
   const planLabel = isPro ? "Pro" : isStarter ? "Starter" : "Free";
 
   return (
-    <div className="min-h-screen bg-vb-bg text-vb-ink flex flex-col">
+    <div className="min-h-screen bg-c-bg text-c-text flex flex-col">
       <Toaster position="top-center" toastOptions={{
         duration: 10000,
-        style: { background: '#19191c', color: '#eaeaec', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', fontSize: '14px', padding: '14px 20px', maxWidth: '440px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' },
-        success: { iconTheme: { primary: '#E0FC10', secondary: '#0a0a0c' } },
-        error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+        style: { background: 'var(--c-surface)', color: 'var(--c-text)', border: '1px solid var(--c-line-2)', borderRadius: '12px', fontSize: '14px', padding: '14px 20px', maxWidth: '440px', boxShadow: 'var(--shadow-3)' },
+        success: { iconTheme: { primary: 'var(--c-accent)', secondary: 'var(--c-bg)' } },
+        error: { iconTheme: { primary: '#FCA5A5', secondary: '#fff' } },
       }} />
-      <header className="h-14 md:h-16 bg-vb-bg/70 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-4 md:px-6 sticky top-0 z-50">
+      <header className="h-14 md:h-16 bg-c-vibrancy backdrop-blur-xl border-b border-c-line flex items-center px-4 md:px-6 sticky top-0 z-50">
         <div className="cursor-pointer flex items-center gap-2.5" onClick={() => router.push('/')}>
-          <span className="text-[18px] md:text-[20px] font-semibold tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
+          <span className="text-[18px] md:text-[20px] font-semibold tracking-tight">grep<span className="text-c-lime-pastel">it</span></span>
         </div>
         <button onClick={() => router.back()} className="flex items-center gap-2 text-vb-ink3 hover:text-vb-accent transition-colors ml-4 md:ml-6">
           <ArrowLeft size={14} /> <span className="text-[12px] md:text-[13px]">Back</span>
         </button>
         <div className="ml-auto flex items-center gap-2 md:gap-3">
-          <button onClick={() => router.push("/")} className="text-[11px] md:text-[12px] font-medium text-vb-bg bg-vb-accent px-3 md:px-4 py-1.5 md:py-2 rounded-lg hover:bg-vb-accent-bright transition-all">
+          <ThemeToggle />
+          <button onClick={() => router.push("/")} className="text-[11px] md:text-[12px] font-medium text-c-bg bg-c-accent px-3 md:px-4 py-1.5 md:py-2 rounded-lg hover:bg-c-accent-bright transition-all">
             New Analysis
           </button>
-          <SignOutButton><button className="text-[11px] md:text-[12px] text-vb-ink2 hover:text-vb-accent px-2.5 md:px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-vb-accent/20 transition-all">Sign out</button></SignOutButton>
+          <SignOutButton><button className="text-[11px] md:text-[12px] text-vb-ink2 hover:text-vb-accent px-2.5 md:px-3 py-1.5 rounded-lg border border-c-line-2 hover:border-vb-accent/20 transition-all">Sign out</button></SignOutButton>
         </div>
       </header>
 
       <main className="max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-10">
         <div className="flex items-start md:items-center gap-3 md:gap-4 mb-8 md:mb-10">
-          {user?.imageUrl && <img src={user.imageUrl} alt="" className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/[0.08] flex-shrink-0" />}
+          {user?.imageUrl && <img src={user.imageUrl} alt="" className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-c-line-2 flex-shrink-0" />}
           <div className="min-w-0 flex-1">
             <h1 className="text-[16px] md:text-[20px] font-semibold truncate">{user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.emailAddresses?.[0]?.emailAddress}</h1>
             <p className="text-[11px] md:text-[12px] text-vb-ink4 truncate">{user?.emailAddresses?.[0]?.emailAddress}</p>
           </div>
-          {isPaid && <span className="flex-shrink-0 flex items-center gap-1.5 text-[10px] md:text-[11px] font-semibold bg-vb-accent/10 text-vb-accent px-2.5 md:px-3 py-1 md:py-1.5 rounded-full border border-vb-accent/20"><Crown size={11} /> {planLabel}</span>}
-          {!isPaid && <span className="flex-shrink-0 flex items-center gap-1.5 text-[10px] md:text-[11px] font-medium bg-white/[0.04] text-vb-ink3 px-2.5 md:px-3 py-1 md:py-1.5 rounded-full border border-white/[0.06]">Free</span>}
+          {isPaid && <span className="flex-shrink-0 flex items-center gap-1.5 text-[10px] md:text-[11px] font-semibold bg-c-lime-soft text-c-lime px-2.5 md:px-3 py-1 md:py-1.5 rounded-full border border-c-lime-line"><Crown size={11} /> {planLabel}</span>}
+          {!isPaid && <span className="flex-shrink-0 flex items-center gap-1.5 text-[10px] md:text-[11px] font-medium bg-c-overlay-3 text-vb-ink3 px-2.5 md:px-3 py-1 md:py-1.5 rounded-full border border-c-line">Free</span>}
         </div>
 
         {/* Two-column grid for subscription + github */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
           {/* Subscription */}
-          <div className="bg-[#111113] border border-white/[0.06] rounded-xl p-5">
+          <div className="bg-c-surface border border-c-line rounded-xl p-5">
             <h2 className="text-[11px] text-vb-ink4 uppercase tracking-wider font-medium mb-3">Subscription</h2>
+            {subLoading ? (
+              <div className="space-y-2 animate-pulse">
+                <div className="h-4 w-20 rounded bg-c-overlay-3" />
+                <div className="h-3 w-40 rounded bg-c-overlay-2" />
+              </div>
+            ) : (
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[15px] font-semibold">{planLabel}</span>
@@ -295,16 +298,16 @@ export default function ProfilePage() {
               {isPaid ? (
                 <div className="flex flex-wrap items-center gap-2">
                   {subData?.scheduledChange ? (
-                    <button onClick={handleUndoCancel} disabled={undoLoading} className="flex items-center gap-1.5 text-[11px] text-vb-accent hover:text-vb-accent-bright transition-colors border border-vb-accent/20 hover:border-vb-accent/40 rounded-lg px-3 py-1.5 disabled:opacity-50">
+                    <button onClick={handleUndoCancel} disabled={undoLoading} className="flex items-center gap-1.5 text-[11px] font-medium text-c-accent hover:text-c-accent-bright transition-colors bg-c-accent-soft hover:bg-c-accent-soft/70 rounded-lg px-3 py-1.5 disabled:opacity-50">
                       {undoLoading ? <Loader2 size={11} className="animate-spin" /> : null}
                       Undo {subData.scheduledChange === 'cancel' ? 'cancellation' : 'plan change'}
                     </button>
                   ) : (
                     <>
-                      <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors border border-white/[0.06] hover:border-vb-accent/20 rounded-lg px-3 py-1.5">
+                      <button onClick={() => setShowUpgradeModal(true)} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors border border-c-line hover:border-vb-accent/20 rounded-lg px-3 py-1.5">
                         Modify plan
                       </button>
-                      <button onClick={handleOpenBillingPortal} disabled={billingLoading} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-ink transition-colors border border-white/[0.06] hover:border-white/[0.12] rounded-lg px-3 py-1.5 disabled:opacity-50">
+                      <button onClick={handleOpenBillingPortal} disabled={billingLoading} className="flex items-center gap-1.5 text-[11px] text-vb-ink3 hover:text-vb-ink transition-colors border border-c-line hover:border-c-line-3 rounded-lg px-3 py-1.5 disabled:opacity-50">
                         {billingLoading ? <Loader2 size={11} className="animate-spin" /> : <CreditCard size={11} />} Manage billing
                       </button>
                     </>
@@ -316,14 +319,21 @@ export default function ProfilePage() {
                 </button>
               )}
             </div>
+            )}
           </div>
 
           {/* GitHub Connection */}
-          <div className="bg-[#111113] border border-white/[0.06] rounded-xl p-5">
+          <div className="bg-c-surface border border-c-line rounded-xl p-5">
             <h2 className="text-[11px] text-vb-ink4 uppercase tracking-wider font-medium mb-3">GitHub</h2>
+            {subLoading ? (
+              <div className="space-y-2 animate-pulse">
+                <div className="h-4 w-24 rounded bg-c-overlay-3" />
+                <div className="h-3 w-36 rounded bg-c-overlay-2" />
+              </div>
+            ) : (
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <Github size={16} className={`flex-shrink-0 ${subData?.githubConnected ? "text-vb-accent" : "text-vb-ink4"}`} />
+                <Github size={16} className={`flex-shrink-0 ${subData?.githubConnected ? "text-c-lime" : "text-vb-ink4"}`} />
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium">{subData?.githubConnected ? "Connected" : "Not connected"}</p>
                   <p className="text-[11px] text-vb-ink4 truncate">{subData?.githubConnected ? "Private repositories unlocked" : "Required for private repos"}</p>
@@ -350,14 +360,20 @@ export default function ProfilePage() {
                 </button>
               )}
             </div>
+            )}
           </div>
         </div>
 
         {/* Past Analyses */}
         <section>
           <h2 className="text-[11px] text-vb-ink4 uppercase tracking-wider font-medium mb-3">Past Analyses</h2>
-          {analyses.length === 0 ? (
-            <div className="bg-[#111113] border border-white/[0.06] rounded-xl p-8 text-center">
+          {analysesLoadingState ? (
+            <div className="space-y-2 animate-pulse">
+              <div className="h-16 rounded-xl bg-c-overlay-2" />
+              <div className="h-16 rounded-xl bg-c-overlay-2" />
+            </div>
+          ) : analyses.length === 0 ? (
+            <div className="bg-c-surface border border-c-line rounded-xl p-8 text-center">
               <p className="text-[13px] text-vb-ink3 mb-3">No analyses yet</p>
               <button onClick={() => router.push("/")} className="text-[12px] font-medium bg-vb-accent text-vb-bg px-4 py-2 rounded-lg hover:bg-vb-accent-bright transition-all">Analyze your first codebase</button>
             </div>
@@ -365,15 +381,15 @@ export default function ProfilePage() {
             <div className="space-y-2">
               {analyses.map((a) => (
                 <div key={a.id} onClick={() => router.push(`/dashboard?id=${a.id}`)}
-                  className="bg-[#111113] border border-white/[0.06] hover:border-vb-accent/20 rounded-xl p-4 cursor-pointer transition-all group flex items-center justify-between">
+                  className="bg-c-surface border border-c-line hover:border-c-lime-line rounded-xl p-4 cursor-pointer transition-all group flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     {getStatusIcon(a.status)}
                     <div className="min-w-0">
-                      <p className="text-[13px] font-medium group-hover:text-vb-accent transition-colors truncate">{a.repo_name || a.repo_url}</p>
+                      <p className="text-[13px] font-medium group-hover:text-c-lime transition-colors truncate">{a.repo_name || a.repo_url}</p>
                       <p className="text-[11px] text-vb-ink4 truncate">{new Date(a.created_at).toLocaleDateString()}{a.total_files ? ` · ${a.total_files} files` : ""}</p>
                     </div>
                   </div>
-                  <ChevronRight size={14} className="text-vb-ink4 group-hover:text-vb-accent transition-colors flex-shrink-0" />
+                  <ChevronRight size={14} className="text-vb-ink4 group-hover:text-c-lime transition-colors flex-shrink-0" />
                 </div>
               ))}
             </div>
@@ -382,15 +398,15 @@ export default function ProfilePage() {
 
         {/* Danger Zone */}
         <section className="mt-10">
-          <h2 className="text-[11px] text-vb-red uppercase tracking-wider font-medium mb-3">Danger Zone</h2>
-          <div className="bg-[#111113] border border-vb-red/20 rounded-xl p-4 md:p-5">
+          <h2 className="text-[11px] text-c-coral uppercase tracking-wider font-medium mb-3">Danger Zone</h2>
+          <div className="bg-c-surface-2 rounded-xl p-4 md:p-5">
             <div className="flex items-start md:items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[12px] md:text-[13px] font-medium text-vb-ink">Delete account</p>
-                <p className="text-[10px] md:text-[11px] text-vb-ink4 mt-0.5">Permanently delete your account and all data. This cannot be undone.</p>
+                <p className="text-[12px] md:text-[13px] font-medium text-c-text">Delete account</p>
+                <p className="text-[10px] md:text-[11px] text-c-text-3 mt-0.5">Permanently delete your account and all data. This cannot be undone.</p>
               </div>
               <button onClick={() => setShowDeleteModal(true)}
-                className="flex-shrink-0 flex items-center gap-1.5 text-[11px] text-vb-red border border-vb-red/20 hover:bg-vb-red/[0.06] rounded-lg px-3 py-1.5 transition-all whitespace-nowrap">
+                className="flex-shrink-0 flex items-center gap-1.5 text-[11px] font-medium text-c-coral bg-c-coral-soft hover:opacity-90 rounded-lg px-3 py-1.5 transition-all whitespace-nowrap">
                 <Trash2 size={11} /> Delete
               </button>
             </div>
@@ -401,18 +417,18 @@ export default function ProfilePage() {
       {/* Disconnect GitHub Modal */}
       {showDisconnectModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowDisconnectModal(false)}>
-          <div className="w-full max-w-[380px] bg-[#111113] border border-white/[0.08] rounded-xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)]" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[380px] bg-c-surface border border-c-line-2 rounded-xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)]" onClick={e => e.stopPropagation()}>
             <h3 className="text-[15px] font-semibold text-vb-ink mb-2">Disconnect GitHub?</h3>
             <p className="text-[12px] text-vb-ink3 leading-relaxed mb-5">
               Private repositories will no longer be accessible until you reconnect. Your existing analyses will remain.
             </p>
             <div className="flex gap-2">
               <button onClick={() => setShowDisconnectModal(false)}
-                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-c-text-2 bg-c-overlay-2 hover:bg-c-overlay-3 transition-colors">
                 Cancel
               </button>
               <button onClick={handleDisconnectGithub}
-                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-red-400 border border-red-400/20 bg-red-400/[0.06] hover:bg-red-400/[0.12] transition-colors">
+                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-c-coral bg-c-coral-soft hover:opacity-90 transition-colors">
                 Disconnect
               </button>
             </div>
@@ -423,10 +439,10 @@ export default function ProfilePage() {
       {/* Delete Account Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowDeleteModal(false)}>
-          <div className="w-full max-w-[420px] bg-[#111113] border border-white/[0.08] rounded-xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)]" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[420px] bg-c-surface border border-c-line-2 rounded-xl p-6 shadow-[0_32px_80px_rgba(0,0,0,0.7)]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-vb-red/10 border border-vb-red/20 flex items-center justify-center">
-                <AlertCircle size={18} className="text-vb-red" />
+              <div className="w-10 h-10 rounded-xl bg-c-coral-soft flex items-center justify-center">
+                <AlertCircle size={18} className="text-c-coral" />
               </div>
               <div>
                 <h3 className="text-[15px] font-semibold text-vb-ink">Delete your account?</h3>
@@ -434,7 +450,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="bg-vb-red/[0.04] border border-vb-red/10 rounded-lg p-4 mb-5">
+            <div className="bg-c-coral-soft rounded-lg p-4 mb-5">
               <p className="text-[12px] text-vb-ink2 leading-relaxed">
                 This will permanently delete:
               </p>
@@ -455,13 +471,13 @@ export default function ProfilePage() {
                 value={deleteConfirmText}
                 onChange={e => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE"
-                className="w-full h-9 px-3 rounded-lg bg-[#0a0a0c] border border-white/[0.08] text-[13px] text-vb-ink font-mono placeholder:text-vb-ink4 outline-none focus:border-vb-red/30"
+                className="w-full h-9 px-3 rounded-lg bg-c-bg border border-c-line-2 text-[13px] text-vb-ink font-mono placeholder:text-vb-ink4 outline-none focus:border-vb-red/30"
               />
             </div>
 
             <div className="flex gap-2">
               <button onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); }}
-                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-vb-ink2 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+                className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-c-text-2 bg-c-overlay-2 hover:bg-c-overlay-3 transition-colors">
                 Cancel
               </button>
               <button onClick={handleDeleteAccount} disabled={deleteConfirmText !== 'DELETE' || deleting}

@@ -13,6 +13,7 @@ import { queryCodebase } from "../lib/codebase-index";
 import { checkGate, logUsage } from "../lib/subscription-gate";
 import { getPromptSecurityPreamble, normalizeAssistantOpening } from "../lib/prompt-security";
 import { collectRelevantContext, hydratePromptFiles } from "../lib/query-context";
+import { enforceJsonBodySize, validateUserQueryInput } from "../lib/request-security";
 
 // ── Context builder ────────────────────────────────────────────────────────
 // Hard-cap at ~48,000 chars (~12,000 tokens) before sending to the AI provider.
@@ -129,6 +130,10 @@ export async function handleQueryPost(request) {
   if (!ct.includes("application/json")) {
     return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
   }
+  const bodySizeCheck = enforceJsonBodySize(headersList);
+  if (!bodySizeCheck.ok) {
+    return NextResponse.json({ error: bodySizeCheck.error }, { status: bodySizeCheck.status });
+  }
 
   // Parse body
   let body;
@@ -138,12 +143,12 @@ export async function handleQueryPost(request) {
   const { query, analysisId } = body;
 
   // Input validation
-  if (!query || typeof query !== "string" || query.trim().length === 0) {
-    return NextResponse.json({ error: "query is required and cannot be empty" }, { status: 400 });
+  const queryValidation = validateUserQueryInput(query);
+  if (!queryValidation.ok) {
+    return NextResponse.json({ error: queryValidation.error, code: queryValidation.code }, { status: queryValidation.status });
   }
-  if (query.length > 2000) {
-    return NextResponse.json({ error: "query too long (max 2000 characters)" }, { status: 400 });
-  }
+  const safeQuery = queryValidation.value;
+
   if (!analysisId || typeof analysisId !== "string") {
     return NextResponse.json({ error: "analysisId is required" }, { status: 400 });
   }
@@ -184,7 +189,7 @@ export async function handleQueryPost(request) {
     let response = buildQueryResponse(analysis, query);
 
     if (isAIConfigured()) {
-      const { queryResult, promptFiles: basePromptFiles, missingCandidates, promptSecurity } = collectRelevantContext(analysis, query, {
+      const { queryResult, promptFiles: basePromptFiles, missingCandidates, promptSecurity } = collectRelevantContext(analysis, safeQuery, {
         maxFiles: 6,
         maxCodeCharsPerFile: 4000,
       });
@@ -273,7 +278,7 @@ Codebase Context:
 ${context}`,
           },
           ...historyMessages,
-          { role: "user", content: query },
+          { role: "user", content: safeQuery },
         ],
       }));
 
@@ -305,13 +310,13 @@ ${context}`,
     createQueryHistory({
       analysis_id: analysisId,
       owner_email: ownerEmail,
-      query,
+      query: safeQuery,
       response,
     }).catch(() => {});
 
     logUsage(session.userId, "ai_query", {
       analysis_id: analysisId,
-      query_length: query.length,
+      query_length: safeQuery.length,
       response_length: response.length,
     }).catch(() => {});
 
@@ -334,6 +339,10 @@ ${context}`,
  * @returns {Promise<NextResponse>} JSON response with conversations or messages
  */
 export async function handleQueryGet(request) {
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0].trim()
+    || headersList.get("x-real-ip")
+    || "unknown";
   const { searchParams } = new URL(request.url);
   const analysisId = searchParams.get('analysisId');
   const conversationId = searchParams.get('conversationId');
@@ -341,6 +350,23 @@ export async function handleQueryGet(request) {
   if (!analysisId && !conversationId) return NextResponse.json({ error: 'analysisId or conversationId required' }, { status: 400 });
 
   try {
+    const session = await getCurrentSession();
+    const ownerEmail = await getSessionOwner(session);
+    const rlKey = rateLimitKey("query-get", ip, ownerEmail);
+    const limit = await rateLimit(rlKey, ownerEmail ? 60 : 10, 60_000);
+    if (!limit.success) {
+      return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
+    }
+
+    if (!analysisId) {
+      return NextResponse.json({ error: "analysisId is required." }, { status: 400 });
+    }
+    const analysis = await getAnalysisRecord(analysisId).catch(() => null);
+    if (!analysis) return NextResponse.json({ error: "Analysis not found." }, { status: 404 });
+    if (analysis.owner_email && analysis.owner_email !== ownerEmail) {
+      return NextResponse.json({ error: "You do not have access to this analysis." }, { status: 403 });
+    }
+
     // If conversationId provided, return all messages in that conversation
     if (conversationId) {
       const messages = await getConversationMessages(conversationId, { limit: 100 }).catch(() => []);
@@ -363,6 +389,19 @@ export async function handleQueryGet(request) {
  * @returns {Promise<NextResponse>} JSON response indicating success or error
  */
 export async function handleQueryDelete(request) {
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0].trim()
+    || headersList.get("x-real-ip")
+    || "unknown";
+  const ct = headersList.get("content-type") || "";
+  if (!ct.includes("application/json")) {
+    return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
+  }
+  const bodySizeCheck = enforceJsonBodySize(headersList);
+  if (!bodySizeCheck.ok) {
+    return NextResponse.json({ error: bodySizeCheck.error }, { status: bodySizeCheck.status });
+  }
+
   let body;
   try { body = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
@@ -371,6 +410,22 @@ export async function handleQueryDelete(request) {
   const { analysisId, conversationId, query, deleteAll } = body;
 
   try {
+    const session = await getCurrentSession();
+    const ownerEmail = await getSessionOwner(session);
+    const rlKey = rateLimitKey("query-delete", ip, ownerEmail);
+    const limit = await rateLimit(rlKey, ownerEmail ? 20 : 5, 60_000);
+    if (!limit.success) {
+      return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
+    }
+    if (!analysisId) {
+      return NextResponse.json({ error: "analysisId is required." }, { status: 400 });
+    }
+    const analysis = await getAnalysisRecord(analysisId).catch(() => null);
+    if (!analysis) return NextResponse.json({ error: "Analysis not found." }, { status: 404 });
+    if (analysis.owner_email && analysis.owner_email !== ownerEmail) {
+      return NextResponse.json({ error: "You do not have access to this analysis." }, { status: 403 });
+    }
+
     if (deleteAll && analysisId) {
       const { getDb } = await import("../lib/db");
       const { query_history } = await import("../db/schema");

@@ -166,7 +166,7 @@ function SymbolCard({ symbol, kind, usedBy = [] }) {
       <button
         onClick={() => setExpanded(!expanded)}
         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-150 group/sym ${
-          expanded ? 'bg-white/[0.05]' : 'hover:bg-white/[0.03]'
+          expanded ? 'bg-c-overlay-4' : 'hover:bg-c-overlay-2'
         }`}
       >
         <ChevronDown
@@ -248,7 +248,7 @@ function SymbolCard({ symbol, kind, usedBy = [] }) {
               <span className="text-[10px] text-vb-ink4 block mb-1">Referenced in</span>
               <div className="flex flex-wrap gap-1.5">
                 {usedByFiles.slice(0, 5).map((f, i) => (
-                  <span key={i} className="px-1.5 py-0.5 rounded-md bg-white/[0.04] text-[10px] font-mono text-vb-ink3">
+                  <span key={i} className="px-1.5 py-0.5 rounded-md bg-c-overlay-3 text-[10px] font-mono text-vb-ink3">
                     {f}
                   </span>
                 ))}
@@ -260,7 +260,7 @@ function SymbolCard({ symbol, kind, usedBy = [] }) {
           )}
 
           {/* Signature + copy — subtle footer */}
-          <div className="flex items-center gap-2 pt-2 border-t border-white/[0.04]">
+          <div className="flex items-center gap-2 pt-2 border-t border-c-line">
             <code className="text-[10px] font-mono text-vb-ink4 truncate flex-1">{signature}</code>
             <CopyBtn text={signature} />
           </div>
@@ -278,7 +278,7 @@ function Section({ icon: Icon, label, count, color, children }) {
     <div className="mb-2">
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white/[0.02] rounded-lg transition-colors"
+        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-c-overlay-1 rounded-lg transition-colors"
       >
         <Icon size={12} className={color} />
         <span className="text-[11px] font-semibold text-vb-ink2 uppercase tracking-wide flex-1 text-left">{label}</span>
@@ -297,10 +297,10 @@ function Section({ icon: Icon, label, count, color, children }) {
 /* ── Empty state ── */
 function EmptyState({ fileKind }) {
   const config = {
-    stylesheet: { emoji: '🎨', title: 'Stylesheet', desc: 'Contains selectors, custom properties, and animations — no executable symbols.' },
-    markup: { emoji: '📄', title: 'Markup', desc: 'Contains HTML structure and tags — no functions or classes.' },
-    config: { emoji: '⚙️', title: 'Configuration', desc: 'Contains key-value settings — no executable code.' },
-    docs: { emoji: '📝', title: 'Documentation', desc: 'Contains headings and prose — no code symbols.' },
+    stylesheet: { emoji: '🎨', title: 'Stylesheet', desc: 'Contains selectors, custom properties, and animations. No executable symbols.' },
+    markup: { emoji: '📄', title: 'Markup', desc: 'Contains HTML structure and tags. No functions or classes.' },
+    config: { emoji: '⚙️', title: 'Configuration', desc: 'Contains key-value settings. No executable code.' },
+    docs: { emoji: '📝', title: 'Documentation', desc: 'Contains headings and prose. No code symbols.' },
   };
   const { emoji, title, desc } = config[fileKind] || { emoji: '📦', title: 'No symbols', desc: 'No functions, classes, or methods detected in this file.' };
 

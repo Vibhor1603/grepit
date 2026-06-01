@@ -314,7 +314,7 @@ export async function checkGate(userId, feature) {
     case "repo_analyze": {
       const usageCount = await getAnalysisCount(userId);
       if (usageCount >= plan.maxRepos) {
-        return { allowed: false, plan: userPlan, reason: `You've reached your ${plan.name} plan limit of ${plan.maxRepos} repositories. Upgrade to add more — your existing analyses are still accessible.`, code: "REPO_LIMIT_REACHED" };
+        return { allowed: false, plan: userPlan, reason: `You've reached your ${plan.name} plan limit of ${plan.maxRepos} repositories. Upgrade to add more. Your existing analyses are still accessible.`, code: "REPO_LIMIT_REACHED" };
       }
       return { allowed: true, plan: userPlan };
     }

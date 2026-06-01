@@ -1,19 +1,20 @@
 "use client";
-import { useRef, useState, useEffect } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
+import MermaidDiagram from './MermaidDiagram';
+import { looksLikeMermaid } from '../utils/client/mermaid';
 
 const viboCodeTheme = {
   ...themes.vsDark,
-  plain: { color: '#b0b0b8', backgroundColor: 'transparent' },
+  plain: { color: 'var(--c-text-2)', backgroundColor: 'transparent' },
   styles: [
-    { types: ['keyword', 'builtin'], style: { color: '#E0FC10' } },
+    { types: ['keyword', 'builtin'], style: { color: 'var(--c-accent)' } },
     { types: ['function', 'method'], style: { color: '#7ca8e8' } },
     { types: ['string', 'char'], style: { color: '#7dd3a8' } },
     { types: ['number', 'boolean'], style: { color: '#e4c06c' } },
-    { types: ['comment'], style: { color: '#4a4a54', fontStyle: 'italic' } },
+    { types: ['comment'], style: { color: '#3A4350', fontStyle: 'italic' } },
     { types: ['class-name', 'type'], style: { color: '#b4a0d4' } },
-    { types: ['operator', 'punctuation'], style: { color: '#787884' } },
-    { types: ['variable', 'constant'], style: { color: '#eaeaec' } },
+    { types: ['operator', 'punctuation'], style: { color: 'var(--c-text-3)' } },
+    { types: ['variable', 'constant'], style: { color: 'var(--c-text)' } },
     { types: ['property'], style: { color: '#7cc8d4' } },
     { types: ['tag'], style: { color: '#e87c7c' } },
     { types: ['attr-name'], style: { color: '#e4c06c' } },
@@ -21,95 +22,9 @@ const viboCodeTheme = {
   ],
 };
 
-function MermaidDiagram({ code }) {
-  const containerRef = useRef(null);
-  const [svg, setSvg] = useState('');
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    if (!code) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const mermaid = (await import('mermaid')).default;
-        mermaid.initialize({
-          startOnLoad: false,
-          suppressErrors: true,
-          logLevel: 'fatal',
-          securityLevel: 'loose',
-          theme: 'dark',
-          themeVariables: {
-            primaryColor: '#1e1e24',
-            primaryTextColor: '#eaeaec',
-            primaryBorderColor: '#E0FC10',
-            lineColor: '#5c5c66',
-            secondaryColor: '#16161a',
-            tertiaryColor: '#1c1c20',
-            background: '#0a0a0c',
-          },
-          flowchart: { htmlLabels: false, curve: 'basis', nodeSpacing: 30, rankSpacing: 50, padding: 15 },
-        });
-
-        // Sanitize: move classDef/class lines to end, fix common issues
-        let lines = code.split('\n');
-        const classLines = [];
-        const otherLines = [];
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('classDef ') || trimmed.startsWith('class ')) {
-            classLines.push(trimmed);
-          } else {
-            otherLines.push(line);
-          }
-        }
-        const sanitized = [...otherLines, ...classLines].join('\n')
-          .replace(/\|>/g, '|')
-          .replace(/[\u201C\u201D]/g, '"')
-          .replace(/\["([^"]*?)"\]/g, (_, label) => {
-            const clean = label.replace(/[./\\<>(){}]/g, ' ').replace(/\s+/g, ' ').trim();
-            return `["${clean}"]`;
-          })
-          .replace(/\|"([^"]*?)"\|/g, (_, label) => {
-            const clean = label.replace(/[/\\<>(){}]/g, ' ').replace(/\s+/g, ' ').trim();
-            return `|"${clean}"|`;
-          })
-          .replace(/-->\|([^"|][^|]*)\|/g, (match, label) => {
-            if (/[/\\.<>(){}]/.test(label)) {
-              const clean = label.replace(/[/\\<>(){}]/g, ' ').replace(/\s+/g, ' ').trim();
-              return `-->|"${clean}"|`;
-            }
-            return match;
-          });
-
-        const id = `mermaid-shared-${Math.random().toString(36).slice(2, 8)}`;
-        const { svg: rendered } = await mermaid.render(id, sanitized);
-        if (!cancelled) setSvg(rendered);
-      } catch (e) {
-        if (!cancelled) setFailed(true);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [code]);
-
-  if (!svg) {
-    return (
-      <div className="mb-4 p-4 rounded-xl border border-white/[0.08] bg-[#0a0a0c]">
-        <pre className="text-[11px] text-vb-ink4 font-mono whitespace-pre-wrap">{code}</pre>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mb-4 rounded-xl border border-white/[0.08] overflow-hidden bg-[#0a0a0c] p-4">
-      <div dangerouslySetInnerHTML={{ __html: svg }} className="flex justify-center [&_svg]:max-w-full [&_svg]:h-auto" />
-    </div>
-  );
-}
-
 /**
- * Shared markdown renderer — matches the dashboard chat UI exactly.
- * Handles: headings, bold, italic, code blocks with syntax highlighting,
- * mermaid diagrams, tables, ordered/unordered lists, inline code.
+ * Shared markdown renderer — matches the dashboard chat UI.
+ * Handles headings, code blocks, mermaid diagrams (all types), tables, lists.
  */
 export default function SharedMarkdown({ content }) {
   const lines = content.split('\n');
@@ -125,7 +40,7 @@ export default function SharedMarkdown({ content }) {
     while (rem.length > 0) {
       const cm = rem.match(/^`([^`]+)`/);
       if (cm) {
-        result.push(<code key={k++} className="px-1.5 py-0.5 bg-white/[0.04] rounded text-[12px] font-mono text-vb-ink">{cm[1]}</code>);
+        result.push(<code key={k++} className="px-1.5 py-0.5 bg-c-overlay-3 rounded text-[12px] font-mono text-vb-ink">{cm[1]}</code>);
         rem = rem.slice(cm[0].length); continue;
       }
       const bm = rem.match(/^\*\*(.+?)\*\*/);
@@ -155,7 +70,7 @@ export default function SharedMarkdown({ content }) {
       <div key={key} className="overflow-x-auto mb-4 rounded-lg border border-vb-accent/15">
         <table className="w-full text-[12px]">
           <thead><tr className="border-b border-vb-accent/20 bg-vb-accent/[0.04]">{headers.map((h, i) => <th key={i} className="px-4 py-2.5 text-left text-vb-accent-bright font-semibold text-[11px] uppercase tracking-wide">{h}</th>)}</tr></thead>
-          <tbody>{dataRows.map((row, i) => <tr key={i} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">{row.map((cell, j) => <td key={j} className="px-4 py-2.5 text-vb-ink2">{renderInline(cell)}</td>)}</tr>)}</tbody>
+          <tbody>{dataRows.map((row, i) => <tr key={i} className="border-b border-c-line last:border-0 hover:bg-c-overlay-1">{row.map((cell, j) => <td key={j} className="px-4 py-2.5 text-vb-ink2">{renderInline(cell)}</td>)}</tr>)}</tbody>
         </table>
       </div>
     );
@@ -164,22 +79,23 @@ export default function SharedMarkdown({ content }) {
 
   const flushCode = (key) => {
     if (!codeLines.length) return;
-    if (codeLang === 'mermaid') {
-      elements.push(<MermaidDiagram key={key} code={codeLines.join('\n')} />);
+    const codeText = codeLines.join('\n');
+    if (looksLikeMermaid(codeText, codeLang)) {
+      elements.push(<MermaidDiagram key={key} code={codeText} allowFullscreen={false} />);
     } else {
       elements.push(
-        <div key={key} className="mb-4 min-w-[60%] max-w-full rounded-xl border border-white/[0.08] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
-          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] bg-white/[0.03]">
+        <div key={key} className="mb-4 min-w-[60%] max-w-full rounded-xl border border-c-line-2 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-c-line bg-c-overlay-2">
             <div className="flex items-center gap-[5px]">
               <span className="w-[8px] h-[8px] rounded-full bg-[#ff5f57]" />
               <span className="w-[8px] h-[8px] rounded-full bg-[#febc2e]" />
-              <span className="w-[8px] h-[8px] rounded-full bg-[#28c840]" />
+              <span className="w-[8px] h-[8px] rounded-full bg-c-lime" />
             </div>
             {codeLang && <span className="text-[10px] text-vb-ink4 font-mono ml-2">{codeLang}</span>}
           </div>
-          <Highlight theme={viboCodeTheme} code={codeLines.join('\n')} language={codeLang || 'javascript'}>
+          <Highlight theme={viboCodeTheme} code={codeText} language={codeLang || 'javascript'}>
             {({ tokens: codeTokens, getLineProps, getTokenProps }) => (
-              <pre className="px-4 py-3 overflow-x-auto bg-[#0a0a0c] m-0 text-[12px]">
+              <pre className="px-4 py-3 overflow-x-auto bg-c-bg m-0 text-[12px]">
                 {codeTokens.map((line, li) => (
                   <div key={li} {...getLineProps({ line })} className="leading-[1.6]">
                     {line.map((token, ti) => <span key={ti} {...getTokenProps({ token })} />)}

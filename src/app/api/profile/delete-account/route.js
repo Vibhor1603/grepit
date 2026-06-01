@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getDb } from "../../../../lib/db";
-import { analyses, query_history, subscriptions, usage_logs, shared_chats, conversations } from "../../../../db/schema";
+import {
+  analyses,
+  query_history,
+  subscriptions,
+  usage_logs,
+  shared_chats,
+  conversations,
+  deleted_user_contacts,
+} from "../../../../db/schema";
 import { eq } from "drizzle-orm";
 import { getSubscription } from "../../../../lib/subscription-gate";
 
@@ -62,7 +70,22 @@ export async function DELETE() {
     // Delete subscription record
     await db.delete(subscriptions).where(eq(subscriptions.user_id, userId)).catch(() => {});
 
-    // 3. Delete Clerk user (this signs them out everywhere)
+    // 3. Archive contact for product communications (retained per Privacy Policy)
+    if (ownerEmail) {
+      const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || null;
+      await db
+        .insert(deleted_user_contacts)
+        .values({
+          clerk_user_id: userId,
+          email: ownerEmail,
+          name: fullName,
+          metadata: { source: "account_deletion" },
+        })
+        .onConflictDoNothing({ target: deleted_user_contacts.email })
+        .catch((err) => console.warn("[delete-account] archive contact:", err.message));
+    }
+
+    // 4. Delete Clerk user (this signs them out everywhere)
     await client.users.deleteUser(userId);
 
     console.log("[delete-account] Successfully deleted user:", userId);

@@ -16,7 +16,7 @@ export default function RefundPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">1. General Policy</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
-          All paid subscriptions to grepit — including Starter ($15/mo, 3 repositories) and Pro ($30/mo, 7 repositories) — are billed on a recurring monthly basis. We do not provide refunds for:
+          All paid subscriptions to grepit, including Starter ($15/mo, 3 repositories) and Pro ($30/mo, 7 repositories), are billed on a recurring monthly basis. We do not provide refunds for:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li>Partial billing periods or unused days remaining in a billing cycle.</li>
@@ -32,7 +32,7 @@ export default function RefundPage() {
           We may issue a refund under the following limited circumstances:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>First Subscription — 48-Hour Window:</strong> If you subscribe to a paid plan for the first time and the Service does not work as described (e.g., core features are non-functional, analysis fails to generate results), you may request a full refund within 48 hours of your initial subscription payment.</li>
+          <li><strong>First Subscription, 48-Hour Window:</strong> If you subscribe to a paid plan for the first time and the Service does not work as described (e.g., core features are non-functional, analysis fails to generate results), you may request a full refund within 48 hours of your initial subscription payment.</li>
           <li><strong>Duplicate Charges:</strong> If you are charged more than once for the same billing period due to a technical error, we will refund the duplicate charge.</li>
           <li><strong>Service Outage:</strong> In rare cases of extended, unscheduled downtime (exceeding 72 consecutive hours) that prevents you from using the Service entirely, we may issue a prorated credit at our discretion.</li>
         </ul>
@@ -83,7 +83,7 @@ export default function RefundPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">6. Upgrades</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed">
-          When you upgrade from one plan to another (e.g., starter to Pro), you are charged a prorated amount for the remainder of your current billing cycle. These prorated upgrade charges are non-refundable. If you wish to downgrade after upgrading, the downgrade will take effect at the start of your next billing cycle — no refund is issued for the prorated upgrade charge already paid.
+          When you upgrade from one plan to another (e.g., starter to Pro), you are charged a prorated amount for the remainder of your current billing cycle. These prorated upgrade charges are non-refundable. If you wish to downgrade after upgrading, the downgrade will take effect at the start of your next billing cycle. No refund is issued for the prorated upgrade charge already paid.
         </p>
       </section>
 
@@ -102,7 +102,7 @@ export default function RefundPage() {
           If you believe a charge is incorrect or unauthorized, we strongly encourage you to contact us at <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a> before initiating a chargeback or dispute with your bank or payment provider.
         </p>
         <p className="text-[14px] text-vb-ink2 leading-relaxed">
-          Filing a chargeback without first contacting us may result in immediate suspension of your account pending investigation. We are committed to resolving billing issues quickly and fairly — in most cases, reaching out to our support team will resolve the matter faster than a formal dispute process.
+          Filing a chargeback without first contacting us may result in immediate suspension of your account pending investigation. We are committed to resolving billing issues quickly and fairly. In most cases, reaching out to our support team will resolve the matter faster than a formal dispute process.
         </p>
       </section>
 

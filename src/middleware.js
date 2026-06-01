@@ -1,5 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { isInternalAdminEnabled } from './lib/internal-admin-gate';
+
+const isInternalAdminRoute = createRouteMatcher([
+  '/internal/admin(.*)',
+  '/api/internal/admin(.*)',
+]);
 
 // Public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
@@ -16,6 +22,8 @@ const isPublicRoute = createRouteMatcher([
   '/privacy',
   '/refund',
   '/faq',
+  '/internal/admin(.*)',
+  '/api/internal/admin(.*)',
 ]);
 
 // ── IP-based global rate limit (edge-compatible) ──
@@ -55,6 +63,11 @@ async function checkIpRateLimit(request) {
 }
 
 export default clerkMiddleware(async (auth, request) => {
+  // Internal email admin — only when NODE_ENV=development (`next dev`)
+  if (isInternalAdminRoute(request) && !isInternalAdminEnabled()) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   // Global IP rate limit on API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
     const allowed = await checkIpRateLimit(request);

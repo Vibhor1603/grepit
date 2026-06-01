@@ -46,7 +46,7 @@ export default function CookieConsent() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:max-w-[380px] z-[300] animate-slide-up">
-      <div className="bg-[#111113] border border-white/[0.08] rounded-xl p-5 shadow-[0_16px_48px_rgba(0,0,0,0.6)]">
+      <div className="bg-c-surface border border-c-line-2 rounded-xl p-5 shadow-[0_16px_48px_rgba(0,0,0,0.6)]">
         <div className="flex items-start justify-between gap-3 mb-3">
           <p className="text-[13px] text-vb-ink2 leading-relaxed">
             We use cookies for authentication and analytics to improve your experience.
@@ -57,11 +57,13 @@ export default function CookieConsent() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={accept}
-            className="flex-1 py-2 rounded-lg text-[12px] font-medium bg-vb-accent text-vb-bg hover:bg-vb-accent-bright transition-all">
+            style={{ transition: 'background-color 160ms var(--ease-out-strong), transform 160ms var(--ease-out-strong)' }}
+            className="flex-1 py-2 rounded-lg text-[12px] font-medium bg-vb-accent text-vb-bg hover:bg-vb-accent-bright">
             Accept all
           </button>
           <button onClick={decline}
-            className="flex-1 py-2 rounded-lg text-[12px] font-medium text-vb-ink3 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-all">
+            style={{ transition: 'background-color 160ms var(--ease-out-strong), border-color 160ms var(--ease-out-strong), transform 160ms var(--ease-out-strong)' }}
+            className="flex-1 py-2 rounded-lg text-[12px] font-medium text-vb-ink3 bg-c-overlay-3 border border-c-line hover:bg-white/[0.06]">
             Essential only
           </button>
         </div>

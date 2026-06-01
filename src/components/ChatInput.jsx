@@ -4,10 +4,9 @@ import { Send, Square, FileText, X } from 'lucide-react';
 
 /**
  * Chat input with @ file mention support and auto-expanding textarea.
- * When user types @, shows a dropdown of matching files.
- * Selected files are attached as context chips above the input.
+ * Focus ring + subtle scale inspired by the original grepit bar — accent glow, visible caret.
  */
-export default function ChatInput({ query, setQuery, onSend, loading, onStop, fileTree = [] }) {
+export default function ChatInput({ query, setQuery, onSend, loading, onStop, fileTree = [], embedded = false }) {
   const [inputFocused, setInputFocused] = useState(false);
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
@@ -15,24 +14,23 @@ export default function ChatInput({ query, setQuery, onSend, loading, onStop, fi
   const [mentionIdx, setMentionIdx] = useState(0);
   const textareaRef = useRef(null);
 
-  // All blob files for mention search
   const allFiles = fileTree.filter(f => f.type === 'blob').map(f => f.path);
 
-  // Filtered mention results
   const mentionResults = mentionQuery
     ? allFiles.filter(f => f.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 8)
     : [];
 
-  // Auto-resize textarea
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    const newHeight = Math.min(el.scrollHeight, 140); // Max ~5 lines
-    el.style.height = `${newHeight}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [query]);
 
-  // Detect @ trigger
+  const focusInput = useCallback(() => {
+    textareaRef.current?.focus();
+  }, []);
+
   const handleChange = (e) => {
     const val = e.target.value;
     setQuery(val);
@@ -54,7 +52,6 @@ export default function ChatInput({ query, setQuery, onSend, loading, onStop, fi
     setMentionQuery('');
   };
 
-  // Select a file from mention dropdown
   const selectMention = useCallback((filePath) => {
     const cursorPos = textareaRef.current?.selectionStart || query.length;
     const textBefore = query.slice(0, cursorPos);
@@ -70,12 +67,10 @@ export default function ChatInput({ query, setQuery, onSend, loading, onStop, fi
     textareaRef.current?.focus();
   }, [query, attachedFiles, setQuery]);
 
-  // Remove attached file
   const removeFile = (filePath) => {
     setAttachedFiles(prev => prev.filter(f => f !== filePath));
   };
 
-  // Send with attached files as context
   const handleSend = () => {
     const q = query.trim();
     if (!q && attachedFiles.length === 0) return;
@@ -84,29 +79,35 @@ export default function ChatInput({ query, setQuery, onSend, loading, onStop, fi
   };
 
   return (
-    <div className="flex-shrink-0 px-5 pb-4 pt-2">
-      <div className={`mx-auto transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${inputFocused ? 'max-w-[720px] scale-[1.01]' : 'max-w-[680px] scale-100'}`}>
-        {/* Attached files */}
+    <div className={`flex-shrink-0 ${embedded ? "" : "px-5 pt-2 pb-6 md:pb-7"}`}>
+      <div className={`${embedded ? "w-full" : "mx-auto"} chat-input-track ${inputFocused ? "chat-input-track--focused" : ""}`}>
         {attachedFiles.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {attachedFiles.map(f => (
-              <span key={f} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] bg-vb-accent/[0.08] border border-vb-accent/20 text-vb-accent">
+              <span key={f} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] bg-c-accent-soft border border-c-accent-line text-c-accent">
                 <FileText size={9} />
                 <span className="truncate max-w-[120px]">{f.split('/').pop()}</span>
-                <button onClick={() => removeFile(f)} className="hover:text-vb-ink transition-colors"><X size={8} /></button>
+                <button type="button" onClick={() => removeFile(f)} className="hover:text-c-text transition-colors"><X size={8} /></button>
               </span>
             ))}
           </div>
         )}
 
-        {/* Input bar */}
         <div className="relative">
-          <div className={`flex items-end border rounded-xl px-4 py-2.5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            inputFocused
-              ? 'border-vb-accent/30 bg-vb-bg3 shadow-[0_0_0_3px_rgba(224,252,16,0.04),0_4px_20px_rgba(0,0,0,0.3)]'
-              : 'border-white/[0.14] bg-vb-bg2 shadow-[0_0_12px_rgba(224,252,16,0.02)] hover:border-white/[0.2] hover:shadow-[0_0_16px_rgba(224,252,16,0.04)]'
-          }`}>
-            <Send size={14} className={`mr-3 flex-shrink-0 mb-1 transition-all duration-300 ${inputFocused ? 'text-vb-accent scale-110' : 'text-vb-ink4 scale-100'}`} />
+          <div
+            role="presentation"
+            className={`chat-input-bar ${inputFocused ? "chat-input-bar--focused" : ""}`}
+            onMouseDown={(e) => {
+              if (e.target.closest('button')) return;
+              e.preventDefault();
+              focusInput();
+            }}
+          >
+            <Send
+              size={14}
+              className={`chat-input-icon mr-3 flex-shrink-0 mb-1 ${inputFocused ? "chat-input-icon--focused" : ""}`}
+              aria-hidden
+            />
             <textarea
               ref={textareaRef}
               value={query || ''}
@@ -126,32 +127,38 @@ export default function ChatInput({ query, setQuery, onSend, loading, onStop, fi
               }}
               onFocus={() => setInputFocused(true)}
               onBlur={() => { setInputFocused(false); setTimeout(() => setMentionOpen(false), 200); }}
-              placeholder="Ask about the codebase... (@ to attach files)"
+              placeholder="Ask about the codebase… (@ to attach files)"
               rows={1}
-              className="flex-1 bg-transparent text-[13px] text-vb-ink placeholder:text-vb-ink4 outline-none caret-vb-accent resize-none leading-[1.6] min-h-[22px] max-h-[140px] overflow-y-auto"
+              className="flex-1 bg-transparent text-[14px] text-c-text placeholder:text-c-text-3 outline-none resize-none leading-[1.6] min-h-[24px] max-h-[140px] overflow-y-auto"
+              style={{ caretColor: 'var(--c-accent)' }}
             />
-            <div className="flex items-center gap-1.5 ml-3 flex-shrink-0 mb-0.5">
-              {loading && (
-                <button onClick={onStop} className="w-6 h-6 rounded-full border border-white/[0.12] flex items-center justify-center text-vb-ink3 hover:text-vb-ink2 hover:border-white/[0.2] transition-colors" title="Stop generating">
+            {loading && (
+              <div className="flex items-center ml-3 flex-shrink-0 mb-0.5">
+                <button
+                  type="button"
+                  onClick={onStop}
+                  className="btn-press w-7 h-7 rounded-full border border-c-line-2 flex items-center justify-center text-c-text-2 hover:text-c-text hover:border-c-accent-line transition-[color,border-color,transform] duration-150"
+                  title="Stop generating"
+                >
                   <Square size={8} fill="currentColor" />
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          {/* Mention dropdown */}
           {mentionOpen && mentionResults.length > 0 && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-vb-bg2 border border-white/[0.08] rounded-lg shadow-[0_-8px_24px_rgba(0,0,0,0.4)] overflow-hidden max-h-[240px] overflow-y-auto z-50">
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-c-surface border border-c-line-2 rounded-lg shadow-[var(--shadow-3)] overflow-hidden max-h-[240px] overflow-y-auto z-50">
               {mentionResults.map((file, i) => (
                 <button
                   key={file}
+                  type="button"
                   onMouseDown={(e) => { e.preventDefault(); selectMention(file); }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${i === mentionIdx ? 'bg-vb-accent/[0.08]' : 'hover:bg-white/[0.03]'}`}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors duration-150 ${i === mentionIdx ? 'bg-c-accent-soft' : 'hover:bg-c-overlay-2'}`}
                 >
-                  <FileText size={11} className="text-vb-ink4 flex-shrink-0" />
+                  <FileText size={11} className="text-c-text-3 flex-shrink-0" />
                   <div className="min-w-0">
-                    <div className={`text-[11px] truncate ${i === mentionIdx ? 'text-vb-accent' : 'text-vb-ink2'}`}>{file.split('/').pop()}</div>
-                    <div className="text-[9px] text-vb-ink4 truncate">{file}</div>
+                    <div className={`text-[11px] truncate ${i === mentionIdx ? 'text-c-accent' : 'text-c-text-2'}`}>{file.split('/').pop()}</div>
+                    <div className="text-[9px] text-c-text-4 truncate">{file}</div>
                   </div>
                 </button>
               ))}

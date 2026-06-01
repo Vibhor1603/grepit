@@ -11,6 +11,8 @@
  */
 
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { timingSafeEqual } from "crypto";
 import { SITE_CONFIG } from "../../../../lib/landing-config";
 import { normalizeGitHubRepoUrl } from "../../../../lib/github";
 import { createGitHubSnapshot } from "../../../../lib/repository-snapshot";
@@ -19,15 +21,38 @@ import { buildCodeIntelligence } from "../../../../lib/code-intel";
 import { buildCodebaseIndex, buildTraversalArchitecture } from "../../../../lib/codebase-index";
 import { createAnalysisRecord, findLatestAnalysisByRepo, updateAnalysisRecord } from "../../../../lib/analysis-store";
 import { enrichGitHubComponents, buildFlowMap, mergeApiEndpoints } from "../../../../controllers/analyze.controller";
+import { rateLimit, rateLimitKey } from "../../../../lib/rateLimit";
+import { enforceJsonBodySize } from "../../../../lib/request-security";
 
 export const maxDuration = 300; // 5 minutes (Vercel Pro plan)
 
+function constantTimeEquals(a, b) {
+  const left = Buffer.from(String(a || ""));
+  const right = Buffer.from(String(b || ""));
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
 export async function POST(request) {
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0].trim()
+    || headersList.get("x-real-ip")
+    || "unknown";
+  const limit = await rateLimit(rateLimitKey("admin-pre-index", ip), 3, 60_000);
+  if (!limit.success) {
+    return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
+  }
+  const bodySizeCheck = enforceJsonBodySize(headersList, 4_096);
+  if (!bodySizeCheck.ok) {
+    return NextResponse.json({ error: bodySizeCheck.error }, { status: bodySizeCheck.status });
+  }
+
   // Auth check — require admin secret
   const { secret } = await request.json().catch(() => ({}));
   const adminSecret = process.env.ADMIN_SECRET;
-  
-  if (!adminSecret || secret !== adminSecret) {
+  const secretFromHeader = headersList.get("x-admin-secret");
+  const candidate = secretFromHeader || secret;
+  if (!adminSecret || !constantTimeEquals(candidate, adminSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

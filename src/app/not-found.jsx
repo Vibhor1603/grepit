@@ -51,10 +51,10 @@ export default function NotFound() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center px-6 relative overflow-hidden">
+    <div className="min-h-screen bg-c-bg flex flex-col items-center justify-center px-6 relative overflow-hidden">
       {/* Subtle background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 50% 40% at 50% 50%, rgba(224,252,16,0.03) 0%, transparent 70%)' }} />
+        style={{ background: 'radial-gradient(ellipse 50% 40% at 50% 50%, var(--c-accent-glow) 0%, transparent 70%)' }} />
 
       {/* Floating 404 in background */}
       <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[280px] md:text-[400px] font-bold text-white/[0.02] select-none pointer-events-none tracking-tighter ${glitchActive ? 'translate-x-[2px] skew-x-1' : ''}`}
@@ -67,41 +67,41 @@ export default function NotFound() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-10">
           <ViboMark size={20} />
-          <span className="text-[16px] font-semibold text-[#eaeaec] tracking-tight">grep<span className="text-[#E0FC10]">it</span></span>
+          <span className="text-[16px] font-semibold text-c-text tracking-tight">grep<span className="text-c-accent">it</span></span>
         </div>
 
         {/* Terminal-style error */}
-        <div className="bg-[#111113] border border-white/[0.06] rounded-xl p-5 mb-8 text-left font-mono shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
+        <div className="bg-c-surface border border-c-line rounded-xl p-5 mb-8 text-left font-mono shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-[9px] h-[9px] rounded-full bg-[#ff5f57]" />
             <span className="w-[9px] h-[9px] rounded-full bg-[#febc2e]" />
-            <span className="w-[9px] h-[9px] rounded-full bg-[#28c840]" />
-            <span className="text-[9px] text-[#4a4a54] ml-2">terminal — 404</span>
+            <span className="w-[9px] h-[9px] rounded-full bg-c-lime" />
+            <span className="text-[9px] text-[#3A4350] ml-2">terminal · 404</span>
           </div>
           <div className="space-y-1.5">
-            <p className="text-[11px] text-[#787884]">
-              <span className="text-[#E0FC10]">$</span> curl {path}
+            <p className="text-[11px] text-c-text-3">
+              <span className="text-c-accent">$</span> curl {path}
             </p>
-            <p className={`text-[12px] text-[#ef4444] ${glitchActive ? 'opacity-60' : ''}`}>
-              <span className="text-[#787884]">error:</span> {message}
-              <span className={`inline-block w-[7px] h-[14px] bg-[#E0FC10] ml-0.5 align-middle ${cursorVisible ? 'opacity-100' : 'opacity-0'}`} />
+            <p className={`text-[12px] text-[#FCA5A5] ${glitchActive ? 'opacity-60' : ''}`}>
+              <span className="text-c-text-3">error:</span> {message}
+              <span className={`inline-block w-[7px] h-[14px] bg-c-accent ml-0.5 align-middle ${cursorVisible ? 'opacity-100' : 'opacity-0'}`} />
             </p>
           </div>
         </div>
 
         {/* Subtext */}
-        <p className="text-[13px] text-[#787884] leading-relaxed mb-8">
+        <p className="text-[13px] text-c-text-3 leading-relaxed mb-8">
           {subtext}
         </p>
 
         {/* Actions */}
         <div className="flex items-center justify-center gap-3">
           <button onClick={() => router.back()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12px] font-medium text-[#b0b0b8] bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all">
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12px] font-medium text-c-text-2 bg-c-overlay-2 border border-c-line hover:bg-c-overlay-4 hover:border-c-line-3 transition-all">
             <ArrowLeft size={13} /> Go back
           </button>
           <button onClick={() => router.push('/')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12px] font-medium text-[#0a0a0c] bg-[#E0FC10] hover:bg-[#eafd60] transition-all hover:shadow-[0_4px_12px_rgba(224,252,16,0.15)]">
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12px] font-medium text-c-bg bg-c-accent hover:bg-c-accent-bright transition-all hover:shadow-[var(--shadow-2)]">
             <Home size={13} /> Take me home
           </button>
         </div>

@@ -8,6 +8,16 @@ export async function getCurrentSession() {
   return authState;
 }
 
+/** Read email from JWT session claims — no Clerk network round-trip. */
+export function getOwnerFromClaims(authState) {
+  if (!authState?.userId) return null;
+  const claims = authState.sessionClaims || {};
+  if (typeof claims.email === "string" && claims.email.includes("@")) return claims.email;
+  if (typeof claims.primary_email_address === "string") return claims.primary_email_address;
+  if (typeof claims.email_address === "string") return claims.email_address;
+  return null;
+}
+
 /**
  * Get the owner identifier — use email as the stable identifier
  * so it's consistent with how analyses were stored pre-Clerk.
@@ -15,6 +25,8 @@ export async function getCurrentSession() {
  */
 export async function getSessionOwner(authState) {
   if (!authState?.userId) return null;
+  const fromClaims = getOwnerFromClaims(authState);
+  if (fromClaims) return fromClaims;
   try {
     const user = await currentUser();
     return user?.emailAddresses?.[0]?.emailAddress || authState.userId;

@@ -9,7 +9,7 @@ export function UpgradeInline({ feature = "this feature", plan = "Pro", onUpgrad
   return (
     <button
       onClick={onUpgrade}
-      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium text-vb-ink3 bg-white/[0.03] border border-white/[0.06] hover:border-vb-accent/20 hover:text-vb-accent hover:bg-vb-accent/[0.04] transition-all group"
+      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium text-vb-ink3 bg-c-overlay-2 border border-c-line hover:border-vb-accent/20 hover:text-vb-accent hover:bg-vb-accent/[0.04] transition-all group"
     >
       <Lock size={11} className="text-vb-ink4 group-hover:text-vb-accent transition-colors" />
       <span>{plan}+ feature</span>

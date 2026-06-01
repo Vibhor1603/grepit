@@ -1,26 +1,53 @@
-import Link from 'next/link';
-import { ViboMark } from './ViboLogo';
+import Link from "next/link";
+import { ViboMark } from "./ViboLogo";
 
+/**
+ * Footer — global footer used on non-landing pages.
+ * v5 palette, restrained, infrastructural rhythm.
+ */
 export default function Footer() {
   return (
-    <footer className="border-t border-white/[0.06] py-10 px-6 md:px-8 mt-auto">
-      <div className="max-w-[1100px] mx-auto">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
+    <footer className="border-t border-c-line py-10 px-6 md:px-10 lg:px-14 mt-auto bg-c-bg">
+      <div className="max-w-[1240px] mx-auto">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <Link href="/" className="flex items-center gap-2">
             <ViboMark size={18} />
-            <span className="text-[14px] font-semibold text-[#eaeaec] tracking-tight">Grep<span className="text-[#E0FC10]">it</span></span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Privacy</Link>
-            <Link href="/terms" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Terms</Link>
-            <Link href="/refund" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Refunds</Link>
-            <Link href="/faq" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">FAQ</Link>
-            <a href="mailto:support@grepit.co" className="text-[12px] text-[#b0b0b8] hover:text-[#E0FC10] transition-colors duration-200">Contact</a>
+            <span className="text-[15px] font-semibold tracking-tight text-c-text select-none">
+              grep<span className="text-c-accent">it</span>
+            </span>
+          </Link>
+          <div className="flex flex-wrap items-center gap-x-7 gap-y-2 font-mono text-[11.5px]">
+            {[
+              ["Privacy", "/privacy"],
+              ["Terms", "/terms"],
+              ["Refunds", "/refund"],
+              ["FAQ", "/faq"],
+              ["Transparency", "/transparency"],
+            ].map(([label, href]) => (
+              <Link
+                key={href}
+                href={href}
+                style={{ transition: "color 160ms var(--ease-out-strong)" }}
+                className="text-c-text-2 hover:text-c-text uppercase tracking-[0.14em]"
+              >
+                {label}
+              </Link>
+            ))}
+            <a
+              href="mailto:support@grepit.co"
+              style={{ transition: "color 160ms var(--ease-out-strong)" }}
+              className="text-c-text-2 hover:text-c-text uppercase tracking-[0.14em]"
+            >
+              Contact
+            </a>
           </div>
         </div>
-        <div className="mt-6 pt-5 border-t border-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-3">
-          <span className="text-[11px] text-[#787884]">© {new Date().getFullYear()} Grepit. All rights reserved.</span>
-          <span className="text-[11px] text-[#787884]">Built for developers who value their time.</span>
+        <div className="mt-7 pt-6 border-t border-c-line flex flex-col md:flex-row items-start md:items-center justify-between gap-3 font-mono text-[10.5px] text-c-text-3">
+          <span>© {new Date().getFullYear()} grepit · all rights reserved</span>
+          <span className="flex items-center gap-2">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-c-accent" />
+            operational
+          </span>
         </div>
       </div>
     </footer>

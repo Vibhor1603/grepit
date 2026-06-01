@@ -7,7 +7,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ["remotion", "@remotion/player"],
   outputFileTracingRoot: __dirname,
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
   turbopack: {
     root: __dirname,
   },

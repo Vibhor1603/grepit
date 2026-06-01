@@ -498,13 +498,16 @@ export function buildCodeIntelligence(snapshot, previousAnalysis = null) {
   };
 
   return {
-    files: files.map((file) => ({
-      ...file,
-      code: file.content.slice(0, 40000),
-      truncated: file.content.length > 40000,
-      content: undefined,
-      normalizedHash: undefined,
-    })),
+    files: files.map((file) => {
+      const source = file.content ?? file.code ?? "";
+      return {
+        ...file,
+        code: source.slice(0, 40000),
+        truncated: source.length > 40000,
+        content: undefined,
+        normalizedHash: undefined,
+      };
+    }),
     symbolIndex: [...symbolIndex.values()],
     dependencyGraph,
     callGraph,

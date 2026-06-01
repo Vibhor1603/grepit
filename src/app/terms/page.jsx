@@ -6,7 +6,7 @@ export default function TermsPage() {
       <Link href="/" className="text-[13px] text-vb-accent hover:underline mb-8 inline-block">&larr; Back to home</Link>
 
       <h1 className="text-[32px] font-semibold tracking-tight mb-2">Terms of Service</h1>
-      <p className="text-[13px] text-vb-ink4 mb-10">Last updated: May 19, 2026</p>
+      <p className="text-[13px] text-vb-ink4 mb-10">Last updated: June 1, 2026</p>
 
       <p className="text-[14px] text-vb-ink2 leading-relaxed mb-10">
         These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of grepit (&ldquo;the Service&rdquo;), operated at grepit.co by grepit (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;). Please read these Terms carefully before using the Service.
@@ -24,11 +24,12 @@ export default function TermsPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">2. Description of Service</h2>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mb-3">
-          grepit is a software-as-a-service (SaaS) platform that provides AI-powered codebase analysis tools, including but not limited to:
+          grepit is a software-as-a-service (SaaS) platform that provides AI-powered codebase orientation tools, including but not limited to:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>Codebase Analysis:</strong> Automated analysis of GitHub repositories to generate insights about code quality, structure, patterns, and potential issues.</li>
-          <li><strong>AI Chat:</strong> Interactive AI-powered conversations about your codebase, enabling you to ask questions and receive contextual answers.</li>
+          <li><strong>Codebase Analysis:</strong> Automated analysis of GitHub repositories to generate architecture maps, dependency graphs, and structural insights.</li>
+          <li><strong>Start Here Paths:</strong> Guided onboarding traversals that highlight the files and flows most relevant to understanding the system.</li>
+          <li><strong>AI Chat:</strong> Interactive AI-powered conversations about your codebase, with answers grounded in indexed source and file:line citations.</li>
           <li><strong>Security Audits:</strong> Automated identification of potential security vulnerabilities, dependency risks, and best practice violations.</li>
           <li><strong>Architecture Diagrams:</strong> AI-generated visual representations of your codebase architecture, component relationships, and data flows.</li>
           <li><strong>Reports &amp; Exports:</strong> Downloadable analysis reports in various formats for documentation and team sharing.</li>
@@ -93,7 +94,7 @@ export default function TermsPage() {
           <li>Maximum of 3 connected repositories at any time.</li>
           <li>Maximum of 20 AI queries per day (resets at midnight UTC).</li>
           <li>Access limited to public repositories only.</li>
-          <li>starter analysis features only — advanced security audits, architecture diagrams, and export features may be restricted.</li>
+          <li>starter analysis features only. Advanced security audits, architecture diagrams, and export features may be restricted.</li>
           <li>No priority support or guaranteed response times.</li>
         </ul>
         <p className="text-[14px] text-vb-ink2 leading-relaxed mt-3">
@@ -215,7 +216,7 @@ export default function TermsPage() {
       <section className="mb-10">
         <h2 className="text-[18px] font-semibold mb-3">15. Termination</h2>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>Termination by You:</strong> You may delete your account at any time through your account settings or by contacting us. Upon deletion, your data will be removed in accordance with our Privacy Policy (within 30 days).</li>
+          <li><strong>Termination by You:</strong> You may delete your account at any time through your account settings or by contacting us. Upon deletion, your operational data and analysis results will be removed in accordance with our Privacy Policy (within 30 days). We may retain your email address and name for limited communications and record-keeping as described in the Privacy Policy.</li>
           <li><strong>Termination by Us:</strong> We may suspend or terminate your account immediately, without prior notice or liability, if: (a) you breach any provision of these Terms; (b) your use poses a security risk to the Service or other users; (c) your use may subject us to legal liability; (d) your account has been inactive for more than 12 months on the Free tier; or (e) we are required to do so by law.</li>
           <li><strong>Effect of Termination:</strong> Upon termination, your right to use the Service ceases immediately. We may delete your account data, analysis results, and associated content. Provisions that by their nature should survive termination shall survive, including Sections 8, 10, 13, 14, 16, and 18.</li>
           <li><strong>No Refund on Termination for Cause:</strong> If we terminate your account for violation of these Terms, you are not entitled to any refund of prepaid fees.</li>

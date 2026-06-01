@@ -17,11 +17,9 @@
 
 // These must match the suggestedRepos in src/lib/landing-config.js
 const SUGGESTED_REPOS = [
-  'https://github.com/shadcn-ui/ui',
+  'https://github.com/dubinc/dub',
   'https://github.com/pmndrs/zustand',
-  'https://github.com/hono-js/hono',
-  'https://github.com/t3-oss/create-t3-app',
-  'https://github.com/colinhacks/zod',
+  'https://github.com/BerriAI/litellm',
 ];
 
 async function preIndex() {

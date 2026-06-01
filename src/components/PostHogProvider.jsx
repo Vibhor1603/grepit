@@ -65,7 +65,13 @@ function PostHogIdentify() {
 
 export default function PostHogProviderWrapper({ children }) {
   useEffect(() => {
-    initPostHog();
+    const run = () => initPostHog();
+    if (typeof requestIdleCallback !== "undefined") {
+      const id = requestIdleCallback(run, { timeout: 3000 });
+      return () => cancelIdleCallback(id);
+    }
+    const t = setTimeout(run, 1500);
+    return () => clearTimeout(t);
   }, []);
 
   return (

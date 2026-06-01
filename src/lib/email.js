@@ -43,7 +43,7 @@ export async function sendPlanUpgradeEmail({ to, name, plan, price }) {
             Hey ${name || 'there'}, your subscription is active. Here's what you've unlocked:
           </p>
           <div style="background: #f8f8f8; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-            <p style="font-size: 13px; color: #333; margin: 0 0 8px;"><strong>${plan} Plan</strong> — ${price}/month</p>
+            <p style="font-size: 13px; color: #333; margin: 0 0 8px;"><strong>${plan} Plan</strong> · ${price}/month</p>
             <ul style="font-size: 13px; color: #555; padding-left: 16px; margin: 0; line-height: 1.8;">
               ${plan === 'Team' ? `
                 <li>1,000 AI queries/day</li>
@@ -62,7 +62,7 @@ export async function sendPlanUpgradeEmail({ to, name, plan, price }) {
             Manage your subscription anytime from your <a href="https://grepit.co/profile" style="color: #E0FC10; text-decoration: none; font-weight: 500;">profile page</a>.
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">grepit — Understand any codebase instantly.</p>
+          <p style="color: #999; font-size: 11px; text-align: center;">grepit: Understand any codebase instantly.</p>
         </div>
       `,
     });
@@ -109,7 +109,7 @@ export async function sendPlanDowngradeEmail({ to, name, previousPlan }) {
             Your existing analyses are still accessible. You can <a href="https://grepit.co/?scrollTo=pricing" style="color: #E0FC10; text-decoration: none; font-weight: 500;">resubscribe anytime</a>.
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">grepit — Understand any codebase instantly.</p>
+          <p style="color: #999; font-size: 11px; text-align: center;">grepit: Understand any codebase instantly.</p>
         </div>
       `,
     });
@@ -153,7 +153,7 @@ export async function sendPaymentFailedEmail({ to, name, plan }) {
             If payment isn't resolved within 3 days, your subscription will be cancelled and you'll be moved to the Free plan.
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #999; font-size: 11px; text-align: center;">grepit — Understand any codebase instantly.</p>
+          <p style="color: #999; font-size: 11px; text-align: center;">grepit: Understand any codebase instantly.</p>
         </div>
       `,
     });
