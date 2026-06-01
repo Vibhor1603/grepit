@@ -97,7 +97,7 @@ export default function PrivacyPage() {
         <h2 className="text-[18px] font-semibold mb-3">5. Data Retention</h2>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
           <li><strong>Account Data:</strong> Retained for the duration of your account. Upon account deletion, most personal data and analysis results are purged within 30 days, except where retention is required by law.</li>
-          <li><strong>Contact After Account Deletion:</strong> If you delete your account, we may retain your email address and name (if provided) in a separate contact archive so we can send important service-related messages, honor unsubscribe preferences, and understand product usage among former users. You may opt out of non-essential emails at any time by contacting <a href="mailto:support@grepit.co" className="text-vb-accent hover:underline">support@grepit.co</a>.</li>
+          <li><strong>Account Deletion Feedback:</strong> If you delete your account, we ask for a short reason why you are leaving. We store only that text (and your plan tier at deletion time), with no email, name, or user identifier, so we can improve the product. You cannot be identified from this feedback.</li>
           <li><strong>Analysis Results:</strong> Retained while your account is active. Deleted within 30 days of account deletion or upon your explicit request.</li>
           <li><strong>Raw Source Code:</strong> Processed transiently during analysis and not permanently stored. Temporary caches are purged within 24 hours.</li>
           <li><strong>Payment Records:</strong> Retained for 7 years as required by tax and financial regulations.</li>
@@ -233,7 +233,7 @@ export default function PrivacyPage() {
           <li><strong>Temporary Processing:</strong> During analysis, code may be temporarily held in memory or short-lived caches (Upstash Redis) for processing efficiency. These caches are automatically purged within 24 hours.</li>
           <li><strong>No Sharing with Third Parties:</strong> Your repository content is never shared with, sold to, or made accessible to third parties beyond the AI inference providers necessary to generate analysis results (see Section 13).</li>
           <li><strong>Access Scope:</strong> We only access repositories you explicitly authorize. We request the minimum GitHub permissions necessary to perform analysis.</li>
-          <li><strong>Deletion:</strong> When you disconnect a repository or delete your account, associated analysis results and operational data are permanently deleted within 30 days. Your email and display name may be retained as described in our data retention policy for former-account communications.</li>
+          <li><strong>Deletion:</strong> When you disconnect a repository or delete your account, associated analysis results and operational data are permanently deleted. Account deletion removes your Clerk identity and all linked data in our database; only anonymized exit feedback may remain as described above.</li>
         </ul>
       </section>
 

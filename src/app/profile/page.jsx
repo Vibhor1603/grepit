@@ -31,7 +31,13 @@ export default function ProfilePage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteLeaveReason, setDeleteLeaveReason] = useState("");
+
+  const DELETE_REASON_MIN = 10;
+  const canConfirmDelete =
+    deleteConfirmText === "DELETE" &&
+    deleteLeaveReason.trim().length >= DELETE_REASON_MIN;
 
   // React Query for caching — profile data loads instantly on revisit
   // Include user.id in query key so switching accounts doesn't show stale data
@@ -173,10 +179,14 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'DELETE') return;
+    if (!canConfirmDelete) return;
     setDeleting(true);
     try {
-      const res = await fetch("/api/profile/delete-account", { method: "DELETE" });
+      const res = await fetch("/api/profile/delete-account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: deleteLeaveReason.trim() }),
+      });
       if (res.ok) {
         toast.success("Account deleted. Goodbye.");
         setTimeout(() => { window.location.href = '/'; }, 1500);
@@ -461,7 +471,30 @@ export default function ProfilePage() {
                 <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-vb-red" />Your subscription (if active, it will be cancelled)</li>
                 <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-vb-red" />Your account and all personal data</li>
               </ul>
-              <p className="text-[11px] text-vb-red mt-3 font-medium">This cannot be undone. There is no recovery.</p>
+              <p className="text-[11px] text-vb-ink3 mt-3 leading-relaxed">
+                We only keep your reason for leaving (no email or name) to improve the product.
+              </p>
+              <p className="text-[11px] text-vb-red mt-2 font-medium">This cannot be undone. There is no recovery.</p>
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="delete-leave-reason" className="text-[11px] text-vb-ink4 mb-1.5 block">
+                Why are you leaving? <span className="text-vb-red">*</span>
+              </label>
+              <textarea
+                id="delete-leave-reason"
+                value={deleteLeaveReason}
+                onChange={(e) => setDeleteLeaveReason(e.target.value)}
+                placeholder="What didn’t work for you, or what would have kept you?"
+                rows={3}
+                maxLength={2000}
+                className="w-full px-3 py-2.5 rounded-lg bg-c-bg border border-c-line-2 text-[13px] text-vb-ink placeholder:text-vb-ink4 outline-none focus:border-vb-red/30 resize-none"
+              />
+              <p className="text-[10px] text-vb-ink4 mt-1">
+                {deleteLeaveReason.trim().length < DELETE_REASON_MIN
+                  ? `At least ${DELETE_REASON_MIN} characters required`
+                  : `${deleteLeaveReason.trim().length} / 2000`}
+              </p>
             </div>
 
             <div className="mb-4">
@@ -476,11 +509,11 @@ export default function ProfilePage() {
             </div>
 
             <div className="flex gap-2">
-              <button onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); }}
+              <button onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); setDeleteLeaveReason(""); }}
                 className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-c-text-2 bg-c-overlay-2 hover:bg-c-overlay-3 transition-colors">
                 Cancel
               </button>
-              <button onClick={handleDeleteAccount} disabled={deleteConfirmText !== 'DELETE' || deleting}
+              <button onClick={handleDeleteAccount} disabled={!canConfirmDelete || deleting}
                 className="flex-1 py-2.5 rounded-lg text-[12px] font-medium text-white bg-vb-red hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
                 {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 {deleting ? 'Deleting...' : 'Delete my account'}

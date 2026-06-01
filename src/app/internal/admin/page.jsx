@@ -221,7 +221,7 @@ export default function AdminEmailPage() {
             <p className="text-[10px] text-[#525252] mb-3 leading-relaxed">
               Clerk ({meta.clerkKey}): {meta.clerk}
               {meta.skippedNoEmail > 0 ? ` · ${meta.skippedNoEmail} without email (hidden)` : ""}
-              {meta.includeDb ? ` · DB-only: ${meta.database}` : ""} · Deleted: {meta.deleted}
+              {meta.includeDb ? ` · DB-only: ${meta.database}` : ""}
               {!meta.usingAdminClerkKey ? (
                 <>
                   {" "}
@@ -252,7 +252,6 @@ export default function AdminEmailPage() {
             >
               <option value="all">All statuses</option>
               <option value="active">Active</option>
-              <option value="deleted">Deleted account</option>
             </select>
             <select
               className="rounded-lg border border-[#333] bg-[#0a0a0a] px-2 py-1.5 text-xs"

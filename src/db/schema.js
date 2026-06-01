@@ -172,21 +172,16 @@ export const admin_credentials = pgTable("admin_credentials", {
   updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
-/** Contact retained when a user deletes their account (for product comms / analytics). */
-export const deleted_user_contacts = pgTable(
-  "deleted_user_contacts",
+/** Anonymized exit survey on account deletion — no email, user id, or name. */
+export const account_deletion_feedback = pgTable(
+  "account_deletion_feedback",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    clerk_user_id: text("clerk_user_id"),
-    email: text("email").notNull().unique(),
-    name: text("name"),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-    metadata: jsonb("metadata").notNull().default({}),
+    reason: text("reason").notNull(),
+    plan: text("plan"),
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
-  (table) => [
-    index("deleted_user_contacts_email_idx").on(table.email),
-    index("deleted_user_contacts_deleted_at_idx").on(table.deleted_at),
-  ],
+  (table) => [index("account_deletion_feedback_created_at_idx").on(table.created_at)],
 );
 
 export const shared_chats = pgTable(

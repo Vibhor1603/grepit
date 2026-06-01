@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:apply-deletion-feedback": "node scripts/apply-0005-deletion-feedback.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.5",

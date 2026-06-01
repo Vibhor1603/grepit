@@ -1,7 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
-import { desc, isNotNull } from "drizzle-orm";
+import { isNotNull } from "drizzle-orm";
 import { getDb } from "./db";
-import { analyses, deleted_user_contacts, subscriptions } from "../db/schema";
+import { analyses, subscriptions } from "../db/schema";
 
 function getAdminClerkSecretKey() {
   return process.env.ADMIN_CLERK_SECRET_KEY || process.env.CLERK_SECRET_KEY;
@@ -60,14 +60,13 @@ function mapClerkUser(u) {
 function shouldIncludeDbRecipients() {
   if (process.env.ADMIN_USERS_INCLUDE_DB === "true") return true;
   if (process.env.ADMIN_USERS_INCLUDE_DB === "false") return false;
-  // With production Clerk, DB merge usually inflates the list with stale emails
   return !process.env.ADMIN_CLERK_SECRET_KEY;
 }
 
-/** One row per email; prefer clerk → database → deleted. */
+/** One row per email; prefer clerk over database. */
 function mergeByEmail(groups) {
   const byEmail = new Map();
-  const order = ["clerk", "database", "deleted"];
+  const order = ["clerk", "database"];
   const rank = Object.fromEntries(order.map((s, i) => [s, i]));
 
   for (const list of groups) {
@@ -190,26 +189,6 @@ export async function fetchDbRecipients() {
   return [...byEmail.values()];
 }
 
-export async function fetchDeletedContacts() {
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(deleted_user_contacts)
-    .orderBy(desc(deleted_user_contacts.deleted_at));
-  return rows
-    .filter((r) => isValidEmail(r.email))
-    .map((r) => ({
-      id: r.clerk_user_id || `deleted:${r.id}`,
-      email: r.email.trim(),
-      name: r.name || r.email.split("@")[0],
-      status: "deleted",
-      source: "deleted",
-      createdAt: null,
-      deletedAt: r.deleted_at,
-      plan: null,
-    }));
-}
-
 export async function attachPlans(users) {
   const db = getDb();
   const subs = await db.select().from(subscriptions);
@@ -231,17 +210,10 @@ export async function attachPlans(users) {
 
 export async function listAdminRecipients() {
   const includeDb = shouldIncludeDbRecipients();
-  const [{ users: clerkUsers, skippedNoEmail }, deleted] = await Promise.all([
-    fetchAllClerkUsers(),
-    fetchDeletedContacts(),
-  ]);
+  const { users: clerkUsers, skippedNoEmail } = await fetchAllClerkUsers();
   const dbUsers = includeDb ? await fetchDbRecipients() : [];
 
-  const merged = mergeByEmail([
-    clerkUsers,
-    includeDb ? dbUsers : [],
-    deleted,
-  ]);
+  const merged = mergeByEmail([clerkUsers, includeDb ? dbUsers : []]);
 
   const dbOnlyCount = includeDb
     ? dbUsers.filter((u) => !clerkUsers.some((c) => c.email.toLowerCase() === u.email.toLowerCase())).length
@@ -253,9 +225,6 @@ export async function listAdminRecipients() {
     meta: {
       clerk: clerkUsers.length,
       database: dbOnlyCount,
-      deleted: deleted.filter(
-        (d) => !clerkUsers.some((c) => c.email.toLowerCase() === d.email.toLowerCase()),
-      ).length,
       skippedNoEmail,
       total: withPlans.length,
       clerkKey: clerkKeyKind(getAdminClerkSecretKey()),
