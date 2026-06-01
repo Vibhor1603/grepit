@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { isInternalAdminEnabled } from './lib/internal-admin-gate';
 
 const isInternalAdminRoute = createRouteMatcher([
-  '/internal/admin(.*)',
+  '/internal-admin(.*)',
   '/api/internal/admin(.*)',
 ]);
 
@@ -22,7 +22,7 @@ const isPublicRoute = createRouteMatcher([
   '/privacy',
   '/refund',
   '/faq',
-  '/internal/admin(.*)',
+  '/internal-admin(.*)',
   '/api/internal/admin(.*)',
 ]);
 

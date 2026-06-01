@@ -7,7 +7,7 @@ import { rateLimit, rateLimitKey } from "../lib/rateLimit";
 import { buildQueryResponse } from "../lib/analysis";
 import { createQueryHistory, getAnalysisRecord, getRecentQueries, deleteQueryHistory, getConversations, getConversationMessages, deleteConversation } from "../lib/analysis-store";
 import { isAIConfigured } from "../lib/env";
-import { buildReasoningRequest, getAIModel, aiFetch } from "../lib/ai";
+import { buildReasoningRequest, aiFetch } from "../lib/ai";
 import { getCurrentSession, getGithubAccessToken, getSessionOwner } from "../lib/server-session";
 import { queryCodebase } from "../lib/codebase-index";
 import { checkGate, logUsage } from "../lib/subscription-gate";

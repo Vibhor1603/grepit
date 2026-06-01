@@ -1,21 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
-
-// ── AI Provider abstraction ──
-// Primary: OpenRouter (configured chat model) — 1M context, cheap, fast
-// Fallback: OpenRouter native route="fallback" with multiple models
+import { getChatModel, getChatModelChain } from "./ai-models";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
-
-// Primary model via OpenRouter
-const OPENROUTER_MODEL = "REDACTED_CHAT_MODEL";
-
-// Fallback models (same quality/context tier, same or cheaper cost)
-// OpenRouter handles fallback automatically with route="fallback"
-const FALLBACK_MODELS = [
-  "REDACTED_CHAT_MODEL",       // Primary: 1M context, $0.20/MTok input
-  "REDACTED_CHAT_MODEL",       // Fallback 1: 1M context, $0.10/MTok input
-  "REDACTED_CHAT_MODEL",            // Fallback 2: 128K context, $0.14/MTok input
-];
 
 export function getAIApiUrl() {
   return OPENROUTER_BASE_URL;
@@ -30,23 +16,27 @@ export function getAIHeaders() {
   };
 }
 
+/** Primary chat model id (first entry in OPENROUTER_CHAT_MODELS). */
 export function getAIModel() {
-  return OPENROUTER_MODEL;
+  return getChatModel();
 }
 
-// ── Fetch with OpenRouter provider fallback ─────────────────────────────────────
+/** Ordered model ids for OpenRouter fallback routing. */
+export function getAIModelChain() {
+  return getChatModelChain();
+}
+
 export async function aiFetch(body, maxAttempts = 2) {
   if (!process.env.OPENROUTER_API_KEY) {
     throw new Error("No AI provider configured (OPENROUTER_API_KEY missing)");
   }
 
+  const models = getChatModelChain();
   let lastError;
 
-  // Use OpenRouter's native fallback routing
-  // Sends models array + route="fallback" — OpenRouter retries the next model if primary fails
   const requestBody = {
     ...body,
-    models: FALLBACK_MODELS,
+    models,
     route: "fallback",
   };
 
@@ -68,31 +58,31 @@ export async function aiFetch(body, maxAttempts = 2) {
       clearTimeout(timeout);
 
       if (res.status === 429 && attempt < maxAttempts - 1) {
-        console.warn("[ai] OpenRouter rate limited, retrying...");
+        console.warn("[ai] rate limited, retrying...");
         await new Promise((r) => setTimeout(r, 2000));
         continue;
       }
 
       if (res.status === 402) {
-        const err = new Error("OpenRouter credits exhausted");
+        const err = new Error("AI provider credits exhausted");
         Sentry.captureException(err, {
           level: "fatal",
-          tags: { source: "ai-provider", provider: "openrouter", reason: "credits_exhausted" },
+          tags: { source: "ai-provider", reason: "credits_exhausted" },
         });
-        console.error("[ai] CRITICAL: OpenRouter credits exhausted!");
+        console.error("[ai] CRITICAL: AI provider credits exhausted!");
         throw err;
       }
 
       return res;
     } catch (err) {
       lastError = err;
-      if (err.name === 'AbortError') {
-        console.error(`[ai] OpenRouter timed out (attempt ${attempt + 1})`);
+      if (err.name === "AbortError") {
+        console.error(`[ai] request timed out (attempt ${attempt + 1})`);
         if (attempt < maxAttempts - 1) {
           await new Promise((r) => setTimeout(r, 1000));
           continue;
         }
-      } else if (err.message === "OpenRouter credits exhausted") {
+      } else if (err.message === "AI provider credits exhausted") {
         throw err;
       } else if (attempt < maxAttempts - 1) {
         await new Promise((r) => setTimeout(r, 1000));
@@ -108,15 +98,13 @@ export async function aiFetch(body, maxAttempts = 2) {
   throw finalError;
 }
 
-// ── Request builders ───────────────────────────────────────────────────────
-
 export function buildReasoningRequest({
   messages,
   maxCompletionTokens = 3000,
   temperature = 0.2,
 }) {
   return {
-    model: getAIModel(),
+    model: getChatModel(),
     messages,
     temperature,
     top_p: 1,
@@ -131,7 +119,7 @@ export function buildStructuredRequest({
   temperature = 0.1,
 }) {
   return {
-    model: getAIModel(),
+    model: getChatModel(),
     messages,
     temperature,
     top_p: 1,
@@ -142,6 +130,3 @@ export function buildStructuredRequest({
     },
   };
 }
-
-// Exported for streaming route fallback
-export { FALLBACK_MODELS };

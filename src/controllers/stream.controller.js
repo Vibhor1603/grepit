@@ -4,7 +4,7 @@ import { rateLimit, rateLimitKey, checkTokenBudget, recordTokenUsage } from "../
 import { getAnalysisRecord, createQueryHistory, getRecentQueries, getConversationMessages, getConversationMessageCount } from "../lib/analysis-store";
 import { buildQueryResponse } from "../lib/analysis";
 import { isAIConfigured } from "../lib/env";
-import { getAIHeaders, getAIApiUrl, getAIModel, FALLBACK_MODELS } from "../lib/ai";
+import { getAIHeaders, getAIApiUrl, getAIModel, getAIModelChain } from "../lib/ai";
 import { getCurrentSession, getGithubAccessToken, getSessionOwner } from "../lib/server-session";
 import { checkGate, logUsage, getUserPlan } from "../lib/subscription-gate";
 import { getPlan } from "../config/plans";
@@ -336,7 +336,7 @@ export async function handleStreamPost(request) {
           headers: getAIHeaders(),
           body: JSON.stringify({
             model: getAIModel(),
-            models: FALLBACK_MODELS,
+            models: getAIModelChain(),
             route: "fallback",
             messages: allMessages,
             temperature: 0.25,

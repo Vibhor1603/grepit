@@ -16,7 +16,7 @@
 import { getDb } from "./db";
 import { sql } from "drizzle-orm";
 
-const EMBEDDING_MODEL = "REDACTED_EMBEDDING_MODEL"; // $0.02/MTok via OpenRouter
+import { getEmbeddingModel, isEmbeddingModelConfigured } from "./ai-models";
 const EMBEDDING_DIMENSIONS = 1536;
 const CHUNK_LINES = 200;
 const CHUNK_OVERLAP = 20;
@@ -31,8 +31,8 @@ const BATCH_SIZE = 50; // OpenRouter supports large batches
  */
 async function embedTexts(texts) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    console.warn("[embeddings] OPENROUTER_API_KEY not set, skipping embeddings");
+  if (!apiKey || !isEmbeddingModelConfigured()) {
+    console.warn("[embeddings] OPENROUTER_API_KEY or OPENROUTER_EMBEDDING_MODEL not set, skipping embeddings");
     return null;
   }
 
@@ -46,7 +46,7 @@ async function embedTexts(texts) {
         "X-Title": "grepit Code Analyst",
       },
       body: JSON.stringify({
-        model: EMBEDDING_MODEL,
+        model: getEmbeddingModel(),
         input: texts,
       }),
     });
@@ -120,8 +120,8 @@ function chunkFileCode(filePath, code, summary = "") {
  * Called during the analysis pipeline after code intelligence is built.
  */
 export async function storeEmbeddings(analysisId, files) {
-  if (!process.env.OPENROUTER_API_KEY) {
-    console.log("[embeddings] Skipping — OPENROUTER_API_KEY not configured");
+  if (!process.env.OPENROUTER_API_KEY || !isEmbeddingModelConfigured()) {
+    console.log("[embeddings] Skipping — embedding provider not configured");
     return { stored: 0, skipped: true };
   }
 

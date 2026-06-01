@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { isInternalAdminEnabled } from "../../../lib/internal-admin-gate";
+import AdminGate from "../../components/internal/AdminGate";
+import { isInternalAdminEnabled } from "../../lib/internal-admin-gate";
 
 export const metadata = {
   title: "Internal admin",
@@ -10,5 +11,5 @@ export default function InternalAdminLayout({ children }) {
   if (!isInternalAdminEnabled()) {
     notFound();
   }
-  return children;
+  return <AdminGate>{children}</AdminGate>;
 }

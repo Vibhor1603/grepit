@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
         setError(data.error || "Login failed");
         return;
       }
-      router.replace("/internal/admin");
+      router.replace("/internal-admin");
     } catch {
       setError("Network error");
     } finally {
@@ -34,27 +34,25 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#e5e5e5] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-neutral-50 text-neutral-900 flex items-center justify-center px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-2xl border border-[#262626] bg-[#141414] p-8"
+        className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-8 shadow-sm"
       >
-        <p className="text-[#c8f542] font-semibold text-lg mb-1">grepit</p>
-        <h1 className="text-xl font-semibold mb-6">Internal admin</h1>
-        {error ? (
-          <p className="text-sm text-red-400 mb-4">{error}</p>
-        ) : null}
-        <label className="block text-xs text-[#737373] mb-1">Username</label>
+        <p className="text-sm font-semibold mb-1">grepit</p>
+        <h1 className="text-lg font-medium mb-6">Sign in to admin</h1>
+        {error ? <p className="text-sm text-red-600 mb-4">{error}</p> : null}
+        <label className="block text-xs font-medium text-neutral-600 mb-1">Username</label>
         <input
-          className="w-full mb-4 rounded-lg border border-[#333] bg-[#0a0a0a] px-3 py-2 text-sm outline-none focus:border-[#c8f542]"
+          className="w-full mb-4 rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           autoComplete="username"
         />
-        <label className="block text-xs text-[#737373] mb-1">Password</label>
+        <label className="block text-xs font-medium text-neutral-600 mb-1">Password</label>
         <input
           type="password"
-          className="w-full mb-6 rounded-lg border border-[#333] bg-[#0a0a0a] px-3 py-2 text-sm outline-none focus:border-[#c8f542]"
+          className="w-full mb-6 rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
@@ -62,7 +60,7 @@ export default function AdminLoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-[#c8f542] text-[#0a0a0a] font-medium py-2.5 text-sm disabled:opacity-50"
+          className="w-full rounded-md bg-neutral-900 text-white font-medium py-2.5 text-sm disabled:opacity-50"
         >
           {loading ? "Signing in…" : "Sign in"}
         </button>
