@@ -23,7 +23,7 @@ AI-powered codebase intelligence. Paste a repo URL, get architecture maps, secur
 | Auth | Clerk (OAuth + email) |
 | Database | Neon PostgreSQL + pgvector + Drizzle ORM |
 | Cache | Upstash Redis |
-| AI | OpenRouter (configured chat model, configured fallback models) |
+| AI | OpenRouter (model IDs set via env only) |
 | Billing | Dodo Payments |
 | Hosting | Vercel |
 | Monitoring | Sentry |

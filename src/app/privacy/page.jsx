@@ -77,7 +77,7 @@ export default function PrivacyPage() {
           <li><strong>Dodo Payments</strong> (payment processing): Receives your payment method details and email to process payments and manage subscriptions.</li>
           <li><strong>GitHub API</strong> (repository access): Receives your OAuth access token to fetch repository metadata and source code content on your behalf. Access is scoped to permissions you explicitly grant.</li>
           <li><strong>OpenRouter</strong> (AI inference): Receives code snippets and contextual data from your repositories to generate analysis results, answer queries, and produce insights. No personally identifiable information is sent beyond the code content.</li>
-          <li><strong>Additional AI providers</strong> (when configured): Receives the same code analysis data as OpenRouter when used as a fallback inference provider for faster response times.</li>
+          <li><strong>Additional AI providers</strong> (when configured): May receive the same code analysis data as OpenRouter when used as fallback inference providers.</li>
           <li><strong>Neon</strong> (PostgreSQL database hosting): Stores your account data, analysis results, architecture maps, indexed metadata, subscription records, and usage data in encrypted databases hosted in the United States.</li>
           <li><strong>Sentry</strong> (error monitoring &amp; session replay): Receives error logs, stack traces, browser metadata, session replay data, and performance metrics to help us identify and fix bugs.</li>
           <li><strong>PostHog</strong> (product analytics): Receives anonymized usage events, page views, feature interactions, session recordings, and device metadata to help us understand product usage and improve the Service.</li>
@@ -244,7 +244,7 @@ export default function PrivacyPage() {
           Our Service uses artificial intelligence to analyze your code and generate insights. Here is how AI processing works:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-[14px] text-vb-ink2 leading-relaxed">
-          <li><strong>How Code is Sent to AI Providers:</strong> Relevant code snippets, file structures, and contextual information are sent to our AI inference providers (our configured AI inference providers) via encrypted API calls to generate analysis results, answer your queries, and produce reports.</li>
+          <li><strong>How Code is Sent to AI Providers:</strong> Relevant code snippets, file structures, and contextual information are sent to our configured AI inference providers (e.g. OpenRouter) via encrypted API calls to generate analysis results, answer your queries, and produce reports.</li>
           <li><strong>No Training on Your Data:</strong> Your code and data are NOT used to train, fine-tune, or improve any AI models. Our AI providers process your data solely for inference (generating responses) and do not retain it for model training purposes. We have contractual agreements with our AI providers prohibiting the use of customer data for model training.</li>
           <li><strong>Data Minimization:</strong> We send only the minimum code context necessary to generate accurate analysis results. We do not send your entire repository to AI providers in a single request.</li>
           <li><strong>No Human Review:</strong> Your code is not reviewed by humans at our AI providers as part of the analysis process, except in cases where required to investigate abuse or comply with legal obligations.</li>

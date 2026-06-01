@@ -266,7 +266,7 @@ POST /api/query/stream
 ### AI Configuration
 
 - **Primary model:** configured chat model (1M context, $0.20/MTok input)
-- **Fallback models:** configured fallback models, configured fallback models
+- **Fallback models:** Additional entries in `OPENROUTER_CHAT_MODELS` (comma-separated chain)
 - **Routing:** OpenRouter native `route: "fallback"` — auto-retries next model on failure
 - **Temperature:** 0.25 (deterministic but not robotic)
 - **Max tokens:** 16,000 (allows detailed documentation-style responses)
@@ -279,7 +279,7 @@ POST /api/query/stream
 ### How It Works
 
 1. **At analysis time:** Each file's code is split into chunks (~200 lines, 20-line overlap)
-2. **Embedding:** Chunks are embedded via OpenRouter using `REDACTED_EMBEDDING_MODEL` (1536 dimensions)
+2. **Embedding:** Chunks are embedded via OpenRouter using the model configured in `OPENROUTER_EMBEDDING_MODEL` (typically 1536 dimensions)
 3. **Storage:** Vectors stored in Neon PostgreSQL using pgvector extension
 4. **At query time:** User's question is embedded → cosine similarity search → top chunks returned
 
