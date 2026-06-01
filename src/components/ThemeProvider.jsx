@@ -7,7 +7,6 @@ import {
   useMemo,
   useState,
 } from "react";
-import ThemeTransitionOverlay from "./ThemeTransitionOverlay";
 
 const STORAGE_KEY = "grepit-theme";
 const THEMES = ["light", "dark", "system"];
@@ -34,9 +33,23 @@ function applyClass(resolved) {
   else root.classList.remove("dark");
 }
 
+/** One root snapshot crossfade when supported; otherwise instant swap (no global * transitions). */
+function applyThemeClass(resolved) {
+  if (typeof document === "undefined") return;
+
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const run = () => applyClass(resolved);
+
+  if (reduce || typeof document.startViewTransition !== "function") {
+    run();
+    return;
+  }
+
+  document.startViewTransition(run);
+}
+
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState("system");
-  const [peelFrom, setPeelFrom] = useState(null);
 
   useEffect(() => {
     setThemeState(readStoredTheme());
@@ -46,11 +59,10 @@ export function ThemeProvider({ children }) {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-color-scheme: light)");
     const onChange = () => {
-      if (theme === "system") {
-        const resolved = resolveTheme("system");
-        const current = document.documentElement.classList.contains("dark") ? "dark" : "light";
-        if (current !== resolved) setPeelFrom({ from: current, to: resolved });
-      }
+      if (theme !== "system") return;
+      const resolved = resolveTheme("system");
+      const current = document.documentElement.classList.contains("dark") ? "dark" : "light";
+      if (current !== resolved) applyThemeClass(resolved);
     };
     mq.addEventListener?.("change", onChange);
     return () => mq.removeEventListener?.("change", onChange);
@@ -71,19 +83,7 @@ export function ThemeProvider({ children }) {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {}
 
-    if (current === resolved) return;
-
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      document.documentElement.classList.add("theme-transitioning");
-      applyClass(resolved);
-      window.setTimeout(() => {
-        document.documentElement.classList.remove("theme-transitioning");
-      }, 420);
-      return;
-    }
-
-    setPeelFrom({ from: current, to: resolved });
+    if (current !== resolved) applyThemeClass(resolved);
   }, []);
 
   const toggle = useCallback(() => {
@@ -100,18 +100,7 @@ export function ThemeProvider({ children }) {
     [theme, setTheme, toggle],
   );
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {peelFrom && (
-        <ThemeTransitionOverlay
-          fromTheme={peelFrom.from}
-          toTheme={peelFrom.to}
-          onComplete={() => setPeelFrom(null)}
-        />
-      )}
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

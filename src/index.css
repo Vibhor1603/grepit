@@ -35,7 +35,7 @@
   --dur-press:    160ms;
   --dur-popover:  220ms;
   --dur-flow:     280ms;
-  --dur-theme:    380ms;
+  --dur-theme:    180ms;
   --dur-context:  340ms;
   --dur-modal:    420ms;
   --dur-spatial:  680ms;
@@ -437,35 +437,12 @@
   color-scheme: dark;
 }
 
-/* macOS-style theme crossfade — fast, flowy, premium */
-html.theme-transitioning,
-html.theme-transitioning *,
-html.theme-transitioning *::before,
-html.theme-transitioning *::after {
-  transition:
-    background-color 380ms var(--ease-drawer),
-    color 380ms var(--ease-drawer),
-    border-color 380ms var(--ease-drawer),
-    fill 380ms var(--ease-drawer),
-    stroke 380ms var(--ease-drawer),
-    box-shadow 380ms var(--ease-drawer),
-    opacity 280ms var(--ease-out-strong) !important;
-}
-
-html.theme-transitioning svg,
-html.theme-transitioning svg * {
-  transition:
-    fill 380ms var(--ease-drawer),
-    stroke 380ms var(--ease-drawer),
-    opacity 280ms var(--ease-out-strong) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html.theme-transitioning,
-  html.theme-transitioning *,
-  html.theme-transitioning *::before,
-  html.theme-transitioning *::after {
-    transition-duration: 100ms !important;
+/* Theme toggle — root-only crossfade (View Transitions API); no per-element transitions */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: var(--dur-theme);
+    animation-timing-function: var(--ease-out-strong);
   }
 }
 

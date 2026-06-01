@@ -3,13 +3,7 @@ import { Sun, Moon } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 
 /**
- * ThemeToggle — quiet sun/moon swap, macOS-style.
- *
- * Emil principles applied:
- *   - exact transitions (no `transition: all`)
- *   - custom ease-out curve (--ease-out-strong)
- *   - subtle press feedback (handled globally on `button:active`)
- *   - no entrance animation — it's a control, not decoration
+ * ThemeToggle — sun/moon crossfade on the control only; page theme swaps via View Transition or instant.
  */
 export default function ThemeToggle({ className = "" }) {
   const { resolved, setTheme } = useTheme();
@@ -26,7 +20,7 @@ export default function ThemeToggle({ className = "" }) {
         borderColor: "var(--c-line)",
         color: "var(--c-text-2)",
         transition:
-          "background-color var(--dur-flow) var(--ease-drawer), color var(--dur-flow) var(--ease-drawer), border-color var(--dur-flow) var(--ease-drawer), transform 140ms var(--ease-out-strong)",
+          "background-color var(--dur-hover) var(--ease-out-strong), color var(--dur-hover) var(--ease-out-strong), border-color var(--dur-hover) var(--ease-out-strong), transform var(--dur-press) var(--ease-out-strong)",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.color = "var(--c-text)";
@@ -41,10 +35,9 @@ export default function ThemeToggle({ className = "" }) {
         className="absolute inset-0 flex items-center justify-center"
         style={{
           opacity: isDark ? 1 : 0,
-          transform: isDark ? "scale(1) rotate(0deg)" : "scale(0.92) rotate(-24deg)",
-          transition:
-            "opacity 320ms var(--ease-drawer), transform 320ms var(--ease-drawer)",
+          transition: "opacity var(--dur-theme) var(--ease-out-strong)",
         }}
+        aria-hidden={!isDark}
       >
         <Moon size={14} strokeWidth={1.8} />
       </span>
@@ -52,10 +45,9 @@ export default function ThemeToggle({ className = "" }) {
         className="absolute inset-0 flex items-center justify-center"
         style={{
           opacity: isDark ? 0 : 1,
-          transform: isDark ? "scale(0.92) rotate(24deg)" : "scale(1) rotate(0deg)",
-          transition:
-            "opacity 320ms var(--ease-drawer), transform 320ms var(--ease-drawer)",
+          transition: "opacity var(--dur-theme) var(--ease-out-strong)",
         }}
+        aria-hidden={isDark}
       >
         <Sun size={14} strokeWidth={1.8} />
       </span>
