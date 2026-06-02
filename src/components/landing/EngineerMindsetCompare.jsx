@@ -89,11 +89,16 @@ function MobileCompare() {
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
-      <div className="rounded-c-md border border-c-line-2 p-4 sm:p-5 bg-c-surface">
+      <div
+        className="rounded-c-md border p-4 sm:p-5 bg-[var(--c-card-panel)] border-[var(--c-card-panel-border)]"
+        style={{ boxShadow: "var(--shadow-card-rest)" }}
+      >
         <p className="landing-eyebrow text-c-coral mb-2">Other tools</p>
         <p className="text-[13px] font-mono text-c-text mb-1">&quot;How does checkout retry work?&quot;</p>
         <p className="text-[12px] text-c-text-3 mb-3">Grep and re-prompt. Still no picture of the flow.</p>
-        <div className="rounded-md bg-c-surface-2 border border-c-line px-3 py-2.5 space-y-1.5 mb-4 min-h-[72px]">
+        <div
+          className="rounded-md bg-[var(--c-card-panel-inner)] border border-[var(--c-line)] px-3 py-2.5 space-y-1.5 mb-4 min-h-[72px]"
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={phase}
@@ -117,7 +122,10 @@ function MobileCompare() {
         </p>
       </div>
 
-      <div className="rounded-c-md border p-4 sm:p-5 bg-c-surface border-c-accent-line">
+      <div
+        className="rounded-c-md border p-4 sm:p-5 bg-[var(--c-card-panel)] border-[var(--c-card-panel-border)] border-c-accent-line"
+        style={{ boxShadow: "var(--shadow-card-rest)" }}
+      >
         <p className="landing-eyebrow text-c-lime mb-2">With grepit</p>
         <p className="text-[13px] font-mono text-c-text mb-1">&quot;How does checkout retry work?&quot;</p>
         <p className="text-[12px] text-c-text-3 mb-3">Diagrams, snippets, citations. Same question.</p>

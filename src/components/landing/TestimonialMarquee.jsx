@@ -31,7 +31,7 @@ export default function TestimonialMarquee() {
           {track.map((t, i) => (
             <article
               key={`${t.name}-${i}`}
-              className="testimonial-card flex-shrink-0 w-[min(320px,82vw)] p-5 md:p-6 rounded-c-lg border bg-c-surface border-c-line shadow-[var(--shadow-2)]"
+              className="testimonial-card flex-shrink-0 w-[min(320px,82vw)] p-5 md:p-6 rounded-c-lg border bg-c-surface border-c-line"
             >
               <p className="text-[14px] leading-[1.6] mb-5 text-c-text-2">{t.quote}</p>
               <div className="flex items-center gap-3">

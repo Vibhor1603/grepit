@@ -130,11 +130,11 @@ function pointsToD(points) {
 }
 
 /** Small data packet — neutral dot, not product logo. */
-function DataPacketMarker({ fill, opacity = 1 }) {
+function DataPacketMarker({ fill, opacity = 1, scale = 1 }) {
   return (
-    <g opacity={opacity}>
+    <g opacity={opacity} transform={`scale(${scale})`}>
       <rect x={-5} y={-2.5} width={10} height={5} rx={2.5} fill={fill} opacity={0.9} />
-      <rect x={-1.4} y={-1.4} width={2.8} height={2.8} rx={1.4} fill="var(--c-surface-elev)" opacity={0.75} />
+      <rect x={-1.4} y={-1.4} width={2.8} height={2.8} rx={1.4} fill="var(--c-card-panel)" opacity={0.85} />
     </g>
   );
 }
@@ -245,7 +245,7 @@ export default function LivingCanvas({ variant = "default" }) {
           </linearGradient>
 
           <filter id={`${uid}-node-shadow`} x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.22" />
+            <feDropShadow dx="0" dy="2.25" stdDeviation="1.45" floodColor="#000" floodOpacity="0.28" />
           </filter>
 
           <filter id={`${uid}-marker-glow`} x="-80%" y="-80%" width="260%" height="260%">
@@ -334,7 +334,11 @@ export default function LivingCanvas({ variant = "default" }) {
                       filter={isHero ? undefined : `url(#${uid}-marker-glow)`}
                     >
                       {isHero ? (
-                        <DataPacketMarker fill={markerFill} opacity={i === 0 ? 0.95 : 0.65} />
+                        <DataPacketMarker
+                          fill={markerFill}
+                          opacity={i === 0 ? 0.95 : 0.65}
+                          scale={1.45}
+                        />
                       ) : (
                         <BoltMarker fill={markerFill} opacity={i === 0 ? 1 : 0.72} scale={markerScale} />
                       )}
@@ -359,15 +363,27 @@ export default function LivingCanvas({ variant = "default" }) {
           {activeNodes.map((n) => {
             const x = n.x - half;
             const y = n.y - half;
+            const pad = isHero ? 1.9 : 1.6;
+            const baseInset = isHero ? 0.9 : 0.7;
+            const baseDrop = isHero ? 2 : 1.55;
             return (
               <g
                 key={n.id}
-                className={`lc-node lc-node--${n.tier}${n.primary ? " lc-node--hub" : ""}`}
+                className={`lc-node lc-node--${n.tier}${n.primary ? " lc-node--hub" : ""}${isHero ? " lc-node--hero" : ""}`}
                 style={{
                   opacity: mounted ? undefined : 0,
                   transition: `opacity 460ms cubic-bezier(0.23, 1, 0.32, 1) ${180 + n.order * 40}ms`,
                 }}
               >
+                <rect
+                  x={x + baseInset}
+                  y={y + baseDrop}
+                  width={nodeSize - baseInset * 2}
+                  height={nodeSize - baseInset * 2}
+                  rx={10}
+                  ry={10}
+                  className="lc-node__base"
+                />
                 <rect
                   x={x}
                   y={y}
@@ -377,6 +393,15 @@ export default function LivingCanvas({ variant = "default" }) {
                   ry={10}
                   className="lc-node__body"
                   filter={`url(#${uid}-node-shadow)`}
+                />
+                <rect
+                  x={x + pad}
+                  y={y + pad}
+                  width={nodeSize - pad * 2}
+                  height={nodeSize - pad * 2}
+                  rx={8}
+                  ry={8}
+                  className="lc-node__highlight"
                 />
                 <text x={n.x} y={n.y + 4} textAnchor="middle" className="lc-node__label">
                   {n.label}

@@ -109,13 +109,7 @@ export default function ProductShowcase() {
           </ScrollReveal>
 
           <ScrollReveal delay={90} variant="right" className="lg:col-span-7 relative order-1 lg:order-2">
-            <HomeCard
-              className="product-showcase-card rounded-c-lg border"
-              style={{
-                borderColor: "var(--c-line)",
-                boxShadow: "var(--shadow-3)",
-              }}
-            >
+            <HomeCard depth="elevated" className="product-showcase-card rounded-c-lg">
               <div className="overflow-hidden rounded-[inherit]">
                 <WindowChrome title={MOCK_PANEL_TITLES[active]} />
                 <div className="product-showcase-stage relative bg-c-surface-2">

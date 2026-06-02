@@ -102,6 +102,33 @@ export const SITE_CONFIG = {
     ],
   },
 
+  trust: {
+    label: "Privacy",
+    title: "Clear privacy.",
+    titleAccent: "No theater.",
+    subtitle: "Simple promise: only authorized access, minimal retrieval data, and real deletion controls.",
+    linkLabel: "Read full privacy policy",
+    commitments: [
+      {
+        title: "Authorize",
+        body: "Only repos/files you connect.",
+      },
+      {
+        title: "Index",
+        body: "Maps, chats, and retrieval chunks.",
+      },
+      {
+        title: "Infer",
+        body: "Minimal context, not model training.",
+      },
+      {
+        title: "Delete",
+        body: "Analysis/account removal purges linked data.",
+      },
+    ],
+    honesty: "",
+  },
+
   pricing: {
     label: "Pricing",
     title: "Simple, transparent pricing",

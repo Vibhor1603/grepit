@@ -166,10 +166,29 @@ export function useDeleteChatHistory() {
 export function useExplainCode() {
   return useMutation({
     mutationFn: async ({ analysisId, name, code }) => {
+      const explainPrompt = [
+        `Explain \`${name}\` from this code block.`,
+        "",
+        "Respond with exactly these sections:",
+        "1) What it does (2-3 specific sentences).",
+        "2) Parameters (bullet list: name, expected type/shape, purpose).",
+        "3) Returns (what it returns and when; if unknown, explicitly say unknown).",
+        "4) Important behavior (side effects, async behavior, notable branches).",
+        "",
+        "Rules:",
+        "- Be specific to this code block, not generic.",
+        "- Do not invent missing information.",
+        "- If type info is missing, say that clearly.",
+        "- Do NOT include follow-up questions.",
+        "",
+        "Code:",
+        code,
+      ].join("\n");
+
       const res = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: `Briefly explain what "${name}" does in 2-3 sentences. Be specific. Do NOT include follow-up questions.\n\nCode:\n${code}`, analysisId }),
+        body: JSON.stringify({ query: explainPrompt, analysisId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');

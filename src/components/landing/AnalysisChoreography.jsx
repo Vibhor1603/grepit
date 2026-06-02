@@ -108,13 +108,7 @@ export default function AnalysisChoreography() {
             transition={{ duration: 0.65, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
             className="lg:col-span-7"
           >
-            <HomeCard
-              className="rounded-c-lg border overflow-hidden"
-              style={{
-                borderColor: "var(--c-line-2)",
-                boxShadow: "var(--shadow-2)",
-              }}
-            >
+            <HomeCard className="rounded-c-lg overflow-hidden">
               <div
                 className="flex items-center justify-between px-5 py-3 border-b"
                 style={{ borderColor: "var(--c-line)", backgroundColor: "var(--c-surface-2)" }}

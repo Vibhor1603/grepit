@@ -1,9 +1,10 @@
 /** Grepit design tokens for Remotion compositions (mirrors index.css). */
 export const REMOTION_THEME = {
   light: {
-    bg: "#FFFCF7",
+    // Match landing HomeCard surfaces.
+    bg: "#F3EFE4",
     surface: "#F5F0E6",
-    surface2: "#FAF8F2",
+    surface2: "#FFFFFF",
     text: "#1A1F1A",
     text2: "#3D4238",
     text3: "#4A5244",
@@ -17,12 +18,12 @@ export const REMOTION_THEME = {
     limeLine: "rgba(47, 99, 68, 0.30)",
     coral: "#C43A3A",
     coralSoft: "rgba(196, 58, 58, 0.10)",
-    line: "rgba(100, 85, 60, 0.17)",
+    line: "rgba(100, 85, 60, 0.11)",
   },
   dark: {
-    bg: "#111113",
+    bg: "#0E0E10",
     surface: "#18181B",
-    surface2: "#18181B",
+    surface2: "#141416",
     text: "#ECECEE",
     text2: "#C8C8CE",
     text3: "#A8A8B0",
@@ -36,7 +37,7 @@ export const REMOTION_THEME = {
     limeLine: "rgba(142, 196, 164, 0.22)",
     coral: "#F08080",
     coralSoft: "rgba(240, 128, 128, 0.10)",
-    line: "rgba(255, 255, 255, 0.11)",
+    line: "rgba(255, 255, 255, 0.07)",
   },
 };
 

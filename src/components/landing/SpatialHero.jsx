@@ -65,7 +65,7 @@ export default function SpatialHero({
         <div className="hero-spatial-stage landing-section-x">
           <div className="hero-spatial-focus w-full max-w-[580px] min-w-0 text-center lg:text-left mx-auto lg:mx-0">
             <div className="hero-spatial-block hero-spatial-block--title">
-              <h1 className="landing-h1 hero-spatial-title mb-0 lg:mb-5 text-c-text">
+              <h1 className="landing-h1 landing-type-depth hero-spatial-title mb-0 lg:mb-5 text-c-text">
                 {hero.tagline}
                 <span style={{ color: "var(--c-accent)" }}>{hero.taglineAccent}</span>
                 {hero.taglineSuffix ?? "."}
@@ -249,7 +249,7 @@ export default function SpatialHero({
         <div className="hero-spatial-rest landing-section-x">
           <div className="hero-spatial-below w-full max-w-[580px] mx-auto lg:mx-0 text-center lg:text-left">
             <SuggestedRepos
-              className="hidden lg:block lg:mt-4"
+              className="hidden lg:block lg:-mt-3"
               repos={hero.suggestedRepos}
               loading={loading}
               setMode={setMode}
@@ -273,11 +273,8 @@ export default function SpatialHero({
 
           <div className="hero-spatial-visual w-full max-w-[min(100%,520px)] lg:max-w-[720px] min-w-0 mx-auto lg:mx-0 lg:justify-self-end">
             <HomeCard
-              className="hero-topology-shell w-full rounded-c-lg overflow-hidden border"
-              style={{
-                borderColor: "var(--c-line)",
-                boxShadow: "var(--shadow-3)",
-              }}
+              depth="elevated"
+              className="hero-topology-shell w-full rounded-c-lg overflow-hidden"
             >
               <div className="hero-topology-canvas relative w-full">
                 <LivingCanvas variant="hero" />

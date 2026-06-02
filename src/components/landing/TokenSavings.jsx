@@ -68,14 +68,7 @@ export default function TokenSavings() {
       className="relative z-[1] landing-section-x py-14 md:py-18 scroll-mt-[80px]"
     >
       <div className="max-w-[900px] mx-auto">
-        <HomeCard
-          className="rounded-c-lg border p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center"
-          style={{
-            borderColor: "var(--c-line-2)",
-            boxShadow: "var(--shadow-2)",
-            backgroundColor: "var(--c-surface)",
-          }}
-        >
+        <HomeCard className="rounded-c-lg p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.16em] mb-2 text-c-accent">
               Token savings

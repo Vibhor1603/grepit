@@ -8,7 +8,6 @@ const COLUMNS = [
     links: [
       ["Pricing",       "/#pricing"],
       ["FAQ",           "/faq"],
-      ["Transparency",  "/transparency"],
     ],
   },
   {
@@ -111,18 +110,6 @@ export default function SiteFooter() {
           style={{ borderColor: "var(--c-line)", color: "var(--c-text-3)" }}
         >
           <span>© {new Date().getFullYear()} grepit · all rights reserved</span>
-          <a
-            href="mailto:support@grepit.co"
-            className="text-[11px]"
-            style={{
-              color: "var(--c-text-2)",
-              transition: "color 160ms var(--ease-out-strong)",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--c-text)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--c-text-2)")}
-          >
-            Contact
-          </a>
         </div>
       </div>
     </footer>

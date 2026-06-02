@@ -71,10 +71,10 @@ export default function Pricing({ onSelect, subscribing }) {
                 transition={{ duration: 0.65, delay: 0.1 + i * 0.06, ease: [0.16, 1, 0.3, 1] }}
               >
                 <HomeCard
-                  className="h-full rounded-c-md border"
+                  depth={p.accent ? "elevated" : "default"}
+                  className="h-full rounded-c-md"
                   style={{
                     borderColor: p.accent ? "var(--c-accent-line)" : "var(--c-line)",
-                    boxShadow: p.accent ? "var(--shadow-2)" : "var(--shadow-1)",
                   }}
                 >
                   <div className="p-7 md:p-8 h-full flex flex-col">

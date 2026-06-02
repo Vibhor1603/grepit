@@ -16,6 +16,7 @@ import {
 
 import LandingNav from "./landing/LandingNav";
 import SpatialHero from "./landing/SpatialHero";
+import TrustSection from "./landing/TrustSection";
 import TechMarquee from "./landing/TechMarquee";
 import ScrollReveal from "./landing/ScrollReveal";
 import LandingBackdrop from "./landing/LandingBackdrop";
@@ -421,6 +422,8 @@ export default function LandingPage() {
       <ScrollReveal variant="left" className="landing-float-section">
         <ValueCompare />
       </ScrollReveal>
+
+      <TrustSection />
 
       <ScrollReveal delay={60} variant="right" className="landing-float-section">
         <EngineerMindset />

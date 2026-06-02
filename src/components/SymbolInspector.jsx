@@ -16,117 +16,35 @@ function parseArgs(args) {
   });
 }
 
-/* ── Infer a meaningful description from function name + context ── */
-function inferDescription(name, kind, args, usedBy) {
-  const lower = name.toLowerCase();
-  const argNames = args.map(a => a.name).join(', ');
+/* ── Build a concrete summary from symbol metadata ── */
+function buildDescription(symbol, kind, args, usedBy) {
   const usedCount = (usedBy || []).length;
+  const argSummary = args.length > 0
+    ? args.map((a) => (a.type ? `\`${a.name}: ${a.type}\`` : `\`${a.name}\``)).join(", ")
+    : null;
 
-  // Build a richer, more contextual description
-  let action = '';
-  let detail = '';
+  const action = symbol.name.replace(/([A-Z])/g, " $1").trim().toLowerCase();
+  const prefix = kind === "class" ? "Class" : kind === "method" ? "Method" : "Function";
 
-  if (/^(get|fetch|load|read|find|query|retrieve)/.test(lower)) {
-    action = 'Fetches or retrieves data';
-    if (argNames) detail = ` based on ${argNames}`;
-  } else if (/^(set|update|put|patch|modify|change)/.test(lower)) {
-    action = 'Updates or mutates';
-    const target = name.replace(/^(set|update|put|patch|modify|change)/i, '');
-    if (target) detail = ` the ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`;
-    else if (argNames) detail = ` using ${argNames}`;
-  } else if (/^(create|make|build|generate|new|init|setup)/.test(lower)) {
-    action = 'Constructs and returns a new';
-    const target = name.replace(/^(create|make|build|generate|new|init|setup)/i, '');
-    detail = target ? ` ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} instance` : ' resource or object';
-  } else if (/^(delete|remove|destroy|clear|reset|drop)/.test(lower)) {
-    action = 'Removes or cleans up';
-    const target = name.replace(/^(delete|remove|destroy|clear|reset|drop)/i, '');
-    detail = target ? ` ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}` : ' the target resource';
-  } else if (/^handle/.test(lower)) {
-    const event = name.replace(/^handle/i, '');
-    action = `Handles the ${event.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} event`;
-    if (argNames) detail = ` with ${argNames}`;
-  } else if (/^on/.test(lower)) {
-    const event = name.replace(/^on/i, '');
-    action = `Callback triggered on ${event.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`;
-  } else if (/^(is|has|can|should|check|validate|verify)/.test(lower)) {
-    action = 'Checks whether';
-    const condition = name.replace(/^(is|has|can|should|check|validate|verify)/i, '');
-    detail = condition ? ` ${condition.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} is true` : ' a condition holds';
-  } else if (/^(render|display|show|draw|paint)/.test(lower)) {
-    action = 'Renders';
-    const target = name.replace(/^(render|display|show|draw|paint)/i, '');
-    detail = target ? ` the ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} UI` : ' a visual component';
-  } else if (/^(parse|transform|convert|format|serialize|map|normalize)/.test(lower)) {
-    action = 'Transforms data';
-    const target = name.replace(/^(parse|transform|convert|format|serialize|map|normalize)/i, '');
-    if (target) detail = ` into ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} format`;
-    else if (argNames) detail = ` from ${argNames}`;
-  } else if (/^use/.test(lower)) {
-    const hookName = name.replace(/^use/i, '');
-    action = `React hook managing ${hookName.replace(/([A-Z])/g, ' $1').trim().toLowerCase() || 'component'} state/logic`;
-  } else if (/^(send|emit|dispatch|publish|notify|broadcast)/.test(lower)) {
-    action = 'Dispatches';
-    const target = name.replace(/^(send|emit|dispatch|publish|notify|broadcast)/i, '');
-    detail = target ? ` a ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} event` : ' an event or message';
-  } else if (/^(sort|filter|reduce|group|aggregate)/.test(lower)) {
-    action = 'Processes a collection by';
-    const op = name.match(/^(sort|filter|reduce|group|aggregate)/i)?.[0] || '';
-    detail = `${op.toLowerCase()}ing`;
-    if (argNames) detail += ` based on ${argNames}`;
-  } else if (/^(open|close|toggle|show|hide|expand|collapse)/.test(lower)) {
-    const op = name.match(/^(open|close|toggle|show|hide|expand|collapse)/i)?.[0] || '';
-    const target = name.replace(/^(open|close|toggle|show|hide|expand|collapse)/i, '');
-    action = `${op.charAt(0).toUpperCase() + op.slice(1).toLowerCase()}s`;
-    detail = target ? ` the ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}` : ' a UI element';
-  } else if (/^(connect|disconnect|subscribe|unsubscribe|listen)/.test(lower)) {
-    action = 'Manages a connection or subscription';
-    if (argNames) detail = ` for ${argNames}`;
-  } else if (/^(log|print|debug|trace|warn|error)/.test(lower)) {
-    action = 'Logs or outputs diagnostic information';
-  } else if (/^(export|import|upload|download|save|write)/.test(lower)) {
-    action = 'Handles data I/O';
-    const target = name.replace(/^(export|import|upload|download|save|write)/i, '');
-    if (target) detail = ` for ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`;
-  } else if (/^(ensure|assert|require|guard)/.test(lower)) {
-    action = 'Enforces a precondition';
-    const target = name.replace(/^(ensure|assert|require|guard)/i, '');
-    if (target) detail = ` that ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`;
-  } else if (/^(with|wrap|decorate|enhance)/.test(lower)) {
-    action = 'Wraps or enhances';
-    const target = name.replace(/^(with|wrap|decorate|enhance)/i, '');
-    detail = target ? ` ${target.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} with additional behavior` : ' with additional behavior';
-  } else if (kind === 'method') {
-    action = `Method that operates on the parent class`;
-    if (argNames) detail = ` using ${argNames}`;
-  } else if (kind === 'class') {
-    action = `Encapsulates ${name.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} logic and state`;
-  } else {
-    // Generic — try to break apart camelCase for meaning
-    const words = name.replace(/([A-Z])/g, ' $1').trim().toLowerCase();
-    action = `Performs ${words}`;
-    if (argNames) detail = ` with ${argNames}`;
+  let text = `${prefix} \`${symbol.name}\` is responsible for ${action}.`;
+  if (argSummary) {
+    text += ` It accepts ${args.length} parameter${args.length > 1 ? "s" : ""}: ${argSummary}.`;
+  } else if (kind !== "class") {
+    text += " It does not declare explicit input parameters.";
   }
-
-  let desc = action + detail;
-  if (usedCount > 0) desc += `. Referenced in ${usedCount} other file${usedCount > 1 ? 's' : ''}`;
-  return desc;
+  if (usedCount > 0) {
+    text += ` It is referenced by ${usedCount} other file${usedCount > 1 ? "s" : ""}.`;
+  }
+  return text;
 }
 
-/* ── Infer return type ── */
-function inferReturnType(name, kind) {
-  const lower = name.toLowerCase();
-  if (kind === 'class') return null;
-  if (/^(is|has|can|should|check|validate|verify)/.test(lower)) return 'boolean';
-  if (/^(get|find|query|fetch|load|read|retrieve)/.test(lower)) return 'data';
-  if (/^(create|make|build|generate|new)/.test(lower)) return 'instance';
-  if (/^(handle|on|set|update|delete|remove|clear|reset|log|print)/.test(lower)) return 'void';
-  if (/^(render|display)/.test(lower)) return 'JSX';
-  if (/^(parse|transform|convert|format|serialize|map|normalize)/.test(lower)) return 'transformed';
-  if (/^(use)/.test(lower)) return 'hook state';
-  if (/^(count|length|size|total|sum|max|min|index)/.test(lower)) return 'number';
-  if (/^(to|as)/.test(lower)) return 'converted';
-  if (/^(sort|filter|reduce|group)/.test(lower)) return 'array';
+function getReturnType(symbol, kind) {
+  if (kind === "class") return null;
+  const returns = symbol?.returns;
+  if (Array.isArray(returns) && returns.length > 0) {
+    const concrete = returns.find(Boolean);
+    return concrete || null;
+  }
   return null;
 }
 
@@ -148,8 +66,8 @@ function CopyBtn({ text }) {
 function SymbolCard({ symbol, kind, usedBy = [] }) {
   const [expanded, setExpanded] = useState(false);
   const args = parseArgs(symbol.args);
-  const description = inferDescription(symbol.name, kind, args, usedBy);
-  const returnType = inferReturnType(symbol.name, kind);
+  const description = buildDescription(symbol, kind, args, usedBy);
+  const returnType = getReturnType(symbol, kind);
 
   const signature = useMemo(() => {
     if (kind === 'class') return `class ${symbol.name}`;
@@ -204,10 +122,10 @@ function SymbolCard({ symbol, kind, usedBy = [] }) {
           </p>
 
           {/* Return type */}
-          {returnType && kind !== 'class' && (
+          {kind !== 'class' && (
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[10px] text-vb-ink4">Returns</span>
-              <span className="text-[11px] font-mono text-vb-green font-medium">{returnType}</span>
+              <span className="text-[11px] font-mono text-vb-green font-medium">{returnType || "unknown (not declared)"}</span>
             </div>
           )}
 

@@ -123,13 +123,7 @@ export default function StartHereCinematic() {
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          <HomeCard
-            className="rounded-c-lg border"
-            style={{
-              borderColor: "var(--c-line)",
-              boxShadow: "var(--shadow-2)",
-            }}
-          >
+          <HomeCard className="rounded-c-lg">
             <div
               className="grid grid-cols-1 lg:grid-cols-12 gap-px"
               style={{ backgroundColor: "var(--c-line)" }}

@@ -46,28 +46,31 @@ export default function CookieConsent() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:max-w-[380px] z-[300] animate-slide-up">
-      <div className="bg-c-surface border border-c-line-2 rounded-xl p-5 shadow-[0_16px_48px_rgba(0,0,0,0.6)]">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <p className="text-[13px] text-vb-ink2 leading-relaxed">
-            We use cookies for authentication and analytics to improve your experience.
-          </p>
+      <div className="bg-c-surface border border-c-line rounded-lg p-4 shadow-[0_14px_34px_rgba(0,0,0,0.34)]">
+        <div className="flex items-start justify-between gap-3 mb-2.5">
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-c-accent mb-1">Privacy controls</p>
+            <p className="text-[12.5px] text-c-text-2 leading-relaxed">
+              We use essential cookies for auth, and optional analytics to improve product quality.
+            </p>
+          </div>
           <button onClick={decline} className="text-vb-ink4 hover:text-vb-ink3 transition-colors flex-shrink-0 mt-0.5">
             <X size={14} />
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-3">
           <button onClick={accept}
             style={{ transition: 'background-color 160ms var(--ease-out-strong), transform 160ms var(--ease-out-strong)' }}
-            className="flex-1 py-2 rounded-lg text-[12px] font-medium bg-vb-accent text-vb-bg hover:bg-vb-accent-bright">
+            className="flex-1 py-2 rounded-md text-[12px] font-medium bg-vb-accent text-vb-bg hover:bg-vb-accent-bright">
             Accept all
           </button>
           <button onClick={decline}
             style={{ transition: 'background-color 160ms var(--ease-out-strong), border-color 160ms var(--ease-out-strong), transform 160ms var(--ease-out-strong)' }}
-            className="flex-1 py-2 rounded-lg text-[12px] font-medium text-vb-ink3 bg-c-overlay-3 border border-c-line hover:bg-white/[0.06]">
+            className="flex-1 py-2 rounded-md text-[12px] font-medium text-vb-ink3 bg-c-overlay-3 border border-c-line hover:bg-white/[0.06]">
             Essential only
           </button>
         </div>
-        <a href="/privacy" className="block text-[10px] text-vb-ink4 hover:text-vb-accent mt-2.5 text-center transition-colors">
+        <a href="/privacy" className="block text-[10px] text-vb-ink4 hover:text-vb-accent mt-2 text-left transition-colors">
           Read our Privacy Policy
         </a>
       </div>

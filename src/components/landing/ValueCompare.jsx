@@ -102,13 +102,8 @@ export default function ValueCompare() {
           initial={{ opacity: 0, y: 12 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
-          className="rounded-c-lg border overflow-hidden"
-          style={{
-            backgroundColor: "var(--c-surface)",
-            borderColor: "var(--c-line)",
-            boxShadow: "var(--shadow-2)",
-          }}
         >
+          <HomeCard className="rounded-c-lg overflow-hidden" maxTilt={7}>
           <div className="grid grid-cols-1 md:grid-cols-3">
             {PROOF.map((row, i) => (
               <div
@@ -139,6 +134,7 @@ export default function ValueCompare() {
               </div>
             ))}
           </div>
+          </HomeCard>
         </motion.div>
       </div>
     </section>
@@ -150,11 +146,10 @@ function CompareColumn({ data, side, highlight = false, cycle }) {
 
   return (
     <HomeCard
-      className="rounded-c-lg border p-5 sm:p-7 md:p-8 lg:p-9 h-full"
+      depth={highlight ? "elevated" : "default"}
+      className="rounded-c-lg p-5 sm:p-7 md:p-8 lg:p-9 h-full"
       style={{
         borderColor: highlight ? "var(--c-accent-line)" : "var(--c-line-2)",
-        boxShadow: "var(--shadow-2)",
-        backgroundColor: "var(--c-surface)",
       }}
     >
       <p

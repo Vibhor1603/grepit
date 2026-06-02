@@ -10,15 +10,16 @@ import {
 
 const STORAGE_KEY = "grepit-theme";
 const THEMES = ["light", "dark", "system"];
+const THEME_TRANSITION_MS = 220;
 const ThemeContext = createContext(null);
 
 function readStoredTheme() {
-  if (typeof window === "undefined") return "system";
+  if (typeof window === "undefined") return "light";
   try {
     const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("vibo-theme");
     if (THEMES.includes(raw)) return raw;
   } catch {}
-  return "system";
+  return "light";
 }
 
 function resolveTheme(theme) {
@@ -33,23 +34,33 @@ function applyClass(resolved) {
   else root.classList.remove("dark");
 }
 
-/** One root snapshot crossfade when supported; otherwise instant swap (no global * transitions). */
+/** Fast, low-overhead theme switch tuned for UI responsiveness. */
 function applyThemeClass(resolved) {
   if (typeof document === "undefined") return;
 
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const run = () => applyClass(resolved);
-
-  if (reduce || typeof document.startViewTransition !== "function") {
-    run();
+  if (reduce) {
+    applyClass(resolved);
     return;
   }
 
-  document.startViewTransition(run);
+  if (typeof document.startViewTransition === "function") {
+    document.startViewTransition(() => {
+      applyClass(resolved);
+    });
+    return;
+  }
+
+  const root = document.documentElement;
+  root.classList.add("theme-transitioning");
+  applyClass(resolved);
+  window.setTimeout(() => {
+    root.classList.remove("theme-transitioning");
+  }, THEME_TRANSITION_MS);
 }
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState("system");
+  const [theme, setThemeState] = useState("light");
 
   useEffect(() => {
     setThemeState(readStoredTheme());
@@ -107,7 +118,7 @@ export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
     return {
-      theme: "system",
+      theme: "light",
       resolved: "light",
       setTheme: () => {},
       toggle: () => {},
@@ -121,7 +132,7 @@ export const THEME_INIT_SCRIPT = `
   try {
     var k = "${STORAGE_KEY}";
     var stored = localStorage.getItem(k) || localStorage.getItem("vibo-theme");
-    var theme = stored || "system";
+    var theme = stored || "light";
     var resolved = theme;
     if (theme === "system") {
       resolved = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";

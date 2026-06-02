@@ -42,11 +42,13 @@ export default function LandingNav() {
   return (
     <>
       <nav
-        className="fixed top-0 inset-x-0 z-[100] flex items-center landing-nav-x safe-top"
+        className="sticky top-0 inset-x-0 z-[100] flex items-center landing-nav-x safe-top landing-nav-sticky"
         style={{
           height: "var(--landing-nav-h, 56px)",
-          backgroundColor: scrolled || menuOpen ? "var(--c-vibrancy)" : "transparent",
-          borderBottom: scrolled || menuOpen ? "1px solid var(--c-vibrancy-edge)" : "1px solid transparent",
+          backgroundColor: scrolled || menuOpen ? "var(--c-vibrancy-strong)" : "transparent",
+          borderBottom:
+            scrolled || menuOpen ? "1px solid var(--c-vibrancy-edge-strong)" : "1px solid transparent",
+          boxShadow: scrolled || menuOpen ? "0 10px 30px rgba(0,0,0,0.10)" : "none",
           backdropFilter: scrolled || menuOpen ? "saturate(180%) blur(20px)" : "none",
           WebkitBackdropFilter: scrolled || menuOpen ? "saturate(180%) blur(20px)" : "none",
           transition:

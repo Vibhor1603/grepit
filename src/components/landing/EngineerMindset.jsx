@@ -72,13 +72,7 @@ export default function EngineerMindset() {
             transition={{ duration: 0.6, delay: 0.08, ease: [0.23, 1, 0.32, 1] }}
             className="lg:col-span-8 xl:col-span-8 max-w-full w-full"
           >
-            <HomeCard
-              className="rounded-c-lg overflow-hidden border w-full"
-              style={{
-                borderColor: "var(--c-line)",
-                boxShadow: "var(--shadow-3)",
-              }}
-            >
+            <HomeCard depth="elevated" className="rounded-c-lg overflow-hidden w-full">
               {showPlayer ? (
                 <EngineerMindsetCompare />
               ) : (

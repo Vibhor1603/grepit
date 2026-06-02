@@ -31,11 +31,11 @@ export default function DashboardTabs({ tabs, activeTab, onChange, className = "
   return (
     <div
       ref={containerRef}
-      className={`relative flex items-center max-w-full bg-c-overlay-1 border border-c-line rounded-[20px] p-[4px] shrink-0 ${className}`}
+      className={`relative flex items-center max-w-full bg-c-overlay-1 border border-c-line rounded-[14px] p-[4px] shrink-0 ${className}`}
     >
       <motion.div
         aria-hidden="true"
-        className="absolute top-[4px] bottom-[4px] rounded-[14px] pointer-events-none"
+        className="absolute top-[4px] bottom-[4px] rounded-[10px] pointer-events-none"
         style={{
           background:
             "linear-gradient(180deg, color-mix(in srgb, var(--c-lime-soft) 75%, var(--c-surface) 25%), color-mix(in srgb, var(--c-accent-soft) 45%, var(--c-surface) 55%))",
@@ -57,7 +57,7 @@ export default function DashboardTabs({ tabs, activeTab, onChange, className = "
             type="button"
             onClick={() => onChange(id)}
             title={label}
-            className={`relative z-[1] flex items-center justify-center gap-1.5 px-4 sm:px-4.5 xl:px-5 py-2 rounded-[14px] text-[13px] xl:text-[13.5px] font-medium min-w-[6.5rem] ${
+            className={`relative z-[1] flex items-center justify-center gap-1.5 px-4 sm:px-4.5 xl:px-5 py-2 rounded-[10px] text-[13px] xl:text-[13.5px] font-medium min-w-[6.5rem] ${
               active ? "text-c-text" : "text-c-text-2 hover:text-c-text"
             }`}
             style={{

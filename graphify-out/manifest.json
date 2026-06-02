@@ -5,7 +5,7 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/instrumentation-client.js": {
-    "mtime": 1779064331.5114248,
+    "mtime": 1780377436.8794785,
     "ast_hash": "302ea69ce2339f77ec8ec915d5be62b7",
     "semantic_hash": ""
   },
@@ -40,8 +40,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/package.json": {
-    "mtime": 1780271260.0991576,
-    "ast_hash": "4dc9e990b1a916a0eb0bc4da96f1ee85",
+    "mtime": 1780291211.4332185,
+    "ast_hash": "2764f4260f8542fac7f7431c7bc4d79b",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/eslint.config.js": {
@@ -90,8 +90,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/tests/lib/groq.test.js": {
-    "mtime": 1778813675.7139776,
-    "ast_hash": "6bbe1556f4f63182fa1011627ae80adb",
+    "mtime": 1780291694.485191,
+    "ast_hash": "91923eeced711342862fd777441eae65",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/tests/lib/rateLimit.test.js": {
@@ -145,18 +145,18 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/scripts/pre-index-repos.js": {
-    "mtime": 1779163579.8820474,
-    "ast_hash": "60fc0600301f7b95a976842ca4dd3cd3",
+    "mtime": 1780289389.299646,
+    "ast_hash": "d1ba166871208ac05a26d19ff758e452",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/middleware.js": {
-    "mtime": 1780240781.191029,
-    "ast_hash": "f4ad88f9168f110f0fc619ec3e5bfbae",
+    "mtime": 1780291608.5017483,
+    "ast_hash": "4f99de8c6add272a218d46ca14675de0",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/layout.jsx": {
-    "mtime": 1780278279.358904,
-    "ast_hash": "c22c0e0444abf1f2e7dc4f1f55913824",
+    "mtime": 1780382309.6392822,
+    "ast_hash": "b3ba6cd816ba4f5d377998cc6b2b5e94",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/not-found.jsx": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/privacy/page.jsx": {
-    "mtime": 1780273087.589266,
-    "ast_hash": "ebd6e9611f06c009f8725555fe76a9bd",
+    "mtime": 1780292588.8249946,
+    "ast_hash": "44cc6d0e4d8c04823f4c38d8f7ff535f",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/sso-callback/page.jsx": {
@@ -190,8 +190,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/terms/page.jsx": {
-    "mtime": 1780273089.6995754,
-    "ast_hash": "d352aba2b7bd4e2876d5e2bf1362fe1a",
+    "mtime": 1780286600.495413,
+    "ast_hash": "0acbe382ceb15961ab774bd5f23d58ff",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/dashboard/page.jsx": {
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/profile/page.jsx": {
-    "mtime": 1780275323.5276153,
-    "ast_hash": "fbd508e951288c5fb1f5f859b3e88a53",
+    "mtime": 1780377435.983811,
+    "ast_hash": "638907ebb753badcd3cbf777e5758577",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/profile/loading.jsx": {
@@ -250,8 +250,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/file/route.js": {
-    "mtime": 1780279210.2085464,
-    "ast_hash": "55911927a70085ee11998c65e604e717",
+    "mtime": 1780291684.913501,
+    "ast_hash": "c80bb6ec043ec531ebc9331fc2a822e8",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/diagram/route.js": {
@@ -295,8 +295,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/profile/delete-account/route.js": {
-    "mtime": 1780240780.392384,
-    "ast_hash": "2747dbc49bfae53e8568e72bed24feda",
+    "mtime": 1780290651.661849,
+    "ast_hash": "d5c30e8dd17deb75572413af86273d64",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/profile/disconnect-github/route.js": {
@@ -385,8 +385,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/ThemeProvider.jsx": {
-    "mtime": 1780278358.751783,
-    "ast_hash": "ce0ae161f17a45f2cce5a14bc51ff3cc",
+    "mtime": 1780387585.4919841,
+    "ast_hash": "78ecae91eaa3fddbaefce6c4b37fe9e1",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/UpgradeModal.jsx": {
@@ -395,18 +395,18 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/PostHogProvider.jsx": {
-    "mtime": 1780274786.6548522,
+    "mtime": 1780377436.4736993,
     "ast_hash": "248be2635d224af0ffec6239dbf82f34",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/DashboardLayout.jsx": {
-    "mtime": 1780283892.1135814,
-    "ast_hash": "523b2ce5ee0f4edc048dbdce1fd7cb81",
+    "mtime": 1780285494.5863786,
+    "ast_hash": "9d8664b5633273c9b8104b713ade4812",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/CookieConsent.jsx": {
-    "mtime": 1780244496.3072495,
-    "ast_hash": "0f33d7f3eaaa32f365132f49e8b26af5",
+    "mtime": 1780389770.4729214,
+    "ast_hash": "3aac87b2f672cf05aa0c5e81ece5ced4",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/Footer.jsx": {
@@ -435,8 +435,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/ChatInput.jsx": {
-    "mtime": 1780263353.2161832,
-    "ast_hash": "f4214c1635bcfa4c963716c2b05f502a",
+    "mtime": 1780285856.8725612,
+    "ast_hash": "835d75958dfa7f2f734c4b90482adf83",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/MobileNotice.jsx": {
@@ -450,8 +450,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/SymbolInspector.jsx": {
-    "mtime": 1780273069.0244648,
-    "ast_hash": "e090e857f66a918a5615f4634e3a7051",
+    "mtime": 1780389829.5547795,
+    "ast_hash": "e97c126c8910eb96e4cdcd1b65c940f3",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/ViboLogo.jsx": {
@@ -460,8 +460,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/CodeViewer.jsx": {
-    "mtime": 1780280055.6086462,
-    "ast_hash": "12e3dbc3ab558231dc69e692ae681629",
+    "mtime": 1780389696.798727,
+    "ast_hash": "5ce863762cfcb7aa1f53ef59a7738de2",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/ReportPDF.jsx": {
@@ -470,13 +470,13 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/LandingPage.jsx": {
-    "mtime": 1780278280.2133923,
-    "ast_hash": "e95544cd5cb8be9420bc218791f78185",
+    "mtime": 1780387199.4847298,
+    "ast_hash": "4c4a836fa5471465348901e8650fa581",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/hooks/useApi.js": {
-    "mtime": 1780283867.0159395,
-    "ast_hash": "d030ed183a012523c8568cabe9c45a06",
+    "mtime": 1780389849.7060564,
+    "ast_hash": "d89c6e5966c2b0c8d5066d2194401a8d",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/hooks/useSessionGuard.js": {
@@ -495,8 +495,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/ai.js": {
-    "mtime": 1780240781.19978,
-    "ast_hash": "50ddba05253433df12037de33e44a944",
+    "mtime": 1780291677.8491292,
+    "ast_hash": "54f5b1343f8bb40c8fb4b5046319fab5",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/rateLimit.js": {
@@ -580,8 +580,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/embeddings.js": {
-    "mtime": 1780240781.3594189,
-    "ast_hash": "deab68c934eab44a7715c25e692b35ff",
+    "mtime": 1780291690.2994485,
+    "ast_hash": "02f0214fa16d764a3b1407475082f6ae",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/repository-snapshot.js": {
@@ -595,8 +595,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/landing-config.js": {
-    "mtime": 1780277115.1765904,
-    "ast_hash": "d2b09784ea2758757844663289187ae4",
+    "mtime": 1780387178.4248402,
+    "ast_hash": "21a5bd27ac5d301b15ad1e25c44e64cc",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/chat-buffer.js": {
@@ -615,8 +615,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/db/schema.js": {
-    "mtime": 1780240781.4197905,
-    "ast_hash": "4c873bb72fb20fc6d93417178a491e54",
+    "mtime": 1780290648.900284,
+    "ast_hash": "3c2a303e18b36e1c3fbfef113887b846",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/controllers/diagram.controller.js": {
@@ -625,8 +625,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/controllers/query.controller.js": {
-    "mtime": 1780284582.218379,
-    "ast_hash": "eacaed68bf663b09ec0e71afe3fdbe01",
+    "mtime": 1780291685.8500986,
+    "ast_hash": "888d192ba09ef9793aa2bc92a06cfed2",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/controllers/upload.controller.js": {
@@ -640,8 +640,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/controllers/stream.controller.js": {
-    "mtime": 1780284595.3126063,
-    "ast_hash": "083715cb3039ec8bac72a87a6f16bfda",
+    "mtime": 1780291685.8489451,
+    "ast_hash": "a80431429afb3dca3502484ba5ca6b09",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/drizzle/0000_flippant_piledriver.sql": {
@@ -685,18 +685,18 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/GREPIT_DOCUMENTATION.md": {
-    "mtime": 1779858043.491027,
-    "ast_hash": "e2d9309f7d82f4a20a54d6c62df1b41b",
+    "mtime": 1780292588.8239534,
+    "ast_hash": "75deece3e4d8e6e521a1c24a4159fc24",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/VIBO_PRODUCT.md": {
-    "mtime": 1779488300.2742395,
-    "ast_hash": "01fde1cb90048ef0de6a3217c7744d23",
+    "mtime": 1780292333.42656,
+    "ast_hash": "2a17bbadb101042e3012ba08a6ce5653",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/README.md": {
-    "mtime": 1779858154.207309,
-    "ast_hash": "0ae7ef47e52e6a993cb8439b32fae5d0",
+    "mtime": 1780292588.824591,
+    "ast_hash": "cae16fcdd7a1a2b6771eef8100a5723f",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/DESIGN.md": {
@@ -1150,13 +1150,13 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/ThemeToggle.jsx": {
-    "mtime": 1780254875.9706955,
-    "ast_hash": "2f769acd119b17647dab2e6e97fa5562",
+    "mtime": 1780290320.504776,
+    "ast_hash": "734ad91d650dbf0e1724e214c8c7fe17",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/TiltCard.jsx": {
-    "mtime": 1780255194.0806382,
-    "ast_hash": "d04b76acbd3fa448baca1747b03781ab",
+    "mtime": 1780388386.7869232,
+    "ast_hash": "2c16e1617bea1462e57618a182d6a5b0",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/CursorSpotlight.jsx": {
@@ -1165,8 +1165,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/StartHereCinematic.jsx": {
-    "mtime": 1780277179.89678,
-    "ast_hash": "4dda3014f71682b89a3c69ec0a13c7ab",
+    "mtime": 1780377437.1085966,
+    "ast_hash": "f55f0d5ad50d70371400cd504538d702",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/FAQSnippet.jsx": {
@@ -1175,38 +1175,38 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/AnalysisChoreography.jsx": {
-    "mtime": 1780281920.708171,
-    "ast_hash": "64f575ef18fb5744aa5d40cb263aba2c",
+    "mtime": 1780377437.0094428,
+    "ast_hash": "bdfb76b292c6cad0660d0236417d5ca2",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/Pricing.jsx": {
-    "mtime": 1780277192.734234,
-    "ast_hash": "cfde1a07c7a62e6e819f49e2243800c4",
+    "mtime": 1780377437.0375445,
+    "ast_hash": "efcab08563028de8ea93698dcccebfde",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/SiteFooter.jsx": {
-    "mtime": 1780281678.2576709,
-    "ast_hash": "9bc4f9be33d34d7a9d6f84dc872c72e5",
+    "mtime": 1780387208.2774518,
+    "ast_hash": "fc9fbe08a90ccaf46dd640295f74f874",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/LandingNav.jsx": {
-    "mtime": 1780278368.9259613,
-    "ast_hash": "72cf135518ebbf7bb5050544890aebcd",
+    "mtime": 1780381101.0194836,
+    "ast_hash": "915fd4415c9ce38bfa4874d19de8ca05",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/LivingCanvas.jsx": {
-    "mtime": 1780282620.2416368,
-    "ast_hash": "759ee9a2c9f7523bc67f858640c6ebf8",
+    "mtime": 1780387393.8516052,
+    "ast_hash": "6f773241812b6502ea6cba7010d7c6ca",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/CTAFinal.jsx": {
-    "mtime": 1780277179.903778,
-    "ast_hash": "2956c86ed2dd6a7637805e68de93cbbc",
+    "mtime": 1780377436.1116352,
+    "ast_hash": "14e861e55a06fa57d90643b886fa2630",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/SpatialHero.jsx": {
-    "mtime": 1780282598.6849947,
-    "ast_hash": "caefecdec6fa47eb1efabf46d35c6a44",
+    "mtime": 1780388161.342672,
+    "ast_hash": "d3dfe3b564cad76a50da0d6a4c559de1",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/.agents/skills/emil-design-eng/SKILL.md": {
@@ -1220,13 +1220,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/DashboardTabs.jsx": {
-    "mtime": 1780284003.1417596,
-    "ast_hash": "f4abf57a1b92345af4a534cf1b563195",
-    "semantic_hash": ""
-  },
-  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/ThemeTransitionOverlay.jsx": {
-    "mtime": 1780254875.997067,
-    "ast_hash": "eeed86ac4a0ad348999abb12011180ad",
+    "mtime": 1780389119.4428992,
+    "ast_hash": "da69ff487426b5695864b20e9a228a1e",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/PremiumSurface.jsx": {
@@ -1235,18 +1230,18 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/TestimonialMarquee.jsx": {
-    "mtime": 1780277179.9060333,
-    "ast_hash": "f131cce752bf7023c47ba51ca17b58de",
+    "mtime": 1780377437.1781418,
+    "ast_hash": "7f034dad4ea7afe8d5020ef1274989ba",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/TokenSavings.jsx": {
-    "mtime": 1780281916.0575101,
-    "ast_hash": "5ee80a5d08e7e52b2378839e7a015dd3",
+    "mtime": 1780377437.1586988,
+    "ast_hash": "66e3190fe61e129009339f6144fd66a7",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/ValueCompare.jsx": {
-    "mtime": 1780282673.5084417,
-    "ast_hash": "4d4659bc62c7405597009c038ee45a48",
+    "mtime": 1780377437.1402187,
+    "ast_hash": "5a3a6fde3b9f351d73274af9dc4467ab",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/TechMarquee.jsx": {
@@ -1265,8 +1260,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/SuggestionChip.jsx": {
-    "mtime": 1780280943.9109979,
-    "ast_hash": "af806b13759810628d448086b2d77ca2",
+    "mtime": 1780387746.065978,
+    "ast_hash": "d0bc203028966e52700d9633ef9a864e",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/DashboardMapPreview.jsx": {
@@ -1305,8 +1300,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/ProductShowcase.jsx": {
-    "mtime": 1780277129.2545717,
-    "ast_hash": "0888bafb1b853fe2fd8085bfa213ed54",
+    "mtime": 1780377437.203907,
+    "ast_hash": "594cf945f622066ea990d4e9c5ee4f09",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/RemotionLandingPlayer.jsx": {
@@ -1315,8 +1310,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/HomeCard.jsx": {
-    "mtime": 1780272834.2821786,
-    "ast_hash": "08f6c01cdb2f2f6ecd075fb97a594976",
+    "mtime": 1780379541.5637083,
+    "ast_hash": "fd24c83aee7c0643dd1fbd6ab710fe4e",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/EngineerMindsetPlayer.jsx": {
@@ -1330,12 +1325,12 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/EngineerMindsetCompare.jsx": {
-    "mtime": 1780280244.4976199,
-    "ast_hash": "f4a60333b1e64c523837931a914b502d",
+    "mtime": 1780381130.1205668,
+    "ast_hash": "1fbb23292cd51541b52a603511e64e24",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/ScrollReveal.jsx": {
-    "mtime": 1780278367.317959,
+    "mtime": 1780377436.3172581,
     "ast_hash": "89e2616c054c41ff863cbf69920ef022",
     "semantic_hash": ""
   },
@@ -1355,8 +1350,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/EngineerMindset.jsx": {
-    "mtime": 1780282836.6940873,
-    "ast_hash": "6a7c268721429d0ec0eae5ede21e94c9",
+    "mtime": 1780377437.245297,
+    "ast_hash": "4d40efbf0c4fc42ef3a5b46c16440899",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/HeroTopologyPlayer.jsx": {
@@ -1405,8 +1400,8 @@
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/remotion/theme.js": {
-    "mtime": 1780281236.5069022,
-    "ast_hash": "3c95e28ceea71c3933cb8d9f176a3ca8",
+    "mtime": 1780382141.9603064,
+    "ast_hash": "380941a6145a0c2046b955262b5c741b",
     "semantic_hash": ""
   },
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/remotion/HeroTopologyVisual.jsx": {
@@ -1422,6 +1417,161 @@
   "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/remotion/ValueCompareVisual.jsx": {
     "mtime": 1780281605.1230314,
     "ast_hash": "8f5294a1351817243e0c65965cb2ccee",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/scripts/apply-0005-deletion-feedback.mjs": {
+    "mtime": 1780291211.3310661,
+    "ast_hash": "c45fd2a72d33ecd77dadcd9ac36e53f5",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/internal-admin/layout.jsx": {
+    "mtime": 1780291571.2067733,
+    "ast_hash": "15fccb044a0142f32b5994909896a902",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/internal-admin/page.jsx": {
+    "mtime": 1780291572.6303384,
+    "ast_hash": "b73e2705ec81688c9399869adce60bd9",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/internal-admin/feedback/page.jsx": {
+    "mtime": 1780291576.2188156,
+    "ast_hash": "a37131600dd674533e8db3627479d9b1",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/internal-admin/login/page.jsx": {
+    "mtime": 1780291576.0906117,
+    "ast_hash": "7321276742a2b25e6412087fa632b273",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/internal-admin/email/page.jsx": {
+    "mtime": 1780291576.0905387,
+    "ast_hash": "a121faadd3d546c8a4aa1bd4d3da9220",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/internal/admin/deletion-feedback/route.js": {
+    "mtime": 1780291328.9489021,
+    "ast_hash": "9e2ea6349c031d5b3aef2bbce7c3a900",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/internal/admin/logout/route.js": {
+    "mtime": 1780286885.7485585,
+    "ast_hash": "f3354e938f0a41313d3eee43f8860ed9",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/internal/admin/users/route.js": {
+    "mtime": 1780287383.634478,
+    "ast_hash": "e47ec9073c14421616f27aa989b3c437",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/internal/admin/send/route.js": {
+    "mtime": 1780287384.1782796,
+    "ast_hash": "5e20de10ba72967572c48e3ab2863a49",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/internal/admin/login/route.js": {
+    "mtime": 1780286884.4280255,
+    "ast_hash": "7b4cdd21501a899e4b2d8622e7ff6a90",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/app/api/internal/admin/session/route.js": {
+    "mtime": 1780286887.0749354,
+    "ast_hash": "ff4f4822f2fe43767aae77752fde4710",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/TrustSection.jsx": {
+    "mtime": 1780387194.1970556,
+    "ast_hash": "b7796fde16ac2a11faa269f984fd30bd",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/PrivacyTrustPlayer.jsx": {
+    "mtime": 1780384490.444888,
+    "ast_hash": "72351e7487ebb3f97fab9179bf1d97c2",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/landing/PrivacyFlowCard.jsx": {
+    "mtime": 1780385535.5416393,
+    "ast_hash": "eb93d74ccb33d7e9778a11669f8ee9fd",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/internal/AdminGate.jsx": {
+    "mtime": 1780291569.3042119,
+    "ast_hash": "fa04816231ab3e7014da29e0f11e7039",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/internal/AdminEmailPreview.jsx": {
+    "mtime": 1780291607.7250743,
+    "ast_hash": "6c1ba0b682ed333524460b256fd0d16b",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/internal/AdminShell.jsx": {
+    "mtime": 1780291570.6066208,
+    "ast_hash": "e32e92c6fa2c079d6e0636641722abe2",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/internal/AdminDeletionFeedbackPanel.jsx": {
+    "mtime": 1780291597.326332,
+    "ast_hash": "a79831e465acc334822dcc025f56eb26",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/components/internal/AdminEmailPanel.jsx": {
+    "mtime": 1780291592.0928469,
+    "ast_hash": "6cbb8b235119b09600d5037ee086c3b8",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/admin-email.js": {
+    "mtime": 1780287784.6142902,
+    "ast_hash": "a5caffa26ee8b75feef1a0ddb0553cbc",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/admin-auth.js": {
+    "mtime": 1780286537.6798701,
+    "ast_hash": "05bddb1cf99d06e8ac67d78214e37428",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/internal-admin-nav.js": {
+    "mtime": 1780291569.304198,
+    "ast_hash": "77e5b574104f11c5bfdd766b014915ad",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/internal-admin-gate.js": {
+    "mtime": 1780286883.2498753,
+    "ast_hash": "547e5864ec5e48a147a90cf43e4979d4",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/admin-users.js": {
+    "mtime": 1780290661.5999053,
+    "ast_hash": "0d306522ad16ebcc9ec299a01366b872",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/admin-email-template.js": {
+    "mtime": 1780288414.0970976,
+    "ast_hash": "1f56d1644a832498fb50aac8b53a124e",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/ai-models.js": {
+    "mtime": 1780291698.0681386,
+    "ast_hash": "523144ed1d4118a56c4a6a560a6b187c",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/lib/admin-deletion-feedback.js": {
+    "mtime": 1780291690.4370906,
+    "ast_hash": "4b7ca8c0275ba5de857089f6c6ce8362",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/src/remotion/PrivacyTrustVisual.jsx": {
+    "mtime": 1780384477.6694956,
+    "ast_hash": "893e6364790c2fd91a6a5eb2a9adb7ed",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/drizzle/0004_admin_internal.sql": {
+    "mtime": 1780286532.1501546,
+    "ast_hash": "29e312b5f89769e7753417829810a486",
+    "semantic_hash": ""
+  },
+  "/Users/vibhorsharma/Vibo/Vibo-code-analyst/drizzle/0005_account_deletion_feedback.sql": {
+    "mtime": 1780290648.9074764,
+    "ast_hash": "9a713ba66883194e45d083eec8f6ccc9",
     "semantic_hash": ""
   }
 }

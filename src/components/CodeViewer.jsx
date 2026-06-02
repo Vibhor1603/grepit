@@ -165,45 +165,57 @@ function ExplainFeatureCoach({ prefersTap, onDismiss }) {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="code-explain-coach-root fixed inset-0 z-[500] flex items-end sm:items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-label="Code explain tip">
-      <button type="button" className="absolute inset-0 bg-black/35" aria-label="Dismiss" onClick={onDismiss} />
-      <div className="relative w-full max-w-[380px] rounded-xl border border-c-line-2 bg-c-surface shadow-[0_24px_64px_rgba(0,0,0,0.45)] overflow-hidden pointer-events-auto">
-        <div className="px-4 py-3 border-b border-c-line bg-c-surface-2">
+    <div
+      className="code-explain-coach-root fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-[120] w-[min(340px,calc(100vw-1.5rem))]"
+      role="status"
+      aria-live="polite"
+      aria-label="Code explain tip"
+    >
+      <div className="relative rounded-lg border border-c-line bg-c-surface shadow-[0_14px_36px_rgba(0,0,0,0.32)] overflow-hidden pointer-events-auto">
+        <div className="px-3.5 py-2.5 border-b border-c-line bg-c-overlay-2 flex items-center justify-between gap-2">
           <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-c-accent">
             {prefersTap ? "Tap to explain" : "Hover to explain"}
           </p>
+          <button
+            type="button"
+            className="text-c-text-4 hover:text-c-text-2 transition-colors"
+            aria-label="Dismiss tip"
+            onClick={onDismiss}
+          >
+            <X size={13} />
+          </button>
         </div>
 
-        <div className="p-4">
-          <div className="rounded-lg border border-c-line bg-c-bg overflow-hidden mb-4">
-            <div className="px-3 py-2 border-b border-c-line font-mono text-[10px] text-c-text-4">example.ts</div>
-            <div className="px-3 py-2.5 font-mono text-[11px] leading-[1.6]">
+        <div className="p-3.5">
+          <div className="rounded-md border border-c-line bg-c-bg overflow-hidden mb-3">
+            <div className="px-2.5 py-1.5 border-b border-c-line font-mono text-[10px] text-c-text-4">example.ts</div>
+            <div className="px-2.5 py-2 font-mono text-[10.5px] leading-[1.55]">
               <div className="text-c-text-3">export async function</div>
               <div
-                className={`rounded px-1 -mx-1 transition-colors duration-300 ${pulse ? "bg-c-accent/15 ring-1 ring-c-accent/40" : "bg-transparent"}`}
+                className={`rounded px-1 -mx-1 transition-colors duration-300 ${pulse ? "bg-c-accent/10 ring-1 ring-c-accent/25" : "bg-transparent"}`}
               >
                 <span className="text-c-accent">fetchUser</span>
                 <span className="text-c-text-3">(id: string) {"{"}</span>
               </div>
               <div className="text-c-text-4 pl-3">…</div>
             </div>
-            <div className="px-3 py-2 border-t border-c-line flex justify-end">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-c-accent border border-c-accent/35 bg-c-accent/10">
+            <div className="px-2.5 py-1.5 border-t border-c-line flex justify-end">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-medium text-c-accent border border-c-accent/25 bg-c-accent/8">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0018 8 6 6 0 006 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 019 14"/></svg>
                 Explain
               </span>
             </div>
           </div>
 
-          <p className="text-[12px] text-c-text-2 leading-[1.55] mb-4">
+          <p className="text-[11.5px] text-c-text-2 leading-[1.5] mb-3">
             {prefersTap
-              ? "Tap any function, class, or method for an inline AI explanation with file context."
-              : "Hover any function, class, or method — then click Explain for an inline AI summary."}
+              ? "Tap a symbol to open a focused explanation panel."
+              : "Hover a symbol, then click Explain for a focused panel."}
           </p>
           <button
             type="button"
             onClick={onDismiss}
-            className="w-full py-2.5 rounded-lg text-[13px] font-semibold bg-c-accent text-c-bg hover:opacity-90 transition-opacity"
+            className="w-full py-2 rounded-md text-[12px] font-semibold bg-c-accent text-c-bg hover:opacity-90 transition-opacity"
           >
             Got it
           </button>
