@@ -4,40 +4,40 @@ import { useId } from "react";
 
 /** Original bolt geometry — unchanged. */
 export const BOLT_PATH =
-  "M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z";
+  "M26.8 44.85c-.65.82-1.95.38-1.95-.72V33.6a2.1 2.1 0 0 0-2.1-2.1H11.3c-.88 0-1.4-1-.88-1.72L18.1 19.1c1.02-1.45 0-3.45-1.75-3.45H2.4c-.88 0-1.4-1-.88-1.72L11.15 1.35c.22-.3.55-.48.92-.48h27.8c.88 0 1.4 1 .88 1.72l-7.15 10.35c-1.02 1.45 0 3.45 1.75 3.45h10.6c.9 0 1.4 1.05.85 1.78L26.8 44.85z";
 
 export function ViboMark({ size = 24, className = "" }) {
-  const gradId = `grepit-mark-grad-${useId().replace(/:/g, "")}`;
+  const gradId = `grepit-logo-grad-${useId().replace(/:/g, "")}`;
 
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
+      viewBox="-0.7 -0.7 49.4 47.4"
       width={size}
       height={size * (46 / 48)}
-      viewBox="0 0 48 46"
       fill="none"
+      aria-label="grepit logo"
       className={className}
-      aria-hidden="true"
       shapeRendering="geometricPrecision"
+      style={{ overflow: "visible" }}
     >
       <defs>
-        <linearGradient id={gradId} x1="14" y1="4" x2="34" y2="42" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="var(--c-accent-bright)" />
-          <stop offset="55%" stopColor="var(--c-accent)" />
-          <stop offset="100%" stopColor="var(--c-accent-dim)" />
+        <linearGradient id={gradId} x1="12" y1="6" x2="36" y2="41" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFEEB8" />
+          <stop offset="38%" stopColor="#F9C96F" />
+          <stop offset="65%" stopColor="#E89F2E" />
+          <stop offset="100%" stopColor="#C87A15" />
         </linearGradient>
       </defs>
-      <path d={BOLT_PATH} fill={`url(#${gradId})`} />
+
       <path
         d={BOLT_PATH}
-        fill="none"
-        stroke="var(--c-accent-line)"
-        strokeWidth="0.85"
+        fill={`url(#${gradId})`}
+        stroke="#2A2218"
+        strokeWidth="0.9"
         strokeLinejoin="round"
-        opacity="0.55"
+        paintOrder="stroke fill"
       />
-      {/* Subtle green tip — minimal brand accent */}
-      <circle cx="38" cy="8" r="2.2" fill="var(--c-lime)" opacity="0.88" />
     </svg>
   );
 }

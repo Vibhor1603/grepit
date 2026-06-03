@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useScroll, useMotionValueEvent } from "framer-motion";
 import HomeCard from "./HomeCard";
 import ScrollReveal from "./ScrollReveal";
@@ -52,8 +52,92 @@ const STEPS = [
 
 const PANELS = [MockPanelUrl, MockPanelExplorer, MockPanelMap, MockPanelHealth, MockPanelChat];
 const STEP_COUNT = STEPS.length;
+const MOBILE_MQ = "(max-width: 1023px)";
+
+function useMobilePipeline() {
+  const [isMobile, setIsMobile] = useState(true);
+
+  useLayoutEffect(() => {
+    const mq = window.matchMedia(MOBILE_MQ);
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
+}
+
+function PipelineHeader() {
+  return (
+    <>
+      <p className="landing-eyebrow mb-3 text-c-accent">How it works</p>
+      <h2 className="landing-h2 mb-4 text-c-text">
+        From link to{" "}
+        <span className="text-c-lime-pastel">full understanding.</span>
+      </h2>
+      <p className="landing-body text-c-text-2 max-w-[460px]">
+        Grepit reads your whole repo once, builds a navigable map, runs a health scan,
+        and opens a dashboard where you browse files, trace architecture, and ask questions
+        with file:line citations.
+      </p>
+    </>
+  );
+}
 
 export default function ProductShowcase() {
+  const isMobile = useMobilePipeline();
+  return isMobile ? <ProductShowcaseMobile /> : <ProductShowcaseDesktop />;
+}
+
+function ProductShowcaseMobile() {
+  return (
+    <section id="pipeline" className="product-showcase-mobile relative z-[1] landing-section-x">
+      <div className="w-full max-w-[680px] mx-auto pt-8 sm:pt-10 pb-4">
+        <PipelineHeader />
+
+        <div className="product-showcase-mobile-steps">
+          {STEPS.map((step, i) => {
+            const Panel = PANELS[i];
+            const bleed = i === 1 || i === 2;
+
+            return (
+              <ScrollReveal key={step.id} variant="up" delay={i * 50}>
+                <article className="product-showcase-mobile-step">
+                  <div className="product-showcase-mobile-step__head">
+                    <span className="product-showcase-mobile-step__num">{step.n}</span>
+                    <div className="min-w-0">
+                      <h3 className="product-showcase-mobile-step__title">{step.title}</h3>
+                      <p className="product-showcase-mobile-step__hint">{step.hint}</p>
+                      {step.outcome ? (
+                        <p className="product-showcase-mobile-step__outcome">{step.outcome}</p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <HomeCard depth="flat" className="rounded-none border-0 shadow-none">
+                    <WindowChrome title={MOCK_PANEL_TITLES[i]} />
+                    <div className="product-showcase-mobile-stage">
+                      <div
+                        className={`product-showcase-mobile-stage__inner${
+                          bleed ? " product-showcase-mobile-stage__inner--bleed" : ""
+                        }`}
+                      >
+                        <Panel />
+                      </div>
+                    </div>
+                  </HomeCard>
+                </article>
+              </ScrollReveal>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProductShowcaseDesktop() {
   const wrapRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: wrapRef,
@@ -76,31 +160,9 @@ export default function ProductShowcase() {
         <div className="w-full max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-12 landing-section-gap items-center">
           <ScrollReveal variant="left" className="lg:col-span-5 order-2 lg:order-1">
             <div>
-              <p className="landing-eyebrow mb-3 text-c-accent">How it works</p>
-              <h2 className="landing-h2 mb-4 text-c-text">
-                From link to{" "}
-                <span className="text-c-lime-pastel">full understanding.</span>
-              </h2>
-              <p className="landing-body text-c-text-2 mb-6 md:mb-8 max-w-[460px]">
-                Grepit reads your whole repo once, builds a navigable map, runs a health scan,
-                and opens a dashboard where you browse files, trace architecture, and ask questions
-                with file:line citations.
-              </p>
+              <PipelineHeader />
 
-              <div className="product-step-dots flex gap-1.5 mb-4 lg:hidden" aria-hidden>
-                {STEPS.map((step, i) => (
-                  <span
-                    key={step.id}
-                    className="h-1 flex-1 rounded-full transition-colors duration-300"
-                    style={{
-                      backgroundColor: i === active ? "var(--c-accent)" : "var(--c-line-2)",
-                      opacity: i === active ? 1 : 0.55,
-                    }}
-                  />
-                ))}
-              </div>
-
-              <ol className="space-y-1.5 md:space-y-2">
+              <ol className="space-y-1.5 md:space-y-2 mt-6 md:mt-8">
                 {STEPS.map((step, i) => (
                   <StepRow key={step.id} step={step} active={active === i} compact={active !== i} />
                 ))}

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 46" width="48" height="46" fill="none" aria-label="grepit logo">
+  <defs>
+    <linearGradient id="grepit-logo-grad" x1="12" y1="6" x2="36" y2="41" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFEEB8" />
+      <stop offset="38%" stop-color="#F9C96F" />
+      <stop offset="65%" stop-color="#E89F2E" />
+      <stop offset="100%" stop-color="#C87A15" />
+    </linearGradient>
+  </defs>
+
+  <!-- Main bolt shape - refined for better visual balance and uniqueness -->
+  <path 
+    d="M26.8 44.85c-.65.82-1.95.38-1.95-.72V33.6a2.1 2.1 0 0 0-2.1-2.1H11.3c-.88 0-1.4-1-.88-1.72L18.1 19.1c1.02-1.45 0-3.45-1.75-3.45H2.4c-.88 0-1.4-1-.88-1.72L11.15 1.35c.22-.3.55-.48.92-.48h27.8c.88 0 1.4 1 .88 1.72l-7.15 10.35c-1.02 1.45 0 3.45 1.75 3.45h10.6c.9 0 1.4 1.05.85 1.78L26.8 44.85z" 
+    fill="url(#grepit-logo-grad)" 
+    stroke="#1F1F1F" 
+    stroke-width="0.95" 
+    stroke-linejoin="round" 
+    paint-order="stroke fill" />
+
+  <!-- Inner highlight for premium polished look -->
+  <path 
+    d="M26.8 44.85c-.65.82-1.95.38-1.95-.72V33.6a2.1 2.1 0 0 0-2.1-2.1H11.3c-.88 0-1.4-1-.88-1.72L18.1 19.1c1.02-1.45 0-3.45-1.75-3.45H2.4c-.88 0-1.4-1-.88-1.72L11.15 1.35c.22-.3.55-.48.92-.48h27.8c.88 0 1.4 1 .88 1.72l-7.15 10.35c-1.02 1.45 0 3.45 1.75 3.45h10.6c.9 0 1.4 1.05.85 1.78L26.8 44.85z" 
+    fill="none" 
+    stroke="#FFFFFF" 
+    stroke-width="0.35" 
+    stroke-linejoin="round" 
+    opacity="0.45" />
+</svg>

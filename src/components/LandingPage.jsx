@@ -24,7 +24,7 @@ import { useMobileNotice } from "./MobileNotice";
 
 const ValueCompare = dynamic(() => import("./landing/ValueCompare"), { ssr: true });
 const EngineerMindset = dynamic(() => import("./landing/EngineerMindset"), { ssr: false });
-const ProductShowcase = dynamic(() => import("./landing/ProductShowcase"));
+const ProductShowcase = dynamic(() => import("./landing/ProductShowcase"), { ssr: false });
 const TokenSavings = dynamic(() => import("./landing/TokenSavings"));
 const AnalysisChoreography = dynamic(() => import("./landing/AnalysisChoreography"));
 const StartHereCinematic = dynamic(() => import("./landing/StartHereCinematic"));
