@@ -382,14 +382,19 @@ export async function handleStreamPost(request) {
           }
         }
 
-        send({ done: true });
-        controller.close();
-
         const cleanResponse = fullResponse
           .replace(/<think>[\s\S]*?<\/redacted_thinking>/gi, '')
           .replace(/^(User|Assistant|System):\s*/gim, '')
           .trim();
-        createQueryHistory({ analysis_id: analysisId, conversation_id: conversationId, owner_email: ownerEmail, query: safeQuery, response: cleanResponse }).catch(() => {});
+
+        // Persist before signaling done so sidebar refetches see the new conversation.
+        await createQueryHistory(
+          { analysis_id: analysisId, conversation_id: conversationId, owner_email: ownerEmail, query: safeQuery, response: cleanResponse },
+          { immediate: true }
+        ).catch((err) => console.error("[stream] Failed to persist chat:", err.message));
+
+        send({ done: true });
+        controller.close();
 
         logUsage(session.userId, "ai_query", {
           analysis_id: analysisId,

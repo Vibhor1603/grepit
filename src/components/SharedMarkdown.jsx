@@ -1,26 +1,39 @@
 "use client";
-import { Highlight, themes } from 'prism-react-renderer';
+import { useMemo } from 'react';
+import { Highlight } from 'prism-react-renderer';
 import MermaidDiagram from './MermaidDiagram';
 import { looksLikeMermaid } from '../utils/client/mermaid';
+import { useTheme } from './ThemeProvider';
+import { getViboCodeTheme } from '../utils/client/code-theme';
 
-const viboCodeTheme = {
-  ...themes.vsDark,
-  plain: { color: 'var(--c-text-2)', backgroundColor: 'transparent' },
-  styles: [
-    { types: ['keyword', 'builtin'], style: { color: 'var(--c-accent)' } },
-    { types: ['function', 'method'], style: { color: '#7ca8e8' } },
-    { types: ['string', 'char'], style: { color: '#7dd3a8' } },
-    { types: ['number', 'boolean'], style: { color: '#e4c06c' } },
-    { types: ['comment'], style: { color: '#3A4350', fontStyle: 'italic' } },
-    { types: ['class-name', 'type'], style: { color: '#b4a0d4' } },
-    { types: ['operator', 'punctuation'], style: { color: 'var(--c-text-3)' } },
-    { types: ['variable', 'constant'], style: { color: 'var(--c-text)' } },
-    { types: ['property'], style: { color: '#7cc8d4' } },
-    { types: ['tag'], style: { color: '#e87c7c' } },
-    { types: ['attr-name'], style: { color: '#e4c06c' } },
-    { types: ['attr-value'], style: { color: '#7dd3a8' } },
-  ],
-};
+function SharedCodeBlock({ code, language }) {
+  const { resolved } = useTheme();
+  const codeTheme = useMemo(() => getViboCodeTheme(resolved === 'dark'), [resolved]);
+
+  return (
+    <div className="chat-md-code-block">
+      <div className="chat-md-code-block__header">
+        <div className="flex items-center gap-[5px]">
+          <span className="w-[8px] h-[8px] rounded-full bg-[#ff5f57]" />
+          <span className="w-[8px] h-[8px] rounded-full bg-[#febc2e]" />
+          <span className="w-[8px] h-[8px] rounded-full bg-[#28c840]" />
+        </div>
+        {language ? <span className="text-[10px] text-c-text-3 font-mono ml-2">{language}</span> : null}
+      </div>
+      <Highlight theme={codeTheme} code={code} language={language || 'javascript'}>
+        {({ tokens, getLineProps, getTokenProps }) => (
+          <pre className="chat-md-code-block__pre">
+            {tokens.map((line, li) => (
+              <div key={li} {...getLineProps({ line })} className="leading-[1.6]">
+                {line.map((token, ti) => <span key={ti} {...getTokenProps({ token })} />)}
+              </div>
+            ))}
+          </pre>
+        )}
+      </Highlight>
+    </div>
+  );
+}
 
 /**
  * Shared markdown renderer — matches the dashboard chat UI.
@@ -83,29 +96,7 @@ export default function SharedMarkdown({ content }) {
     if (looksLikeMermaid(codeText, codeLang)) {
       elements.push(<MermaidDiagram key={key} code={codeText} allowFullscreen={false} />);
     } else {
-      elements.push(
-        <div key={key} className="mb-4 min-w-[60%] max-w-full rounded-xl border border-c-line-2 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
-          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-c-line bg-c-overlay-2">
-            <div className="flex items-center gap-[5px]">
-              <span className="w-[8px] h-[8px] rounded-full bg-[#ff5f57]" />
-              <span className="w-[8px] h-[8px] rounded-full bg-[#febc2e]" />
-              <span className="w-[8px] h-[8px] rounded-full bg-c-lime" />
-            </div>
-            {codeLang && <span className="text-[10px] text-vb-ink4 font-mono ml-2">{codeLang}</span>}
-          </div>
-          <Highlight theme={viboCodeTheme} code={codeText} language={codeLang || 'javascript'}>
-            {({ tokens: codeTokens, getLineProps, getTokenProps }) => (
-              <pre className="px-4 py-3 overflow-x-auto bg-c-bg m-0 text-[12px]">
-                {codeTokens.map((line, li) => (
-                  <div key={li} {...getLineProps({ line })} className="leading-[1.6]">
-                    {line.map((token, ti) => <span key={ti} {...getTokenProps({ token })} />)}
-                  </div>
-                ))}
-              </pre>
-            )}
-          </Highlight>
-        </div>
-      );
+      elements.push(<SharedCodeBlock key={key} code={codeText} language={codeLang} />);
     }
     codeLines = []; codeLang = '';
   };

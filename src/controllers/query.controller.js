@@ -306,13 +306,13 @@ ${context}`,
       }
     }
 
-    // Persist (fire-and-forget)
-    createQueryHistory({
+    // Persist (flush immediately so sidebar/history stay in sync)
+    await createQueryHistory({
       analysis_id: analysisId,
       owner_email: ownerEmail,
       query: safeQuery,
       response,
-    }).catch(() => {});
+    }, { immediate: true }).catch(() => {});
 
     logUsage(session.userId, "ai_query", {
       analysis_id: analysisId,

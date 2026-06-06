@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useAnalysis, useChatHistory, useDeleteChatHistory, useFileContent, useFetchConversationMessages, useStreamChat, useShareChat, useReanalyzeRepo } from '../hooks/useApi';
+import { useAnalysis, useChatHistory, useDeleteChatHistory, useFileContent, useStreamChat, useShareChat, useReanalyzeRepo, upsertChatHistoryEntry, fetchConversationMessagesCached, rowsToChatMessages } from '../hooks/useApi';
 import { usePlan } from '../hooks/usePlan';
 import { useQueryClient } from '@tanstack/react-query';
 import { useResizable, useResizableRight } from '../hooks/useResizable';
@@ -17,10 +17,26 @@ import ChatInputComponent from './ChatInput';
 import { ViboMark, ViboWordmark } from './ViboLogo';
 import FilePathDisplay, { looksLikeFilePath } from './FilePathDisplay';
 import ThemeToggle from './ThemeToggle';
+import { useTheme } from './ThemeProvider';
+import { getViboCodeTheme } from '../utils/client/code-theme';
 import DashboardTabs from './DashboardTabs';
 import SuggestionChip from './SuggestionChip';
-import { Highlight, themes } from 'prism-react-renderer';
-import { healthScore, getIdentityProfile, getHighTrafficFiles, normalizeAssistantOpening, parseFollowUps } from '../utils/client/formatting';
+import { Highlight } from 'prism-react-renderer';
+import { healthScore, getIdentityProfile, normalizeAssistantOpening, parseFollowUps } from '../utils/client/formatting';
+
+function resolveFileIntel(analysis, selectedFile) {
+  if (!selectedFile || !analysis?.results?.files?.length) return null;
+  const files = analysis.results.files;
+  const exact = files.find((f) => f.path === selectedFile);
+  if (exact) return exact;
+  const normalized = selectedFile.replace(/^\.\//, '');
+  return (
+    files.find((f) => f.path === normalized) ||
+    files.find((f) => f.path.endsWith(`/${normalized}`)) ||
+    files.find((f) => normalized.endsWith(f.path)) ||
+    null
+  );
+}
 
 // ── Lazy-loaded components (not needed on initial render) ──
 const SystemTabComponent = dynamic(() => import('./SystemTab'), {
@@ -37,26 +53,10 @@ const UpgradeModal = dynamic(() => import('./UpgradeModal'), {
   ssr: false,
 });
 
-const viboCodeTheme = {
-  ...themes.vsDark,
-  plain: { color: '#b0b0b8', backgroundColor: 'transparent' },
-  styles: [
-    { types: ['keyword', 'builtin'], style: { color: '#E0FC10' } },
-    { types: ['function', 'method'], style: { color: '#7ca8e8' } },
-    { types: ['string', 'char'], style: { color: '#7dd3a8' } },
-    { types: ['number', 'boolean'], style: { color: '#e4c06c' } },
-    { types: ['comment'], style: { color: '#4a4a54', fontStyle: 'italic' } },
-    { types: ['class-name', 'type'], style: { color: '#b4a0d4' } },
-    { types: ['operator', 'punctuation'], style: { color: '#787884' } },
-    { types: ['variable', 'constant'], style: { color: '#eaeaec' } },
-    { types: ['property'], style: { color: '#7cc8d4' } },
-    { types: ['tag'], style: { color: '#e87c7c' } },
-    { types: ['attr-name'], style: { color: '#e4c06c' } },
-    { types: ['attr-value'], style: { color: '#7dd3a8' } },
-  ],
-};
-
 const ChatCodeBlock = memo(function ChatCodeBlock({ code, language, streaming = false }) {
+  const { resolved } = useTheme();
+  const codeTheme = useMemo(() => getViboCodeTheme(resolved === 'dark'), [resolved]);
+
   return (
     <div className="chat-md-code-block">
       <div className="chat-md-code-block__header">
@@ -65,13 +65,13 @@ const ChatCodeBlock = memo(function ChatCodeBlock({ code, language, streaming = 
           <span className="w-[8px] h-[8px] rounded-full bg-[#febc2e]" />
           <span className="w-[8px] h-[8px] rounded-full bg-[#28c840]" />
         </div>
-        {language ? <span className="text-[10px] text-vb-ink4 font-mono ml-2">{language}</span> : null}
-        {streaming ? <span className="text-[10px] text-vb-ink4 ml-auto">streaming…</span> : null}
+        {language ? <span className="text-[10px] text-c-text-3 font-mono ml-2">{language}</span> : null}
+        {streaming ? <span className="text-[10px] text-c-text-3 ml-auto">streaming…</span> : null}
       </div>
       {streaming ? (
-        <pre className="chat-md-code-block__pre text-vb-ink2 font-mono whitespace-pre">{code}</pre>
+        <pre className="chat-md-code-block__pre text-c-text-2 font-mono whitespace-pre">{code}</pre>
       ) : (
-        <Highlight theme={viboCodeTheme} code={code} language={language || 'javascript'}>
+        <Highlight theme={codeTheme} code={code} language={language || 'javascript'}>
           {({ tokens: codeTokens, getLineProps: glp, getTokenProps: gtp }) => (
             <pre className="chat-md-code-block__pre">
               {codeTokens.map((line, li) => (
@@ -464,23 +464,21 @@ function FileTreeSidebar({ analysis, selectedFile, onSelectFile, score, onCollap
 
 /* ── Right Panel ── */
 function RightPanel({ analysis, selectedFile, activeTab, userPlan, onShareChat, activeChatId, sharingChatId }) {
-  const fileIntel = useMemo(() => {
-    if (!selectedFile || !analysis?.results?.files) return null;
-    return analysis.results.files.find(f => f.path === selectedFile) || null;
-  }, [selectedFile, analysis]);
+  const fileIntel = useMemo(
+    () => resolveFileIntel(analysis, selectedFile),
+    [selectedFile, analysis]
+  );
 
   const fileName = selectedFile ? selectedFile.split('/').pop() : '';
-  const showSymbols = selectedFile && fileIntel;
+  const showExploreInspector = activeTab === 'explore' && Boolean(selectedFile);
+  const showChatActions = activeTab === 'chat';
 
   const profile = getIdentityProfile(analysis);
-  const highTraffic = getHighTrafficFiles(analysis);
-  const displayFiles = highTraffic || [];
 
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-y-auto flex flex-col">
-      {showSymbols ? (
-        <>
+  if (showExploreInspector) {
+    if (fileIntel) {
+      return (
+        <div className="h-full flex flex-col">
           <div className="px-3 py-2.5 border-b border-c-line flex items-center gap-2 min-w-0">
             <span className="text-[12px] font-mono text-vb-ink font-medium truncate">{fileName}</span>
             <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
@@ -495,10 +493,26 @@ function RightPanel({ analysis, selectedFile, activeTab, userPlan, onShareChat, 
           <div className="flex-1 overflow-y-auto">
             <SymbolInspector fileIntel={fileIntel} fileName={fileName} />
           </div>
-        </>
-      ) : (
+        </div>
+      );
+    }
+
+    return (
+      <div className="h-full flex flex-col items-center justify-center px-6 py-10 text-center">
+        <Code2 size={20} className="text-vb-ink4 mb-3" />
+        <p className="text-[12px] text-vb-ink3 leading-relaxed">
+          No indexed symbols for <span className="font-mono text-vb-ink2">{fileName}</span>.
+          Large repos index a focused subset of files — this path may not be in the deep index yet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto flex flex-col">
+      {showChatActions ? (
         <>
-          {/* Quick Actions */}
           <div className="px-4 py-5 border-b border-c-line">
             <h3 className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider mb-3">Quick Actions</h3>
             <div className="space-y-2">
@@ -518,6 +532,8 @@ function RightPanel({ analysis, selectedFile, activeTab, userPlan, onShareChat, 
               </a>
             </div>
           </div>
+        </>
+      ) : null}
 
           {/* Codebase Summary */}
           <div className="px-4 py-5 border-b border-c-line">
@@ -564,8 +580,6 @@ function RightPanel({ analysis, selectedFile, activeTab, userPlan, onShareChat, 
               <a href="mailto:support@grepit.co" className="text-[11px] text-vb-ink3 hover:text-vb-accent transition-colors">Contact</a>
             </div>
           </div>
-        </>
-      )}
       </div>
     </div>
   );
@@ -587,7 +601,7 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 }
 
 /* ── Chat History Sidebar ── */
-function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename, onShare, sharingChatId, onCollapse, activeChatId }) {
+function ChatHistorySidebar({ history, historyLoading, onSelect, onNewChat, onDelete, onRename, onShare, sharingChatId, onCollapse, activeChatId }) {
   const [confirmItem, setConfirmItem] = useState(null);
   const [renamingIdx, setRenamingIdx] = useState(null);
   const [renameValue, setRenameValue] = useState('');
@@ -616,10 +630,15 @@ function ChatHistorySidebar({ history, onSelect, onNewChat, onDelete, onRename, 
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
-        {history.length === 0 ? (
+        {historyLoading ? (
+          <div className="flex flex-col items-center justify-center gap-2 px-2 py-8 text-center">
+            <Loader2 size={14} className="animate-spin text-c-accent" />
+            <p className="text-[11px] text-c-text-3 leading-relaxed">Loading conversations…</p>
+          </div>
+        ) : history.length === 0 ? (
           <p className="text-[11px] text-c-text-3 px-2 py-6 text-center leading-relaxed">{EMPTY_STATES.noHistory}</p>
         ) : history.map((item, i) => (
-          <div key={i} className={`group flex items-center gap-0.5 rounded-md transition-colors ${item.id === activeChatId ? 'bg-c-lime-soft border border-c-lime-line' : 'hover:bg-c-overlay-2'}`}>
+          <div key={item.id || i} className={`group flex items-center gap-0.5 rounded-md transition-colors ${item.id === activeChatId ? 'bg-c-lime-soft border border-c-lime-line' : 'hover:bg-c-overlay-2'}`}>
             {renamingIdx === i ? (
               <input
                 autoFocus
@@ -703,7 +722,7 @@ function ChatLoadingIndicator({ statusLabel }) {
 }
 
 /* ── Chat View ── */
-function ChatView({ analysis, messages, loading, streamStatus, query, setQuery, handleSend, suggestions, chatHistory, onSelectHistory, onNewChat, onDeleteHistory, onStopGeneration, onRenameHistory, onShareHistory, sharingChatId, historyLoaded, setHistoryLoaded, onNavigateToFile, activeChatId, switchingChat }) {
+function ChatView({ analysis, messages, loading, streamStatus, query, setQuery, handleSend, suggestions, chatHistory, chatHistoryLoading, onSelectHistory, onNewChat, onDeleteHistory, onStopGeneration, onRenameHistory, onShareHistory, sharingChatId, historyLoaded, setHistoryLoaded, onNavigateToFile, activeChatId, switchingChat }) {
   const scrollRef = useRef(null);
 
   // Scroll to bottom when user sends or when history is loaded
@@ -728,7 +747,7 @@ function ChatView({ analysis, messages, loading, streamStatus, query, setQuery, 
     <div className="flex-1 flex min-h-0">
       {!historyCollapsed && (
         <div className="hidden md:block">
-          <ChatHistorySidebar history={chatHistory} onSelect={onSelectHistory} onNewChat={onNewChat} onDelete={onDeleteHistory} onRename={onRenameHistory} onShare={onShareHistory} sharingChatId={sharingChatId} onCollapse={() => setHistoryCollapsed(true)} activeChatId={activeChatId} />
+          <ChatHistorySidebar history={chatHistory} historyLoading={chatHistoryLoading} onSelect={onSelectHistory} onNewChat={onNewChat} onDelete={onDeleteHistory} onRename={onRenameHistory} onShare={onShareHistory} sharingChatId={sharingChatId} onCollapse={() => setHistoryCollapsed(true)} activeChatId={activeChatId} />
         </div>
       )}
 
@@ -749,13 +768,15 @@ function ChatView({ analysis, messages, loading, streamStatus, query, setQuery, 
         >
           <div className={messages.length === 0 ? "h-full" : "min-h-full"}>
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center py-6">
-              {switchingChat && (
-                <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-c-line bg-c-overlay-1 px-3 py-1.5 text-[12px] text-c-text-3">
-                  <Loader2 size={12} className="animate-spin text-c-accent" />
-                  Loading conversation…
+              switchingChat ? (
+                <div className="h-full flex flex-col items-center justify-center py-6">
+                  <div className="inline-flex items-center gap-2 rounded-md border border-c-line bg-c-overlay-1 px-3 py-1.5 text-[12px] text-c-text-3">
+                    <Loader2 size={12} className="animate-spin text-c-accent" />
+                    Loading conversation…
+                  </div>
                 </div>
-              )}
+              ) : (
+              <div className="h-full flex flex-col items-center justify-center py-6">
               <div className="flex items-center gap-2 mb-3">
                 <ViboMark size={22} />
                 <span className="text-[18px] font-semibold tracking-tight text-c-text select-none">
@@ -785,6 +806,7 @@ function ChatView({ analysis, messages, loading, streamStatus, query, setQuery, 
                 />
               </div>
               </div>
+              )
             ) : (
               <div className="space-y-5 min-w-0 w-full">
               {messages.map((msg, i) => {
@@ -976,6 +998,7 @@ export default function DashboardLayout() {
   const activeChatIdRef = useRef(activeChatId);
   const chatSwitchSeqRef = useRef(0);
   const conversationCacheRef = useRef(new Map());
+  const loadedConversationsRef = useRef(new Set());
   const { toast, show: showToast, dismiss: dismissToast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -983,9 +1006,8 @@ export default function DashboardLayout() {
   const { user, isLoaded: clerkLoaded, isSignedIn } = useUser();
   // React Query hooks
   const { data: analysis, isLoading: loading, error: analysisError } = useAnalysis(analysisId);
-  const { data: chatHistory = [] } = useChatHistory(analysisId);
+  const { data: chatHistory = [], isLoading: chatHistoryLoading } = useChatHistory(analysisId);
   const deleteChatMutation = useDeleteChatHistory();
-  const fetchConversationMessages = useFetchConversationMessages();
   const streamChatMutation = useStreamChat();
   const shareChatMutation = useShareChat();
   const reanalyzeMutation = useReanalyzeRepo();
@@ -1001,8 +1023,36 @@ export default function DashboardLayout() {
   }, [activeChatId]);
   useEffect(() => {
     if (!activeChatId) return;
+    if (switchingChat && messages.length === 0) return;
     conversationCacheRef.current.set(activeChatId, messages);
-  }, [activeChatId, messages]);
+    if (messages.length > 0) {
+      loadedConversationsRef.current.add(activeChatId);
+    }
+  }, [activeChatId, messages, switchingChat]);
+
+  useEffect(() => {
+    conversationCacheRef.current.clear();
+    loadedConversationsRef.current.clear();
+    chatSwitchSeqRef.current += 1;
+    setSwitchingChat(false);
+    setMessages([]);
+    setHistoryLoaded(false);
+    const newChatId = crypto.randomUUID();
+    activeChatIdRef.current = newChatId;
+    setActiveChatId(newChatId);
+  }, [analysisId]);
+
+  useEffect(() => {
+    if (activeTab === 'explore' && selectedFile) {
+      rightPanel.setCollapsed(false);
+    }
+  }, [activeTab, selectedFile, rightPanel]);
+
+  const openFileInExplore = useCallback((path) => {
+    setSelectedFile(path);
+    setActiveTab('explore');
+    rightPanel.setCollapsed(false);
+  }, [rightPanel]);
 
   const suggestions = useMemo(() => buildChatSuggestions(analysis), [analysis]);
 
@@ -1019,18 +1069,16 @@ export default function DashboardLayout() {
     const q = (text || query).trim();
     if (!q || chatLoading || !analysis?.id) return;
 
-    // Optimistically add this conversation to the sidebar if it's the first message
-    const isFirstMessage = messages.length === 0;
-    if (isFirstMessage) {
-      queryClient.setQueryData(['chatHistory', analysisId], (old = []) => {
-        // Don't add if already exists
-        if (old.some(c => c.id === activeChatId)) return old;
-        return [
-          { id: activeChatId, title: q.slice(0, 80), created_at: new Date().toISOString(), last_activity: new Date().toISOString(), messageCount: 1 },
-          ...old,
-        ];
-      });
-    }
+    // Optimistically show/update this conversation in the sidebar immediately (no network)
+    const now = new Date().toISOString();
+    const existing = chatHistory.find((c) => c.id === activeChatId);
+    upsertChatHistoryEntry(queryClient, analysisId, {
+      id: activeChatId,
+      title: existing?.title || q.slice(0, 80),
+      created_at: existing?.created_at || now,
+      last_activity: now,
+      messageCount: (existing?.messageCount || 0) + 1,
+    });
 
     // Build display message (what user sees — no hidden context, but show badge)
     const displayMsg = attachedFiles.length > 0
@@ -1127,8 +1175,10 @@ export default function DashboardLayout() {
     setChatLoading(false);
     setStreamStatus('');
     abortRef.current = null;
-    // Refresh chat history immediately so new chat appears in sidebar
-    queryClient.invalidateQueries({ queryKey: ['chatHistory', analysisId] });
+    upsertChatHistoryEntry(queryClient, analysisId, {
+      id: streamChatId,
+      last_activity: new Date().toISOString(),
+    });
   };
 
   const handleStopGeneration = () => {
@@ -1141,6 +1191,9 @@ export default function DashboardLayout() {
       setMessages([]);
       setActiveChatId(crypto.randomUUID());
     }
+    conversationCacheRef.current.delete(item.id);
+    loadedConversationsRef.current.delete(item.id);
+    queryClient.removeQueries({ queryKey: ['conversation', analysisId, item.id] });
     deleteChatMutation.mutate({ analysisId: analysis?.id, conversationId: item.id });
   };
 
@@ -1153,8 +1206,7 @@ export default function DashboardLayout() {
     const fileTree = analysis?.file_tree || [];
     const match = fileTree.find(f => f.type === 'blob' && (f.path === ref || f.path.endsWith(ref) || f.path.includes(ref)));
     if (match) {
-      setSelectedFile(match.path);
-      setActiveTab('explore');
+      openFileInExplore(match.path);
     } else {
       // Try to find a file containing this symbol
       const files = analysis?.results?.files || [];
@@ -1164,56 +1216,70 @@ export default function DashboardLayout() {
         (f.exports || []).includes(ref)
       );
       if (fileWithSymbol) {
-        setSelectedFile(fileWithSymbol.path);
-        setActiveTab('explore');
+        openFileInExplore(fileWithSymbol.path);
       }
     }
   };
 
   const handleSelectHistory = async (item) => {
-    // Switching conversations should immediately stop the current stream.
     stopActiveStream();
+
+    if (item.id === activeChatId && loadedConversationsRef.current.has(item.id)) {
+      setSwitchingChat(false);
+      return;
+    }
+
     const switchSeq = ++chatSwitchSeqRef.current;
     activeChatIdRef.current = item.id;
-    const cachedMessages = conversationCacheRef.current.get(item.id);
-    if (cachedMessages) {
-      // Instant paint from local cache, then revalidate in background.
-      setMessages(cachedMessages);
+    setActiveChatId(item.id);
+
+    if (loadedConversationsRef.current.has(item.id)) {
+      const cachedMessages = conversationCacheRef.current.get(item.id);
+      if (cachedMessages !== undefined) {
+        setMessages(cachedMessages);
+        setHistoryLoaded(true);
+        setSwitchingChat(false);
+        return;
+      }
+    }
+
+    const rqState = queryClient.getQueryState(['conversation', analysisId, item.id]);
+    if (rqState?.status === 'success') {
+      const msgs = rowsToChatMessages(queryClient.getQueryData(['conversation', analysisId, item.id]) || []);
+      conversationCacheRef.current.set(item.id, msgs);
+      loadedConversationsRef.current.add(item.id);
+      setMessages(msgs);
       setHistoryLoaded(true);
       setSwitchingChat(false);
-    } else {
-      setSwitchingChat(true);
-      // Clear old chat immediately so UI never shows stale conversation.
-      setMessages([]);
-      setHistoryLoaded(false);
+      return;
     }
-    setActiveChatId(item.id);
-    // Load all messages in this conversation
+
+    setSwitchingChat(true);
+    setMessages([]);
+    setHistoryLoaded(false);
+
     try {
-      const data = await fetchConversationMessages.mutateAsync({ conversationId: item.id, analysisId });
-      // Ignore stale responses from older switch requests.
+      const data = await fetchConversationMessagesCached(queryClient, { conversationId: item.id, analysisId });
       if (chatSwitchSeqRef.current !== switchSeq || activeChatIdRef.current !== item.id) return;
-      const msgs = (data || []).flatMap(m => [
-        { role: 'user', content: m.query },
-        { role: 'assistant', content: m.response },
-      ]);
+      const msgs = rowsToChatMessages(data);
       conversationCacheRef.current.set(item.id, msgs);
+      loadedConversationsRef.current.add(item.id);
       setMessages(msgs);
       setHistoryLoaded(true);
     } catch {
       if (chatSwitchSeqRef.current !== switchSeq || activeChatIdRef.current !== item.id) return;
       const fallback = [{ role: 'user', content: item.title }];
       conversationCacheRef.current.set(item.id, fallback);
+      loadedConversationsRef.current.add(item.id);
       setMessages(fallback);
       setHistoryLoaded(true);
     } finally {
-      if (chatSwitchSeqRef.current === switchSeq) {
+      if (chatSwitchSeqRef.current === switchSeq && activeChatIdRef.current === item.id) {
         setSwitchingChat(false);
       }
     }
   };
   const handleNewChat = () => {
-    // Switching conversations should immediately stop the current stream.
     stopActiveStream();
     chatSwitchSeqRef.current += 1;
     setSwitchingChat(false);
@@ -1223,6 +1289,7 @@ export default function DashboardLayout() {
     const newChatId = crypto.randomUUID();
     activeChatIdRef.current = newChatId;
     conversationCacheRef.current.set(newChatId, []);
+    loadedConversationsRef.current.add(newChatId);
     setActiveChatId(newChatId);
   };
 
@@ -1299,7 +1366,7 @@ export default function DashboardLayout() {
       {!leftPanel.collapsed && (
         <>
           <aside style={{ width: `${leftPanel.width}px` }} className="flex-shrink-0 bg-c-surface-2 flex-col overflow-hidden hidden md:flex border-r border-c-line">
-            <FileTreeSidebar analysis={analysis} selectedFile={selectedFile} onSelectFile={(p) => { setSelectedFile(p); setActiveTab('explore'); }} score={score} onCollapse={() => leftPanel.setCollapsed(true)} />
+            <FileTreeSidebar analysis={analysis} selectedFile={selectedFile} onSelectFile={openFileInExplore} score={score} onCollapse={() => leftPanel.setCollapsed(true)} />
           </aside>
           <div onMouseDown={leftPanel.onMouseDown} className="w-[3px] flex-shrink-0 cursor-col-resize bg-c-overlay-3 hover:bg-vb-accent/30 active:bg-vb-accent/50 transition-colors hidden md:block" />
         </>
@@ -1358,6 +1425,7 @@ export default function DashboardLayout() {
               onChange={(id) => {
                 setActiveTab(id);
                 if (id !== 'explore') setSelectedFile('');
+                else if (selectedFile) rightPanel.setCollapsed(false);
               }}
               tabs={[
                 { id: 'explore', Icon: LayoutGrid, label: 'Explore' },
@@ -1431,6 +1499,7 @@ export default function DashboardLayout() {
                 handleSend={handleSend}
                 suggestions={suggestions}
                 chatHistory={chatHistory}
+                chatHistoryLoading={chatHistoryLoading}
                 onSelectHistory={handleSelectHistory}
                 onNewChat={handleNewChat}
                 onDeleteHistory={handleDeleteHistory}
@@ -1458,7 +1527,7 @@ export default function DashboardLayout() {
               { id: 'chat', Icon: MessageSquare, label: 'Chat' },
               { id: 'system', Icon: Terminal, label: 'System' },
             ].map(({ id, Icon, label }) => (
-              <button key={id} onClick={() => { setActiveTab(id); if (id !== 'explore') setSelectedFile(''); }}
+              <button key={id} onClick={() => { setActiveTab(id); if (id !== 'explore') setSelectedFile(''); else if (selectedFile) rightPanel.setCollapsed(false); }}
                 className={`flex flex-col items-center gap-0.5 px-2 sm:px-3 py-1 rounded-lg transition-colors min-w-[3.25rem] ${
                   activeTab === id ? 'text-c-lime' : 'text-c-text-2'
                 }`}>
@@ -1493,7 +1562,12 @@ export default function DashboardLayout() {
               </div>
               {/* Chat list */}
               <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-                {chatHistory.length === 0 ? (
+                {chatHistoryLoading ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-8">
+                    <Loader2 size={14} className="animate-spin text-c-accent" />
+                    <p className="text-[12px] text-vb-ink4">Loading conversations…</p>
+                  </div>
+                ) : chatHistory.length === 0 ? (
                   <p className="text-[12px] text-vb-ink4 text-center py-8">No conversations yet</p>
                 ) : (
                   chatHistory.map((item) => (
@@ -1519,7 +1593,9 @@ export default function DashboardLayout() {
           <div onMouseDown={rightPanel.onMouseDown} className="w-[3px] flex-shrink-0 cursor-col-resize bg-c-overlay-3 hover:bg-vb-accent/30 active:bg-vb-accent/50 transition-colors hidden lg:block" />
           <aside style={{ width: `${rightPanel.width}px` }} className="flex-shrink-0 bg-c-surface-2 flex-col overflow-hidden hidden lg:flex border-l border-c-line">
             <div className="flex items-center justify-between px-4 py-3 border-b border-c-line">
-              <span className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider">{selectedFile ? 'Symbol Inspector' : 'Identity Profile'}</span>
+              <span className="text-[11px] font-medium text-vb-ink3 uppercase tracking-wider">
+                {activeTab === 'explore' && selectedFile ? 'Symbol Inspector' : activeTab === 'chat' ? 'Chat' : 'Overview'}
+              </span>
               <button onClick={() => rightPanel.setCollapsed(true)} className="p-1 rounded-md text-vb-ink3 hover:text-vb-ink2 hover:bg-c-overlay-3 transition-colors" title="Hide panel">
                 <PanelRightClose size={13} />
               </button>

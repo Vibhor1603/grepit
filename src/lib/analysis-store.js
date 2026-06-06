@@ -160,11 +160,12 @@ export async function getAnalysisMeta(id) {
  * The user sees the message immediately (streamed to UI).
  * DB persistence happens asynchronously in the background.
  */
-export async function createQueryHistory(payload) {
+export async function createQueryHistory(payload, { immediate = false } = {}) {
   bufferChatMessage(payload);
-  // Invalidate conversation list cache for this analysis
-  if (payload.analysis_id) {
-    await invalidate(`conversations:${payload.analysis_id}`).catch(() => {});
+  // Only invalidate after data is actually written — flushBuffer handles that.
+  // Do not invalidate on buffer add; that repopulates cache with stale/empty DB rows.
+  if (immediate) {
+    await forceFlush();
   }
 }
 

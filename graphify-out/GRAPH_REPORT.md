@@ -1,16 +1,16 @@
-# Graph Report - Vibo-code-analyst  (2026-06-02)
+# Graph Report - Vibo-code-analyst  (2026-06-06)
 
 ## Corpus Check
-- 302 files · ~333,484 words
+- 302 files · ~333,947 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2264 nodes · 3406 edges · 264 communities (184 shown, 80 thin omitted)
+- 2269 nodes · 3415 edges · 277 communities (194 shown, 83 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4e2b8848`
+- Built from commit: `afb8d2d3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -127,10 +127,12 @@
 - [[_COMMUNITY_Community 109|Community 109]]
 - [[_COMMUNITY_Community 110|Community 110]]
 - [[_COMMUNITY_Community 111|Community 111]]
+- [[_COMMUNITY_Community 112|Community 112]]
 - [[_COMMUNITY_Community 113|Community 113]]
 - [[_COMMUNITY_Community 114|Community 114]]
 - [[_COMMUNITY_Community 115|Community 115]]
 - [[_COMMUNITY_Community 116|Community 116]]
+- [[_COMMUNITY_Community 117|Community 117]]
 - [[_COMMUNITY_Community 118|Community 118]]
 - [[_COMMUNITY_Community 120|Community 120]]
 - [[_COMMUNITY_Community 121|Community 121]]
@@ -225,6 +227,7 @@
 - [[_COMMUNITY_Community 232|Community 232]]
 - [[_COMMUNITY_Community 233|Community 233]]
 - [[_COMMUNITY_Community 234|Community 234]]
+- [[_COMMUNITY_Community 235|Community 235]]
 - [[_COMMUNITY_Community 236|Community 236]]
 - [[_COMMUNITY_Community 237|Community 237]]
 - [[_COMMUNITY_Community 238|Community 238]]
@@ -243,6 +246,8 @@
 - [[_COMMUNITY_Community 251|Community 251]]
 - [[_COMMUNITY_Community 252|Community 252]]
 - [[_COMMUNITY_Community 253|Community 253]]
+- [[_COMMUNITY_Community 254|Community 254]]
+- [[_COMMUNITY_Community 255|Community 255]]
 - [[_COMMUNITY_Community 256|Community 256]]
 - [[_COMMUNITY_Community 257|Community 257]]
 - [[_COMMUNITY_Community 258|Community 258]]
@@ -255,6 +260,13 @@
 - [[_COMMUNITY_Community 265|Community 265]]
 - [[_COMMUNITY_Community 266|Community 266]]
 - [[_COMMUNITY_Community 267|Community 267]]
+- [[_COMMUNITY_Community 269|Community 269]]
+- [[_COMMUNITY_Community 270|Community 270]]
+- [[_COMMUNITY_Community 272|Community 272]]
+- [[_COMMUNITY_Community 273|Community 273]]
+- [[_COMMUNITY_Community 274|Community 274]]
+- [[_COMMUNITY_Community 275|Community 275]]
+- [[_COMMUNITY_Community 276|Community 276]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `getDb()` - 45 edges
@@ -283,27 +295,27 @@
 ## Import Cycles
 - None detected.
 
-## Communities (264 total, 80 thin omitted)
+## Communities (277 total, 83 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.15
-Nodes (21): POST(), getPlanRateLimit(), isDisposableEmail(), getCachedResponse(), getRedis(), getUpstashLimiter(), ipRateLimit(), limiterCache (+13 more)
+Cohesion: 0.29
+Nodes (11): POST(), getAnalysisRecord(), isDisposableEmail(), rateLimitKey(), enforceJsonBodySize(), hasUnsafeControlChars(), PROMPT_INJECTION_INPUT_PATTERNS, SQLI_PATTERNS (+3 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.18
-Nodes (25): GET(), POST(), buildFlowMap(), enrichGitHubComponents(), ensureReadAccess(), formatRouteError(), handleAnalyzeGet(), handleAnalyzePost() (+17 more)
+Cohesion: 0.15
+Nodes (27): GET(), POST(), buildFlowMap(), enrichGitHubComponents(), ensureReadAccess(), formatRouteError(), handleAnalyzeGet(), handleAnalyzePost() (+19 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.05
-Nodes (87): cancelScheduledPlanChange(), cancelSubscription(), createCheckoutSession(), downgradePlan(), getDodoClient(), getPlanFromProductId(), getProductId(), getSubscriptionDetails() (+79 more)
+Cohesion: 0.08
+Nodes (63): cancelScheduledPlanChange(), cancelSubscription(), createCheckoutSession(), downgradePlan(), getDodoClient(), getPlanFromProductId(), getProductId(), getSubscriptionDetails() (+55 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.10
-Nodes (41): addScore(), basename(), buildAdjacency(), buildCodebaseIndex(), buildDirectoryIndexPayload(), buildFolderMatches(), buildRuntimeIndex(), createDirectoryMap() (+33 more)
+Cohesion: 0.16
+Nodes (28): addScore(), basename(), buildAdjacency(), buildCodebaseIndex(), buildDirectoryIndexPayload(), buildFolderMatches(), buildRuntimeIndex(), createDirectoryMap() (+20 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.05
-Nodes (19): AnalysisChoreography, AUTH_ERRORS, CTAFinal, EngineerMindset, FAQSnippet, GridBackground, LandingPage(), Pricing (+11 more)
+Nodes (21): AnalysisChoreography, AUTH_ERRORS, CTAFinal, EngineerMindset, FAQSnippet, GridBackground, LandingPage(), Pricing (+13 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.06
@@ -319,7 +331,7 @@ Nodes (31): dependencies, autoprefixer, @clerk/nextjs, dodopayments, dompurify, 
 
 ### Community 8 - "Community 8"
 Cohesion: 0.15
-Nodes (17): dedupeNamedItems(), detectLanguage(), ext(), extractMatches(), findCallNames(), parseGeneric(), parseGo(), parseHtml() (+9 more)
+Nodes (18): buildCodeIntelligence(), dedupeNamedItems(), detectLanguage(), ext(), extractMatches(), findCallNames(), parseGeneric(), parseGo() (+10 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.22
@@ -334,8 +346,8 @@ Cohesion: 0.08
 Nodes (24): ChatCodeBlock, CodeViewerLazy, CopyButton, DashboardLayout(), ExploreView(), MarkdownMessage, STREAM_STATUS_LABELS, SymbolInspector (+16 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.07
-Nodes (10): metadata, MobileNoticeContext, MobileNoticeProvider(), ThemeContext, ThemeProvider(), THEMES, LOCAL_MIGRATIONS, migrateLegacyStorage() (+2 more)
+Cohesion: 0.22
+Nodes (5): ThemeProvider(), LOCAL_MIGRATIONS, migrateLegacyStorage(), migrateStore(), SESSION_MIGRATIONS
 
 ### Community 13 - "Community 13"
 Cohesion: 0.23
@@ -366,8 +378,8 @@ Cohesion: 0.17
 Nodes (20): fetchGitHubFileText(), fetchGitHubRepository(), githubRequest(), buildCommonRootPrefix(), createFolderUploadSnapshot(), createGitHubSnapshot(), createTextEntry(), createUploadSnapshot() (+12 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.09
-Nodes (11): MESSAGES, SUBTEXTS, useTheme(), ThemeToggle(), ViboLogo(), ViboMark(), ViboWordmark(), FAQ_GROUPS (+3 more)
+Cohesion: 0.16
+Nodes (5): ViboLogo(), ViboMark(), ViboWordmark(), NAV_LINKS, COLUMNS
 
 ### Community 21 - "Community 21"
 Cohesion: 0.13
@@ -382,8 +394,8 @@ Cohesion: 0.13
 Nodes (14): API Routes, Billing Flows, Cancel, Database Schema, Downgrade (pro → starter), Environment Variables, grepit — Technical Documentation, Razorpay Billing (+6 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.18
-Nodes (16): handleQueryDelete(), handleQueryGet(), deleteAnalysisRecord(), deleteConversation(), deleteQueryHistory(), getAnalysisMeta(), getConversations(), notFound() (+8 more)
+Cohesion: 0.20
+Nodes (17): buildContext(), buildTraversalContext(), handleQueryDelete(), handleQueryGet(), createQueryHistory(), deleteConversation(), deleteQueryHistory(), getAnalysisMeta() (+9 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.17
@@ -403,15 +415,15 @@ Nodes (10): dialect, enums, id, policies, prevId, roles, schemas, sequences (+2 
 
 ### Community 29 - "Community 29"
 Cohesion: 0.12
-Nodes (17): current_period_end, stripe_subscription_id, updated_at, name, notNull, primaryKey, type, columns (+9 more)
+Nodes (17): default, name, notNull, primaryKey, type, cancel_at_period_end, current_period_end, stripe_customer_id (+9 more)
 
 ### Community 30 - "Community 30"
 Cohesion: 0.10
 Nodes (21): name, notNull, primaryKey, type, analysis_id, conversation_id, query, response (+13 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.11
-Nodes (18): created_at, feature, metadata, default, name, notNull, primaryKey, type (+10 more)
+Cohesion: 0.12
+Nodes (17): feature, id, user_id, name, notNull, primaryKey, type, default (+9 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.13
@@ -451,7 +463,7 @@ Nodes (9): checkConstraints, compositePrimaryKeys, isRLSEnabled, name, policies,
 
 ### Community 41 - "Community 41"
 Cohesion: 0.14
-Nodes (15): GET(), listAnalysisRecords(), getCurrentSession(), getOwnerFromClaims(), getSessionOwner(), isUserPro(), buildMarkdownReport(), GET() (+7 more)
+Nodes (14): GET(), listAnalysisRecords(), getCurrentSession(), getOwnerFromClaims(), getSessionOwner(), buildMarkdownReport(), GET(), analyzeCodeQuality() (+6 more)
 
 ### Community 42 - "Community 42"
 Cohesion: 0.25
@@ -474,8 +486,8 @@ Cohesion: 0.25
 Nodes (8): query_history_owner_email_idx, indexes, columns, concurrently, isUnique, method, name, with
 
 ### Community 47 - "Community 47"
-Cohesion: 0.09
-Nodes (22): usage_logs_created_at_idx, usage_logs_feature_idx, usage_logs_user_id_idx, indexes, columns, concurrently, isUnique, method (+14 more)
+Cohesion: 0.25
+Nodes (8): usage_logs_created_at_idx, indexes, columns, concurrently, isUnique, method, name, with
 
 ### Community 48 - "Community 48"
 Cohesion: 0.19
@@ -510,8 +522,8 @@ Cohesion: 0.29
 Nodes (7): query_history_analysis_id_idx, columns, concurrently, isUnique, method, name, with
 
 ### Community 56 - "Community 56"
-Cohesion: 0.18
-Nodes (6): PricingSection(), getAllPlans(), hasFeature(), PLANS, Footer, UpgradeModal
+Cohesion: 0.19
+Nodes (7): getPlan(), getPlanRateLimit(), hasFeature(), PLANS, planRateLimit(), Footer, UpgradeModal
 
 ### Community 57 - "Community 57"
 Cohesion: 0.10
@@ -594,8 +606,8 @@ Cohesion: 0.14
 Nodes (5): BLIND_STEPS, ENGINEER_MINDSET_SIZE, EngineerMindsetVisual(), formatDuration(), GREPIT_DELIVERABLES
 
 ### Community 78 - "Community 78"
-Cohesion: 0.21
-Nodes (21): getPlan(), buildContext(), buildTraversalContext(), handleQueryPost(), buildHistoryMessages(), buildSystemPrompt(), handleStreamPost(), buildQueryResponse() (+13 more)
+Cohesion: 0.30
+Nodes (12): handleQueryPost(), buildHistoryMessages(), buildSystemPrompt(), handleStreamPost(), buildQueryResponse(), getConversationMessageCount(), getConversationMessages(), getRecentQueries() (+4 more)
 
 ### Community 79 - "Community 79"
 Cohesion: 0.33
@@ -606,12 +618,12 @@ Cohesion: 0.33
 Nodes (6): status, default, name, notNull, primaryKey, type
 
 ### Community 81 - "Community 81"
-Cohesion: 0.33
-Nodes (6): default, name, notNull, primaryKey, type, cancel_at_period_end
+Cohesion: 0.22
+Nodes (14): chatModelChain(), getEmbeddingModel(), isChatModelConfigured(), isEmbeddingModelConfigured(), parseModelList(), readChatModelChain(), chunkFileCode(), embedQuery() (+6 more)
 
 ### Community 82 - "Community 82"
-Cohesion: 0.33
-Nodes (6): id, default, name, notNull, primaryKey, type
+Cohesion: 0.26
+Nodes (13): buildContextFromAnalysis(), basename(), buildMissingFileCandidates(), collectRelevantContext(), detectLanguageFromPath(), dirname(), extname(), joinPath() (+5 more)
 
 ### Community 83 - "Community 83"
 Cohesion: 0.33
@@ -619,7 +631,7 @@ Nodes (6): default, name, notNull, primaryKey, type, architecture
 
 ### Community 84 - "Community 84"
 Cohesion: 0.12
-Nodes (16): error_message, repo_name, repo_url, name, notNull, primaryKey, type, columns (+8 more)
+Nodes (17): error_message, repo_url, total_files, name, notNull, primaryKey, type, columns (+9 more)
 
 ### Community 85 - "Community 85"
 Cohesion: 0.33
@@ -642,8 +654,8 @@ Cohesion: 0.33
 Nodes (6): file_tree, default, name, notNull, primaryKey, type
 
 ### Community 90 - "Community 90"
-Cohesion: 0.33
-Nodes (6): total_files, default, name, notNull, primaryKey, type
+Cohesion: 0.15
+Nodes (7): MockPanelChat(), MockPanelExplorer(), MockPanelUrl(), PANELS, ProductShowcase(), STEPS, useMobilePipeline()
 
 ### Community 91 - "Community 91"
 Cohesion: 0.33
@@ -694,16 +706,16 @@ Cohesion: 0.40
 Nodes (5): owner_email, name, notNull, primaryKey, type
 
 ### Community 103 - "Community 103"
-Cohesion: 0.22
-Nodes (15): buildContextFromAnalysis(), buildLocalFileInsight(), ensureReadAccess(), GET(), getIpAndSession(), POST(), resolveFileCode(), getAnalysisRecord() (+7 more)
+Cohesion: 0.23
+Nodes (14): buildLocalFileInsight(), ensureReadAccess(), GET(), getIpAndSession(), POST(), resolveFileCode(), DOC_LIKE_EXTENSIONS, extname() (+6 more)
 
 ### Community 104 - "Community 104"
 Cohesion: 0.40
 Nodes (5): stripe_price_id, name, notNull, primaryKey, type
 
 ### Community 105 - "Community 105"
-Cohesion: 0.40
-Nodes (5): stripe_customer_id, name, notNull, primaryKey, type
+Cohesion: 0.24
+Nodes (11): checkTokenBudget(), getCachedResponse(), getRedis(), getUpstashLimiter(), ipRateLimit(), limiterCache, memRateLimit(), memStore (+3 more)
 
 ### Community 106 - "Community 106"
 Cohesion: 0.29
@@ -729,6 +741,10 @@ Nodes (5): Billing & Subscriptions, Entitlement Model, Provider: Dodo Payments, 
 Cohesion: 0.40
 Nodes (4): name, private, type, version
 
+### Community 112 - "Community 112"
+Cohesion: 0.26
+Nodes (6): getAppEnv(), isDevelopment(), isGitHubAuthConfigured(), isProduction(), isSentryEnabled(), register()
+
 ### Community 113 - "Community 113"
 Cohesion: 0.50
 Nodes (3): dialect, entries, version
@@ -745,13 +761,17 @@ Nodes (9): getHighTrafficFiles(), getIdentityProfile(), healthScore(), normalize
 Cohesion: 0.50
 Nodes (3): File-System Paths, Import Paths, Prefer Statically Analyzable Paths
 
+### Community 117 - "Community 117"
+Cohesion: 0.15
+Nodes (8): EXPLORER_TREE, HEALTH_ISSUES, MAP_EDGES, MAP_NODES, MOCK_PANEL_TITLES, MockPanelHealth(), MockPanelMap(), START_HERE
+
 ### Community 118 - "Community 118"
 Cohesion: 0.29
 Nodes (4): BARS, TokenSavings(), TOOLS, useCountUp()
 
 ### Community 120 - "Community 120"
-Cohesion: 0.07
-Nodes (36): GET(), InternalAdminLayout(), metadata, clearAdminSessionCookie(), createAdminSessionToken(), getAdminSession(), getSessionSecret(), hashPassword() (+28 more)
+Cohesion: 0.06
+Nodes (50): admin_credentials, GET(), InternalAdminLayout(), metadata, clearAdminSessionCookie(), createAdminSessionToken(), getAdminSession(), getSessionSecret() (+42 more)
 
 ### Community 121 - "Community 121"
 Cohesion: 0.50
@@ -810,8 +830,8 @@ Cohesion: 0.22
 Nodes (8): Accessibility, Design Engineering, Initial Response, prefers-reduced-motion, Review Checklist, Review Format (Required), Stagger Animations, Touch device hover states
 
 ### Community 220 - "Community 220"
-Cohesion: 0.08
-Nodes (32): buildDependencies(), buildKeyFolders(), buildLayers(), buildRepositoryAnalysis(), buildRepresentativeFiles(), buildSetupSteps(), detectApiEndpoints(), detectCodeSmells() (+24 more)
+Cohesion: 0.13
+Nodes (25): buildDependencies(), buildKeyFolders(), buildLayers(), buildRepositoryAnalysis(), buildSetupSteps(), detectApiEndpoints(), detectCodeSmells(), detectComplexityHotspots() (+17 more)
 
 ### Community 222 - "Community 222"
 Cohesion: 0.25
@@ -826,8 +846,12 @@ Cohesion: 0.20
 Nodes (7): AnalysisChoreography(), clamp01(), EDGES, NODES, OUTCOMES, PHASES, useThemeColors()
 
 ### Community 234 - "Community 234"
-Cohesion: 0.05
-Nodes (32): buildRoutedPoints(), EDGES, edgeSegment(), HERO_EDGES, HERO_MARKER_STAGGER, HERO_NODES, HERO_TRAVERSAL_PATHS, LivingCanvas() (+24 more)
+Cohesion: 0.11
+Nodes (16): buildRoutedPoints(), EDGES, edgeSegment(), HERO_EDGES, HERO_MARKER_STAGGER, HERO_NODES, HERO_TRAVERSAL_PATHS, LivingCanvas() (+8 more)
+
+### Community 235 - "Community 235"
+Cohesion: 0.24
+Nodes (6): applyClass(), applyThemeClass(), ThemeContext, THEMES, useTheme(), ThemeToggle()
 
 ### Community 236 - "Community 236"
 Cohesion: 0.29
@@ -893,29 +917,33 @@ Nodes (3): Fonts, Monospace, Primary
 Cohesion: 0.67
 Nodes (3): GSAP, React Flow / Cytoscape.js, Strongly Recommended
 
+### Community 254 - "Community 254"
+Cohesion: 0.20
+Nodes (3): metadata, MobileNoticeContext, MobileNoticeProvider()
+
+### Community 255 - "Community 255"
+Cohesion: 0.29
+Nodes (7): usage_logs_feature_idx, columns, concurrently, isUnique, method, name, with
+
 ### Community 256 - "Community 256"
 Cohesion: 0.22
 Nodes (9): checkConstraints, compositePrimaryKeys, isRLSEnabled, name, policies, schema, uniqueConstraints, tables (+1 more)
 
 ### Community 259 - "Community 259"
-Cohesion: 0.25
-Nodes (8): query_history_analysis_id_idx, indexes, columns, concurrently, isUnique, method, name, with
+Cohesion: 0.09
+Nodes (22): query_history_analysis_id_idx, query_history_conversation_id_idx, query_history_owner_email_idx, indexes, columns, concurrently, isUnique, method (+14 more)
 
 ### Community 260 - "Community 260"
 Cohesion: 0.40
 Nodes (5): owner_email, name, notNull, primaryKey, type
 
 ### Community 261 - "Community 261"
-Cohesion: 0.40
-Nodes (5): user_id, name, notNull, primaryKey, type
-
-### Community 262 - "Community 262"
 Cohesion: 0.29
-Nodes (7): query_history_conversation_id_idx, columns, concurrently, isUnique, method, name, with
+Nodes (7): usage_logs_user_id_idx, columns, concurrently, isUnique, method, name, with
 
 ### Community 263 - "Community 263"
-Cohesion: 0.29
-Nodes (7): query_history_owner_email_idx, columns, concurrently, isUnique, method, name, with
+Cohesion: 0.33
+Nodes (6): created_at, default, name, notNull, primaryKey, type
 
 ### Community 265 - "Community 265"
 Cohesion: 0.33
@@ -925,25 +953,45 @@ Nodes (3): IS_GREPIT, NOT_GREPIT, PROOF
 Cohesion: 0.50
 Nodes (4): _meta, columns, schemas, tables
 
+### Community 269 - "Community 269"
+Cohesion: 0.33
+Nodes (6): metadata, default, name, notNull, primaryKey, type
+
+### Community 270 - "Community 270"
+Cohesion: 0.33
+Nodes (6): updated_at, default, name, notNull, primaryKey, type
+
+### Community 272 - "Community 272"
+Cohesion: 0.40
+Nodes (5): repo_name, name, notNull, primaryKey, type
+
+### Community 273 - "Community 273"
+Cohesion: 0.40
+Nodes (5): stripe_subscription_id, name, notNull, primaryKey, type
+
+### Community 275 - "Community 275"
+Cohesion: 0.67
+Nodes (3): buildVariants(), EASE, ScrollReveal()
+
 ## Knowledge Gaps
 - **1080 isolated node(s):** `version`, `source`, `sourceType`, `skillPath`, `computedHash` (+1075 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **80 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **83 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `getDb()` connect `Community 2` to `Community 24`, `Community 1`, `Community 120`, `Community 78`?**
-  _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Why does `SITE_CONFIG` connect `Community 253` to `Community 1`, `Community 4`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **Why does `ViboMark()` connect `Community 20` to `Community 11`, `Community 4`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+- **Why does `getDb()` connect `Community 2` to `Community 1`, `Community 78`, `Community 81`, `Community 24`, `Community 120`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Why does `ViboMark()` connect `Community 20` to `Community 274`, `Community 11`, `Community 4`, `Community 262`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **What connects `version`, `source`, `sourceType` to the rest of the system?**
   _1080 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.14814814814814814 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.05232755691471288 - nodes in this community are weakly interconnected._
-- **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.10338164251207729 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07654320987654321 - nodes in this community are weakly interconnected._
+- **Should `Community 4` be split into smaller, more focused modules?**
+  _Cohesion score 0.04698581560283688 - nodes in this community are weakly interconnected._
+- **Should `Community 5` be split into smaller, more focused modules?**
+  _Cohesion score 0.05714285714285714 - nodes in this community are weakly interconnected._

@@ -140,7 +140,7 @@ export default function ChatInput({ query, setQuery, onSend, loading, onStop, fi
                   className="btn-press w-7 h-7 rounded-full border border-c-line-2 flex items-center justify-center text-c-text-2 hover:text-c-text hover:border-c-accent-line transition-[color,border-color,transform] duration-150"
                   title="Stop generating"
                 >
-                  <Square size={8} fill="currentColor" />
+                  <Square size={12} fill="currentColor" strokeWidth={0} />
                 </button>
               </div>
             )}

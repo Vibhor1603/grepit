@@ -42,12 +42,61 @@ export function useChatHistory(analysisId) {
   return useQuery({
     queryKey: ['chatHistory', analysisId],
     queryFn: async () => {
-      const res = await fetch(`/api/query?analysisId=${analysisId}`);
+      const res = await fetch(`/api/query?analysisId=${encodeURIComponent(analysisId)}`);
       const data = await res.json();
       return data.conversations || [];
     },
     enabled: Boolean(analysisId),
-    staleTime: 5_000,
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** Convert API conversation rows to chat UI messages. */
+export function rowsToChatMessages(rows) {
+  return (rows || []).flatMap((m) => [
+    { role: 'user', content: m.query },
+    { role: 'assistant', content: m.response },
+  ]);
+}
+
+/** Fetch conversation messages once; React Query caches until invalidated. */
+export async function fetchConversationMessagesCached(queryClient, { conversationId, analysisId }) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+
+  try {
+    return await queryClient.fetchQuery({
+      queryKey: ['conversation', analysisId, conversationId],
+      queryFn: async () => {
+        const res = await fetch(
+          `/api/query?analysisId=${encodeURIComponent(analysisId)}&conversationId=${encodeURIComponent(conversationId)}`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load conversation');
+        return data.messages || [];
+      },
+      staleTime: Infinity,
+      gcTime: 30 * 60_000,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** Upsert a sidebar entry locally — no network refetch. */
+export function upsertChatHistoryEntry(queryClient, analysisId, entry) {
+  if (!analysisId || !entry?.id) return;
+  queryClient.setQueryData(['chatHistory', analysisId], (old = []) => {
+    const idx = old.findIndex((c) => c.id === entry.id);
+    const next = idx === -1 ? [entry, ...old] : old.map((c, i) => (i === idx ? { ...c, ...entry } : c));
+    return next.sort(
+      (a, b) =>
+        new Date(b.last_activity || b.created_at || 0) -
+        new Date(a.last_activity || a.created_at || 0)
+    );
   });
 }
 
@@ -61,7 +110,10 @@ export function useConversationMessages(conversationId, analysisId) {
       return data.messages || [];
     },
     enabled: Boolean(conversationId && analysisId),
-    staleTime: 2_000,
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 
@@ -155,9 +207,6 @@ export function useDeleteChatHistory() {
     },
     onError: (_, { analysisId }, context) => {
       if (context?.prev) queryClient.setQueryData(['chatHistory', analysisId], context.prev);
-    },
-    onSettled: (_, __, { analysisId }) => {
-      queryClient.invalidateQueries({ queryKey: ['chatHistory', analysisId] });
     },
   });
 }

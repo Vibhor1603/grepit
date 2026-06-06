@@ -148,6 +148,8 @@ export function sanitizeMermaidCode(raw) {
     return cleanLabels(lines.join("\n"));
   }
 
+  const isSequenceDiagram = firstLine.startsWith("sequencediagram");
+
   const classLines = [];
   const otherLines = [];
   for (const line of lines) {
@@ -159,7 +161,105 @@ export function sanitizeMermaidCode(raw) {
     }
   }
 
+  if (isSequenceDiagram) {
+    return sanitizeSequenceDiagram(lines.join("\n"));
+  }
+
   return cleanLabels([...otherLines, ...classLines].join("\n"));
+}
+
+/** Sequence-diagram arrows (incl. single -> / --> variants models often emit). */
+const SEQ_ARROW_RE =
+  /(?:->>|-->>|->|-->|--|-\)|\)-|--x|-x-|x--|-\->|<<->>|<<-->>|xx)/i;
+
+function normalizeSequenceMessageText(raw) {
+  let msg = String(raw || "")
+    .trim()
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/["']/g, "'")
+    .replace(/'+/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  msg = msg.replace(/^['"]+|['"]+$/g, "");
+  return msg.trim();
+}
+
+function quoteSequenceMessage(raw) {
+  const msg = normalizeSequenceMessageText(raw);
+  if (!msg) return msg;
+  return `"${msg.replace(/"/g, "'")}"`;
+}
+
+function isSequenceMessageLine(text) {
+  if (/^note\b/i.test(text)) return true;
+  const colonIdx = text.indexOf(":");
+  if (colonIdx === -1) return false;
+  const before = text.slice(0, colonIdx);
+  return SEQ_ARROW_RE.test(before);
+}
+
+/** Split AI-generated `…message… end` onto two lines before other fixes. */
+function splitInlineEnd(stripped) {
+  if (/^end\s*$/i.test(stripped)) {
+    return { body: stripped, trailingEnd: false };
+  }
+  const match = stripped.match(/^(.+?)\s+end\s*$/i);
+  if (!match) {
+    return { body: stripped, trailingEnd: false };
+  }
+  return { body: match[1].trim(), trailingEnd: true };
+}
+
+function processSequenceContent(stripped) {
+  const blockDesc = stripped.match(
+    /^((?:alt|else|opt|loop|par|rect|critical|break)\s+)(.+)$/i
+  );
+  if (blockDesc) {
+    return blockDesc[1] + quoteSequenceMessage(blockDesc[2]);
+  }
+
+  const noteMatch = stripped.match(
+    /^([Nn]ote\s+(?:over|right of|left of)\s+[^:]+:\s*)(.+)$/
+  );
+  if (noteMatch) {
+    return noteMatch[1] + quoteSequenceMessage(noteMatch[2]);
+  }
+
+  const colonIdx = stripped.indexOf(":");
+  if (colonIdx > -1) {
+    const before = stripped.slice(0, colonIdx).trimEnd();
+    const after = stripped.slice(colonIdx + 1);
+    if (isSequenceMessageLine(`${before}:${after}`)) {
+      return `${before}: ${quoteSequenceMessage(after)}`;
+    }
+  }
+
+  return stripped;
+}
+
+function sanitizeSequenceLine(line) {
+  const indent = line.match(/^\s*/)?.[0] || "";
+  const content = line.slice(indent.length);
+  const stripped = content.replace(/^\d+\.\s+/, "");
+
+  const { body, trailingEnd } = splitInlineEnd(stripped);
+  const processed = processSequenceContent(body);
+
+  if (trailingEnd) {
+    return [`${indent}${processed}`, `${indent}end`];
+  }
+  return `${indent}${processed}`;
+}
+
+function sanitizeSequenceDiagram(code) {
+  const lines = code.split("\n");
+  const out = [];
+  for (const line of lines) {
+    const parts = sanitizeSequenceLine(line);
+    if (Array.isArray(parts)) out.push(...parts);
+    else out.push(parts);
+  }
+  return out.join("\n");
 }
 
 export function injectDiagramStyles(svg) {
