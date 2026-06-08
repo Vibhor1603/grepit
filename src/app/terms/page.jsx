@@ -6,6 +6,15 @@ export const metadata = {
   alternates: {
     canonical: "/terms",
   },
+  openGraph: {
+    title: "Terms of Service | grepit",
+    description: "Read the terms and conditions for using grepit.",
+    url: "https://grepit.co/terms",
+  },
+  twitter: {
+    title: "Terms of Service | grepit",
+    description: "Read the terms and conditions for using grepit.",
+  },
 };
 
 export default function TermsPage() {

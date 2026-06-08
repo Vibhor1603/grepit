@@ -7,6 +7,15 @@ export const metadata = {
   alternates: {
     canonical: "/faq",
   },
+  openGraph: {
+    title: "Frequently Asked Questions | grepit",
+    description: "Common questions about grepit codebase intelligence, security, pricing, and language support.",
+    url: "https://grepit.co/faq",
+  },
+  twitter: {
+    title: "Frequently Asked Questions | grepit",
+    description: "Common questions about grepit codebase intelligence, security, pricing, and language support.",
+  },
 };
 
 const faqSchema = {

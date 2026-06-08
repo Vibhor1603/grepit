@@ -6,6 +6,15 @@ export const metadata = {
   alternates: {
     canonical: "/refund",
   },
+  openGraph: {
+    title: "Refund Policy | grepit",
+    description: "Read grepit's refund policy. Learn about eligibility, exceptions, and how to request a refund.",
+    url: "https://grepit.co/refund",
+  },
+  twitter: {
+    title: "Refund Policy | grepit",
+    description: "Read grepit's refund policy. Learn about eligibility, exceptions, and how to request a refund.",
+  },
 };
 
 export default function RefundPage() {

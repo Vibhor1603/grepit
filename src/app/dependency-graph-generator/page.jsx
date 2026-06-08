@@ -7,6 +7,15 @@ export const metadata = {
   alternates: {
     canonical: "/dependency-graph-generator",
   },
+  openGraph: {
+    title: "AI Dependency Graph Generator | grepit",
+    description: "Automatically generate dependency graphs for any codebase. Visualize module relationships, service dependencies, and package imports with AI-powered analysis.",
+    url: "https://grepit.co/dependency-graph-generator",
+  },
+  twitter: {
+    title: "AI Dependency Graph Generator | grepit",
+    description: "Automatically generate dependency graphs for any codebase. Visualize module relationships, service dependencies, and package imports with AI-powered analysis.",
+  },
 };
 
 export default function DependencyGraphPage() {

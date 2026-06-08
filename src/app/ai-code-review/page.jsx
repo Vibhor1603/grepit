@@ -7,6 +7,15 @@ export const metadata = {
   alternates: {
     canonical: "/ai-code-review",
   },
+  openGraph: {
+    title: "AI Code Review Tool | grepit",
+    description: "Accelerate your code reviews with AI. Get architecture insights, dependency analysis, and semantic code search for any repository in seconds.",
+    url: "https://grepit.co/ai-code-review",
+  },
+  twitter: {
+    title: "AI Code Review Tool | grepit",
+    description: "Accelerate your code reviews with AI. Get architecture insights, dependency analysis, and semantic code search for any repository in seconds.",
+  },
 };
 
 export default function AICodeReviewPage() {

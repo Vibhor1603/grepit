@@ -6,6 +6,15 @@ export const metadata = {
   alternates: {
     canonical: "/privacy",
   },
+  openGraph: {
+    title: "Privacy Policy | grepit",
+    description: "Learn how grepit collects, uses, and protects your data and repository information.",
+    url: "https://grepit.co/privacy",
+  },
+  twitter: {
+    title: "Privacy Policy | grepit",
+    description: "Learn how grepit collects, uses, and protects your data and repository information.",
+  },
 };
 
 export default function PrivacyPage() {

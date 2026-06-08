@@ -12,6 +12,15 @@ export const metadata = {
   alternates: {
     canonical: "/blog",
   },
+  openGraph: {
+    title: "Blog | Engineering Insights & Product Updates | grepit",
+    description: "Read the latest about codebase intelligence, software architecture, and AI-powered developer tools from the grepit engineering team.",
+    url: "https://grepit.co/blog",
+  },
+  twitter: {
+    title: "Blog | Engineering Insights & Product Updates | grepit",
+    description: "Read the latest about codebase intelligence, software architecture, and AI-powered developer tools from the grepit engineering team.",
+  },
 };
 
 const BLOG_POSTS = [

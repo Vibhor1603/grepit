@@ -7,6 +7,15 @@ export const metadata = {
   alternates: {
     canonical: "/github-repository-analyzer",
   },
+  openGraph: {
+    title: "GitHub Repository Analyzer | grepit",
+    description: "The ultimate tool for analyzing GitHub repositories. Get architecture maps, dependency graphs, and AI-powered code insights for any public or private repo.",
+    url: "https://grepit.co/github-repository-analyzer",
+  },
+  twitter: {
+    title: "GitHub Repository Analyzer | grepit",
+    description: "The ultimate tool for analyzing GitHub repositories. Get architecture maps, dependency graphs, and AI-powered code insights for any public or private repo.",
+  },
 };
 
 export default function GitHubAnalyzerPage() {

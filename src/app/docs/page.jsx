@@ -11,6 +11,15 @@ export const metadata = {
   alternates: {
     canonical: "/docs",
   },
+  openGraph: {
+    title: "Documentation | grepit Code Intelligence",
+    description: "Learn how to use grepit to analyze repositories, visualize architecture, and search your codebase with AI.",
+    url: "https://grepit.co/docs",
+  },
+  twitter: {
+    title: "Documentation | grepit Code Intelligence",
+    description: "Learn how to use grepit to analyze repositories, visualize architecture, and search your codebase with AI.",
+  },
 };
 
 const DOCS_CATEGORIES = [
