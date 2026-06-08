@@ -29,7 +29,6 @@ export const TECH_ITEMS = [
 function TechPill({ tech }) {
   return (
     <div className="tech-pill flex-shrink-0 flex items-center gap-2.5 px-3.5 py-2 rounded-c-sm border">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={tech.icon} alt="" width={18} height={18} className="opacity-85" loading="lazy" decoding="async" />
       <span className="text-[11px] font-medium whitespace-nowrap text-c-text-2">{tech.name}</span>
     </div>
