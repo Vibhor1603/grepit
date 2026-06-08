@@ -1,0 +1,651 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: smoke.test.js >> E2E Smoke Tests >> should load landing page
+- Location: tests/e2e/smoke.test.js:4:3
+
+# Error details
+
+```
+Error: expect(locator).toBeVisible() failed
+
+Locator: getByRole('heading', { name: /Understand/i })
+Expected: visible
+Error: strict mode violation: getByRole('heading', { name: /Understand/i }) resolved to 2 elements:
+    1) <h1 class="landing-h1 landing-type-depth hero-spatial-title mb-0 lg:mb-5 text-c-text">…</h1> aka getByRole('heading', { name: 'Understand any codebase in' })
+    2) <h2 class="landing-h2 mb-5 md:mb-6 text-center md:text-left text-c-text">…</h2> aka getByRole('heading', { name: 'Not for writing code. For' })
+
+Call log:
+  - Expect "toBeVisible" with timeout 5000ms
+  - waiting for getByRole('heading', { name: /Understand/i })
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - button "grepit home" [ref=e6] [cursor=pointer]:
+        - generic [ref=e7]:
+          - img "grepit logo" [ref=e9]
+          - generic [ref=e11]:
+            - generic [ref=e12]: grep
+            - generic [ref=e13]: it
+      - generic [ref=e14]:
+        - link "Overview" [ref=e15] [cursor=pointer]:
+          - /url: "#overview"
+        - link "Product" [ref=e16] [cursor=pointer]:
+          - /url: "#pipeline"
+        - link "Pricing" [ref=e17] [cursor=pointer]:
+          - /url: "#pricing"
+        - link "FAQ" [ref=e18] [cursor=pointer]:
+          - /url: /faq
+      - button "Switch to dark mode" [ref=e20] [cursor=pointer]:
+        - img [ref=e22]
+        - img [ref=e25]
+  - generic [ref=e33]:
+    - generic [ref=e35]:
+      - heading "Understand any codebase in minutes." [level=1] [ref=e37]
+      - paragraph [ref=e39]: Paste a GitHub URL or upload a zip. In under a minute you get an architecture map, a health report with severity-tagged findings, a guided reading path, and answers that cite exact file paths and line numbers.
+      - generic [ref=e40]:
+        - tablist "Input mode" [ref=e41]:
+          - tab "URL" [selected] [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+            - text: URL
+          - tab "Upload" [ref=e46] [cursor=pointer]:
+            - img [ref=e47]
+            - text: Upload
+        - generic [ref=e50]:
+          - generic [ref=e52]:
+            - textbox "GitHub repository URL" [ref=e53]:
+              - /placeholder: https://github.com/owner/repository
+            - button "Analyze" [disabled] [ref=e54]:
+              - generic [ref=e55]:
+                - text: Analyze
+                - img [ref=e56]
+          - generic:
+            - generic:
+              - img
+              - paragraph: Drop .zip or folder
+              - paragraph: Max 50 MB
+    - generic [ref=e58]:
+      - generic [ref=e60]:
+        - paragraph [ref=e61]: Try a repo
+        - generic [ref=e62]:
+          - button "dubinc/dub" [ref=e63] [cursor=pointer]:
+            - generic [ref=e64]: dubinc/dub
+            - img [ref=e65]
+          - button "pmndrs/zustand" [ref=e68] [cursor=pointer]:
+            - generic [ref=e69]: pmndrs/zustand
+            - img [ref=e70]
+          - button "BerriAI/litellm" [ref=e73] [cursor=pointer]:
+            - generic [ref=e74]: BerriAI/litellm
+            - img [ref=e75]
+      - generic [ref=e81]:
+        - generic:
+          - img:
+            - generic: edge
+            - generic: service
+            - generic: data
+            - generic:
+              - generic:
+                - generic: client
+              - generic:
+                - generic: edge
+              - generic:
+                - generic: gateway
+              - generic:
+                - generic: auth
+              - generic:
+                - generic: api
+              - generic:
+                - generic: queue
+              - generic:
+                - generic: worker
+              - generic:
+                - generic: cache
+              - generic:
+                - generic: database
+              - generic:
+                - generic: store
+  - region "Supported languages and frameworks" [ref=e83]:
+    - paragraph [ref=e84]: 40+ languages and frameworks
+    - generic [ref=e85]:
+      - generic [ref=e88]:
+        - generic [ref=e90]: JavaScript
+        - generic [ref=e92]: TypeScript
+        - generic [ref=e94]: Python
+        - generic [ref=e96]: Go
+        - generic [ref=e98]: Rust
+        - generic [ref=e100]: Java
+        - generic [ref=e102]: React
+        - generic [ref=e104]: Next.js
+        - generic [ref=e106]: Vue
+        - generic [ref=e108]: Django
+        - generic [ref=e110]: Rails
+        - generic [ref=e112]: Flutter
+        - generic [ref=e114]: Docker
+        - generic [ref=e116]: GraphQL
+        - generic [ref=e118]: Kotlin
+        - generic [ref=e120]: Swift
+        - generic [ref=e122]: Ruby
+        - generic [ref=e124]: PHP
+        - generic [ref=e126]: Terraform
+        - generic [ref=e128]: Elixir
+        - generic [ref=e130]: JavaScript
+        - generic [ref=e132]: TypeScript
+        - generic [ref=e134]: Python
+        - generic [ref=e136]: Go
+        - generic [ref=e138]: Rust
+        - generic [ref=e140]: Java
+        - generic [ref=e142]: React
+        - generic [ref=e144]: Next.js
+        - generic [ref=e146]: Vue
+        - generic [ref=e148]: Django
+        - generic [ref=e150]: Rails
+        - generic [ref=e152]: Flutter
+        - generic [ref=e154]: Docker
+        - generic [ref=e156]: GraphQL
+        - generic [ref=e158]: Kotlin
+        - generic [ref=e160]: Swift
+        - generic [ref=e162]: Ruby
+        - generic [ref=e164]: PHP
+        - generic [ref=e166]: Terraform
+        - generic [ref=e168]: Elixir
+      - generic [ref=e171]:
+        - generic [ref=e173]: React
+        - generic [ref=e175]: Next.js
+        - generic [ref=e177]: Vue
+        - generic [ref=e179]: Django
+        - generic [ref=e181]: Rails
+        - generic [ref=e183]: Flutter
+        - generic [ref=e185]: Docker
+        - generic [ref=e187]: GraphQL
+        - generic [ref=e189]: Kotlin
+        - generic [ref=e191]: Swift
+        - generic [ref=e193]: Ruby
+        - generic [ref=e195]: PHP
+        - generic [ref=e197]: Terraform
+        - generic [ref=e199]: Elixir
+        - generic [ref=e201]: JavaScript
+        - generic [ref=e203]: TypeScript
+        - generic [ref=e205]: Python
+        - generic [ref=e207]: Go
+        - generic [ref=e209]: Rust
+        - generic [ref=e211]: Java
+        - generic [ref=e213]: React
+        - generic [ref=e215]: Next.js
+        - generic [ref=e217]: Vue
+        - generic [ref=e219]: Django
+        - generic [ref=e221]: Rails
+        - generic [ref=e223]: Flutter
+        - generic [ref=e225]: Docker
+        - generic [ref=e227]: GraphQL
+        - generic [ref=e229]: Kotlin
+        - generic [ref=e231]: Swift
+        - generic [ref=e233]: Ruby
+        - generic [ref=e235]: PHP
+        - generic [ref=e237]: Terraform
+        - generic [ref=e239]: Elixir
+        - generic [ref=e241]: JavaScript
+        - generic [ref=e243]: TypeScript
+        - generic [ref=e245]: Python
+        - generic [ref=e247]: Go
+        - generic [ref=e249]: Rust
+        - generic [ref=e251]: Java
+  - generic [ref=e254]:
+    - paragraph [ref=e255]: Why grepit
+    - heading "Not for writing code. For understanding it." [level=2] [ref=e256]
+    - paragraph [ref=e257]: Cursor, Copilot, and Claude Code help you write code inside an editor. Grepit helps you inherit, audit, and explain a codebase you did not write, with a persistent map and answers grounded in the full repo.
+    - generic [ref=e258]:
+      - generic [ref=e260]:
+        - paragraph [ref=e261]: What grepit is not
+        - paragraph [ref=e262]: IDEs and AI assistants
+        - paragraph [ref=e263]: Built to write and edit code
+        - list [ref=e264]:
+          - listitem [ref=e265]:
+            - generic [ref=e267]: You re-paste files and folders every session
+          - listitem [ref=e268]:
+            - generic [ref=e270]: Answers guess from whatever context fits in the window
+          - listitem [ref=e271]:
+            - generic [ref=e273]: No persistent map of how the repo connects
+          - listitem [ref=e274]:
+            - generic [ref=e276]: No default file:line citations
+          - listitem [ref=e277]:
+            - generic [ref=e279]: Heavy users burn 3 to 5M tokens per deep session
+      - generic [ref=e281]:
+        - paragraph [ref=e282]: What grepit is
+        - paragraph [ref=e283]: grepit
+        - paragraph [ref=e284]: Built to read and navigate codebases
+        - list [ref=e285]:
+          - listitem [ref=e286]:
+            - generic [ref=e288]: Paste a URL once. The full repo is indexed
+          - listitem [ref=e289]:
+            - generic [ref=e291]: Answers pull from indexed source, not your clipboard
+          - listitem [ref=e292]:
+            - generic [ref=e294]: Live architecture map and Start Here path
+          - listitem [ref=e295]:
+            - generic [ref=e297]: Health report with severity-tagged findings at file:line
+          - listitem [ref=e298]:
+            - generic [ref=e300]: Every reply cites src/path:line
+          - listitem [ref=e301]:
+            - generic [ref=e303]: Typical query uses under 5K tokens
+    - generic [ref=e307]:
+      - generic [ref=e308]:
+        - paragraph [ref=e309]: Tokens per deep question
+        - generic [ref=e310]:
+          - generic [ref=e311]:
+            - paragraph [ref=e312]: Others
+            - paragraph [ref=e313]: ~200K+
+          - generic [ref=e314]:
+            - paragraph [ref=e315]: grepit
+            - paragraph [ref=e316]: <5K
+      - generic [ref=e317]:
+        - paragraph [ref=e318]: Time to first map
+        - generic [ref=e319]:
+          - generic [ref=e320]:
+            - paragraph [ref=e321]: Others
+            - paragraph [ref=e322]: Manual hours
+          - generic [ref=e323]:
+            - paragraph [ref=e324]: grepit
+            - paragraph [ref=e325]: <60 sec
+      - generic [ref=e326]:
+        - paragraph [ref=e327]: Monthly cost (active dev)
+        - generic [ref=e328]:
+          - generic [ref=e329]:
+            - paragraph [ref=e330]: Others
+            - paragraph [ref=e331]: $60 to $125
+          - generic [ref=e332]:
+            - paragraph [ref=e333]: grepit
+            - paragraph [ref=e334]: From $12
+  - region "Clear privacy. No theater." [ref=e335]:
+    - generic [ref=e337]:
+      - generic [ref=e338]:
+        - paragraph [ref=e339]: Privacy
+        - heading "Clear privacy. No theater." [level=2] [ref=e340]
+        - paragraph [ref=e341]: "Simple promise: only authorized access, minimal retrieval data, and real deletion controls."
+        - link "Read full privacy policy" [ref=e342] [cursor=pointer]:
+          - /url: /privacy
+          - generic [ref=e343]: Read full privacy policy
+          - generic [ref=e344]: →
+      - generic [ref=e345]:
+        - generic [ref=e349]:
+          - paragraph [ref=e351]: Authorize
+          - paragraph [ref=e352]: Only repos/files you connect.
+        - generic [ref=e356]:
+          - paragraph [ref=e358]: Infer
+          - paragraph [ref=e359]: Minimal context, not model training.
+        - generic [ref=e363]:
+          - paragraph [ref=e365]: Delete
+          - paragraph [ref=e366]: Analysis/account removal purges linked data.
+  - generic [ref=e371]:
+    - generic [ref=e372]:
+      - paragraph [ref=e373]: Token savings
+      - paragraph [ref=e374]: Deep codebase questions normally burn hundreds of thousands of tokens per session. Grepit indexes once and answers from that index, so each query stays small.
+      - paragraph [ref=e375]:
+        - generic [ref=e376]: 0%
+        - text: fewer tokens
+      - paragraph [ref=e377]: Index once. Query with under 5K tokens each time.
+      - generic [ref=e378]:
+        - generic [ref=e379]:
+          - generic [ref=e380]: Questions / week
+          - generic [ref=e381]: "12"
+        - slider "Questions / week 12" [ref=e382]: "12"
+      - paragraph [ref=e383]: ~2.3M tokens saved / week
+    - generic [ref=e384]:
+      - generic [ref=e386]:
+        - generic [ref=e387]: Claude Code
+        - generic [ref=e388]: $125/mo
+      - generic [ref=e391]:
+        - generic [ref=e392]: Cursor
+        - generic [ref=e393]: $60/mo
+      - generic [ref=e396]:
+        - generic [ref=e397]: Copilot
+        - generic [ref=e398]: $19/mo
+      - generic [ref=e401]:
+        - generic [ref=e402]: grepit
+        - generic [ref=e403]: $12/mo
+  - generic [ref=e409]:
+    - generic [ref=e410]:
+      - paragraph [ref=e411]: What you can do
+      - heading "Go from stranger to expert." [level=2] [ref=e412]
+      - paragraph [ref=e413]: Grepit is for engineers who inherit a repo and need to ship, not re-paste files into chat and hope the answer is right.
+      - generic [ref=e414]:
+        - button "01 · Orient Know where to start" [ref=e415] [cursor=pointer]:
+          - paragraph [ref=e416]: 01 · Orient
+          - paragraph [ref=e417]: Know where to start
+        - button "02 · Trace Follow any request path" [ref=e418] [cursor=pointer]:
+          - paragraph [ref=e419]: 02 · Trace
+          - paragraph [ref=e420]: Follow any request path
+        - button "03 · Prove Answer with file:line proof" [ref=e421] [cursor=pointer]:
+          - paragraph [ref=e422]: 03 · Prove
+          - paragraph [ref=e423]: Answer with file:line proof
+    - generic [ref=e426]:
+      - generic [ref=e427]:
+        - generic [ref=e430]: grepit dashboard
+        - generic [ref=e431]: 01 · Orient
+      - generic [ref=e433]:
+        - paragraph [ref=e434]: "Get a Start Here path through the files that matter: auth, routing, data layer. No README roulette."
+        - generic [ref=e435]:
+          - paragraph [ref=e436]: Start here path
+          - generic [ref=e437]:
+            - generic [ref=e438]: "1"
+            - generic [ref=e439]:
+              - paragraph [ref=e440]: src/app/layout.tsx
+              - paragraph [ref=e441]: App shell + providers
+          - generic [ref=e442]:
+            - generic [ref=e443]: "2"
+            - generic [ref=e444]:
+              - paragraph [ref=e445]: src/middleware.ts
+              - paragraph [ref=e446]: Route protection
+          - generic [ref=e447]:
+            - generic [ref=e448]: "3"
+            - generic [ref=e449]:
+              - paragraph [ref=e450]: src/server/db/schema.ts
+              - paragraph [ref=e451]: Data model
+  - generic [ref=e454]:
+    - generic [ref=e455]:
+      - heading "An onboarding path through the system." [level=2] [ref=e457]
+      - paragraph [ref=e459]: "Grepit auto-generates a reading order through the repo: boot surface, auth gate, data layer, API, and billing. Each step opens the file with context on why it matters."
+    - generic [ref=e463]:
+      - generic [ref=e464]:
+        - generic [ref=e465]:
+          - paragraph [ref=e466]: onboarding traversal
+          - paragraph [ref=e467]: 01 / 06
+        - list [ref=e468]:
+          - listitem [ref=e470]:
+            - button "01 src/app/layout.tsx root layout, providers, fonts" [ref=e471] [cursor=pointer]:
+              - generic [ref=e474]:
+                - generic [ref=e475]: "01"
+                - generic [ref=e476]: src/app/layout.tsx
+              - paragraph [ref=e477]: root layout, providers, fonts
+          - listitem [ref=e478]:
+            - button "02 src/middleware.ts Clerk auth gate + route protection" [ref=e479] [cursor=pointer]:
+              - generic [ref=e481]:
+                - generic [ref=e482]: "02"
+                - generic [ref=e483]: src/middleware.ts
+              - paragraph [ref=e484]: Clerk auth gate + route protection
+          - listitem [ref=e485]:
+            - 'button "03 src/server/db/schema.ts Drizzle schema: users, subscriptions" [ref=e486] [cursor=pointer]':
+              - generic [ref=e488]:
+                - generic [ref=e489]: "03"
+                - generic [ref=e490]: src/server/db/schema.ts
+              - paragraph [ref=e491]: "Drizzle schema: users, subscriptions"
+          - listitem [ref=e492]:
+            - button "04 src/server/api/router.ts tRPC routers grouped by domain" [ref=e493] [cursor=pointer]:
+              - generic [ref=e495]:
+                - generic [ref=e496]: "04"
+                - generic [ref=e497]: src/server/api/router.ts
+              - paragraph [ref=e498]: tRPC routers grouped by domain
+          - listitem [ref=e499]:
+            - button "05 src/app/(dashboard)/page.tsx first authenticated surface" [ref=e500] [cursor=pointer]:
+              - generic [ref=e502]:
+                - generic [ref=e503]: "05"
+                - generic [ref=e504]: src/app/(dashboard)/page.tsx
+              - paragraph [ref=e505]: first authenticated surface
+          - listitem [ref=e506]:
+            - button "06 src/server/actions/stripe.ts webhook consumer + subscription writes" [ref=e507] [cursor=pointer]:
+              - generic [ref=e509]:
+                - generic [ref=e510]: "06"
+                - generic [ref=e511]: src/server/actions/stripe.ts
+              - paragraph [ref=e512]: webhook consumer + subscription writes
+      - generic [ref=e513]:
+        - generic [ref=e514]:
+          - generic [ref=e520]: src/app/layout.tsx
+          - generic [ref=e521]: boot surface
+        - code [ref=e523]: "export default function RootLayout({ children, }: { children: React.ReactNode }) { return ( <ClerkProvider> <html lang=\"en\"> <body className={inter.className}> <Providers>{children}</Providers> </body> </html> </ClerkProvider> ); }"
+        - generic [ref=e524]:
+          - generic [ref=e525]: preview · static excerpt
+          - generic [ref=e526]: auto-cycle on
+    - paragraph [ref=e527]: example onboarding · live data shown when you analyze a repository
+  - generic [ref=e529]:
+    - generic [ref=e530]:
+      - paragraph [ref=e531]: From developers using grepit
+      - heading "What people are saying" [level=2] [ref=e532]
+    - generic [ref=e535]:
+      - article [ref=e536]:
+        - paragraph [ref=e537]: Dropped a legacy codebase I inherited into grepit and understood the whole thing in 10 minutes. Would have taken me a week otherwise.
+        - generic [ref=e538]:
+          - generic [ref=e539]: MR
+          - generic [ref=e540]:
+            - paragraph [ref=e541]: Marcus R.
+            - paragraph [ref=e542]: Senior Engineer
+      - article [ref=e543]:
+        - paragraph [ref=e544]: The health report caught a hardcoded API key in a codebase we were about to acquire. That alone justified the tool.
+        - generic [ref=e545]:
+          - generic [ref=e546]: SL
+          - generic [ref=e547]:
+            - paragraph [ref=e548]: Sofia L.
+            - paragraph [ref=e549]: CTO, Seed-stage startup
+      - article [ref=e550]:
+        - paragraph [ref=e551]: I use grepit every time I start at a new client. The architecture map makes it trivial to explain the system to stakeholders.
+        - generic [ref=e552]:
+          - generic [ref=e553]: AK
+          - generic [ref=e554]:
+            - paragraph [ref=e555]: Ananya K.
+            - paragraph [ref=e556]: Freelance Engineer
+      - article [ref=e557]:
+        - paragraph [ref=e558]: Dropped a legacy codebase I inherited into grepit and understood the whole thing in 10 minutes. Would have taken me a week otherwise.
+        - generic [ref=e559]:
+          - generic [ref=e560]: MR
+          - generic [ref=e561]:
+            - paragraph [ref=e562]: Marcus R.
+            - paragraph [ref=e563]: Senior Engineer
+      - article [ref=e564]:
+        - paragraph [ref=e565]: The health report caught a hardcoded API key in a codebase we were about to acquire. That alone justified the tool.
+        - generic [ref=e566]:
+          - generic [ref=e567]: SL
+          - generic [ref=e568]:
+            - paragraph [ref=e569]: Sofia L.
+            - paragraph [ref=e570]: CTO, Seed-stage startup
+      - article [ref=e571]:
+        - paragraph [ref=e572]: I use grepit every time I start at a new client. The architecture map makes it trivial to explain the system to stakeholders.
+        - generic [ref=e573]:
+          - generic [ref=e574]: AK
+          - generic [ref=e575]:
+            - paragraph [ref=e576]: Ananya K.
+            - paragraph [ref=e577]: Freelance Engineer
+      - article [ref=e578]:
+        - paragraph [ref=e579]: Dropped a legacy codebase I inherited into grepit and understood the whole thing in 10 minutes. Would have taken me a week otherwise.
+        - generic [ref=e580]:
+          - generic [ref=e581]: MR
+          - generic [ref=e582]:
+            - paragraph [ref=e583]: Marcus R.
+            - paragraph [ref=e584]: Senior Engineer
+      - article [ref=e585]:
+        - paragraph [ref=e586]: The health report caught a hardcoded API key in a codebase we were about to acquire. That alone justified the tool.
+        - generic [ref=e587]:
+          - generic [ref=e588]: SL
+          - generic [ref=e589]:
+            - paragraph [ref=e590]: Sofia L.
+            - paragraph [ref=e591]: CTO, Seed-stage startup
+      - article [ref=e592]:
+        - paragraph [ref=e593]: I use grepit every time I start at a new client. The architecture map makes it trivial to explain the system to stakeholders.
+        - generic [ref=e594]:
+          - generic [ref=e595]: AK
+          - generic [ref=e596]:
+            - paragraph [ref=e597]: Ananya K.
+            - paragraph [ref=e598]: Freelance Engineer
+  - generic [ref=e601]:
+    - generic [ref=e602]:
+      - heading "Start free. Upgrade when scale demands it." [level=2] [ref=e604]
+      - paragraph [ref=e606]: No credit card required to begin. Limits are explicit. Upgrades take effect instantly. Cancel anytime from your profile.
+    - generic [ref=e607]:
+      - generic [ref=e611]:
+        - generic [ref=e613]: Free
+        - generic [ref=e614]: $0/month
+        - list [ref=e615]:
+          - listitem [ref=e616]:
+            - img [ref=e617]
+            - generic [ref=e619]: 2 repositories
+          - listitem [ref=e620]:
+            - img [ref=e621]
+            - generic [ref=e623]: 150K tokens/day
+          - listitem [ref=e624]:
+            - img [ref=e625]
+            - generic [ref=e627]: Basic health report
+          - listitem [ref=e628]:
+            - img [ref=e629]
+            - generic [ref=e631]: Code explorer
+          - listitem [ref=e632]:
+            - img [ref=e633]
+            - generic [ref=e635]: Architecture diagrams
+        - button "Current plan" [disabled] [ref=e636]
+      - generic [ref=e640]:
+        - generic [ref=e641]:
+          - generic [ref=e642]: Starter
+          - generic [ref=e643]: recommended
+        - generic [ref=e644]: $12/month
+        - list [ref=e645]:
+          - listitem [ref=e646]:
+            - img [ref=e647]
+            - generic [ref=e649]: 3 repositories
+          - listitem [ref=e650]:
+            - img [ref=e651]
+            - generic [ref=e653]: 750K tokens/day
+          - listitem [ref=e654]:
+            - img [ref=e655]
+            - generic [ref=e657]: Full security report
+          - listitem [ref=e658]:
+            - img [ref=e659]
+            - generic [ref=e661]: PDF export
+          - listitem [ref=e662]:
+            - img [ref=e663]
+            - generic [ref=e665]: Unlimited re-analysis
+          - listitem [ref=e666]:
+            - img [ref=e667]
+            - generic [ref=e669]: Unlimited sharing
+        - button "Upgrade to Starter" [ref=e670] [cursor=pointer]
+      - generic [ref=e674]:
+        - generic [ref=e676]: Pro
+        - generic [ref=e677]: $29/month
+        - list [ref=e678]:
+          - listitem [ref=e679]:
+            - img [ref=e680]
+            - generic [ref=e682]: Everything in Starter
+          - listitem [ref=e683]:
+            - img [ref=e684]
+            - generic [ref=e686]: 3M tokens/day
+          - listitem [ref=e687]:
+            - img [ref=e688]
+            - generic [ref=e690]: 7 repositories
+          - listitem [ref=e691]:
+            - img [ref=e692]
+            - generic [ref=e694]: Large codebase support
+          - listitem [ref=e695]:
+            - img [ref=e696]
+            - generic [ref=e698]: Priority analysis queue
+          - listitem [ref=e699]:
+            - img [ref=e700]
+            - generic [ref=e702]: Priority support
+        - button "Go Pro" [ref=e703] [cursor=pointer]
+    - paragraph [ref=e704]: all plans support private repositories · cancel anytime · taxes calculated at checkout
+  - generic [ref=e708]:
+    - generic [ref=e709]:
+      - heading "Questions engineers ask first." [level=2] [ref=e710]
+      - paragraph [ref=e711]: Straight answers before you pay for a tool.
+    - list [ref=e713]:
+      - listitem [ref=e714]:
+        - button "What does grepit actually do?" [expanded] [ref=e715] [cursor=pointer]:
+          - generic [ref=e716]: What does grepit actually do?
+          - img [ref=e717]
+        - paragraph [ref=e722]: It parses your repo, builds an architecture map, and answers questions grounded in source code with file paths and line numbers.
+      - listitem [ref=e723]:
+        - button "Is my code stored?" [ref=e724] [cursor=pointer]:
+          - generic [ref=e725]: Is my code stored?
+          - img [ref=e726]
+        - paragraph [ref=e727]: Analysis runs in isolated, short-lived serverless workers. We keep only the structural outputs needed for features (map, findings, grounded snippets), scoped to your account. Repositories are private by default, and no human reviews your code.
+      - listitem [ref=e728]:
+        - button "Does it work on private repos?" [ref=e729] [cursor=pointer]:
+          - generic [ref=e730]: Does it work on private repos?
+          - img [ref=e731]
+        - paragraph [ref=e732]: Yes. Connect GitHub once via OAuth. Any repo you can access becomes analyzable under the same isolated runtime.
+      - listitem [ref=e733]:
+        - button "How long does analysis take?" [ref=e734] [cursor=pointer]:
+          - generic [ref=e735]: How long does analysis take?
+          - img [ref=e736]
+        - paragraph [ref=e737]: Most repos finish in under a minute. Larger codebases scale with file count. The map starts appearing within the first few hundred milliseconds.
+      - listitem [ref=e738]:
+        - button "What languages are supported?" [ref=e739] [cursor=pointer]:
+          - generic [ref=e740]: What languages are supported?
+          - img [ref=e741]
+        - paragraph [ref=e742]: "40+ languages and frameworks: TypeScript, JavaScript, Python, Go, Rust, Java, Ruby, PHP, C/C++, C#, Swift, Kotlin, Elixir, and more."
+  - generic [ref=e746]:
+    - heading "Paste a repository. See the architecture." [level=2] [ref=e747]
+    - paragraph [ref=e748]: Free to start. Paste a repo URL and get a map, a reading path, and cited answers in under a minute.
+    - button "Analyze a codebase" [ref=e749] [cursor=pointer]:
+      - text: Analyze a codebase
+      - img [ref=e750]
+  - contentinfo [ref=e752]:
+    - generic [ref=e753]:
+      - generic [ref=e754]:
+        - generic [ref=e755]:
+          - generic [ref=e756]:
+            - img "grepit logo" [ref=e757]
+            - generic [ref=e759]: grepit
+          - paragraph [ref=e760]: Understand any codebase in minutes. Paste a repository, see the system.
+          - paragraph [ref=e761]: "2026"
+        - generic [ref=e762]:
+          - paragraph [ref=e763]: Product
+          - list [ref=e764]:
+            - listitem [ref=e765]:
+              - link "Pricing" [ref=e766] [cursor=pointer]:
+                - /url: /#pricing
+            - listitem [ref=e767]:
+              - link "FAQ" [ref=e768] [cursor=pointer]:
+                - /url: /faq
+        - generic [ref=e769]:
+          - paragraph [ref=e770]: Legal
+          - list [ref=e771]:
+            - listitem [ref=e772]:
+              - link "Privacy" [ref=e773] [cursor=pointer]:
+                - /url: /privacy
+            - listitem [ref=e774]:
+              - link "Terms" [ref=e775] [cursor=pointer]:
+                - /url: /terms
+            - listitem [ref=e776]:
+              - link "Refunds" [ref=e777] [cursor=pointer]:
+                - /url: /refund
+        - generic [ref=e778]:
+          - paragraph [ref=e779]: Connect
+          - list [ref=e780]:
+            - listitem [ref=e781]:
+              - link "Sign in" [ref=e782] [cursor=pointer]:
+                - /url: /sign-in
+            - listitem [ref=e783]:
+              - link "Get started" [ref=e784] [cursor=pointer]:
+                - /url: /sign-in?mode=signup
+            - listitem [ref=e785]:
+              - link "Contact" [ref=e786] [cursor=pointer]:
+                - /url: mailto:support@grepit.co
+      - generic [ref=e788]: © 2026 grepit · all rights reserved
+```
+
+# Test source
+
+```ts
+  1  | import { test, expect } from '@playwright/test';
+  2  | 
+  3  | test.describe('E2E Smoke Tests', () => {
+  4  |   test('should load landing page', async ({ page }) => {
+  5  |     await page.goto('/');
+  6  |     await expect(page).toHaveTitle(/grepit/i);
+> 7  |     await expect(page.getByRole('heading', { name: /Understand/i })).toBeVisible();
+     |                                                                      ^ Error: expect(locator).toBeVisible() failed
+  8  |   });
+  9  | 
+  10 |   test('should show sign in button', async ({ page }) => {
+  11 |     await page.goto('/');
+  12 |     const signInButton = page.getByRole('button', { name: /Sign in/i }).first();
+  13 |     await expect(signInButton).toBeVisible();
+  14 |   });
+  15 | });
+  16 | 
+```
