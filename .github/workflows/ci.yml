@@ -77,7 +77,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run database migrations
-        run: npx drizzle-kit push
+        run: npx drizzle-kit push --config drizzle.config.ci.ts
       - name: Run Vitest tests
         run: npm run test:coverage
       - name: Upload coverage
@@ -118,6 +118,8 @@ jobs:
         run: npm ci
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
+      - name: Build Next.js
+        run: npm run build
       - name: Run Playwright tests
         run: npm run test:e2e
       - uses: actions/upload-artifact@v4
