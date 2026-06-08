@@ -8,6 +8,7 @@ on:
 
 env:
   NODE_VERSION: "20"
+  NEXT_TELEMETRY_DISABLED: 1
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/grepit_test"
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_placeholder"
   CLERK_SECRET_KEY: "sk_test_placeholder"
@@ -35,7 +36,7 @@ jobs:
         run: npm ci
 
       - name: ESLint
-        run: npm run lint
+        run: npx next lint --dir .
 
       - name: TypeScript check
         run: npx tsc --noEmit
