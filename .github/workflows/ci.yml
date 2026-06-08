@@ -14,8 +14,6 @@ env:
   CLERK_SECRET_KEY: "sk_test_placeholder"
   GROQ_API_KEY: "gsk_test_placeholder"
   ADMIN_SECRET: "test-admin-secret"
-  UPSTASH_REDIS_REST_URL: "http://localhost:6379"
-  UPSTASH_REDIS_REST_TOKEN: "test-token"
 
 jobs:
   quality-check:
