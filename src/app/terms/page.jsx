@@ -1,5 +1,13 @@
 import Link from "next/link";
 
+export const metadata = {
+  title: "Terms of Service | grepit",
+  description: "Read the terms and conditions for using grepit. Learn about our services, user responsibilities, and legal agreements.",
+  alternates: {
+    canonical: "/terms",
+  },
+};
+
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-vb-bg text-vb-ink px-6 md:px-8 py-24 max-w-[720px] mx-auto">

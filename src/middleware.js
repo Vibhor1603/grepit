@@ -63,12 +63,26 @@ async function checkIpRateLimit(request) {
 }
 
 export default clerkMiddleware(async (auth, request) => {
-  // Internal email admin — only when NODE_ENV=development (`next dev`)
+  const host = request.headers.get('host');
+  const isProduction = process.env.VERCEL_ENV === 'production';
+  const isCanonical = host === 'grepit.co';
+  const isVercel = host?.includes('.vercel.app');
+
+  // 1. ── Canonical Domain Enforcement ──
+  // Redirect non-canonical production traffic to grepit.co
+  if (isProduction && !isCanonical && !isVercel && host !== 'localhost:3000') {
+    const url = request.nextUrl.clone();
+    url.host = 'grepit.co';
+    url.protocol = 'https:';
+    return NextResponse.redirect(url, 301);
+  }
+
+  // 2. ── Internal Admin Gate ──
   if (isInternalAdminRoute(request) && !isInternalAdminEnabled()) {
     return new NextResponse(null, { status: 404 });
   }
 
-  // Global IP rate limit on API routes
+  // 3. ── API Rate Limiting ──
   if (request.nextUrl.pathname.startsWith('/api/')) {
     const allowed = await checkIpRateLimit(request);
     if (!allowed) {
@@ -79,9 +93,25 @@ export default clerkMiddleware(async (auth, request) => {
     }
   }
 
+  // 4. ── Clerk Auth Protection ──
   if (!isPublicRoute(request)) {
     await auth.protect();
   }
+
+  // 5. ── SEO & Robots Headers ──
+  const response = NextResponse.next();
+  
+  // Prevent indexing of preview deployments, staging, or non-production environments
+  if (!isProduction || !isCanonical || isVercel) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, nosnippet, noarchive');
+  }
+
+  // Canonical host enforcement header
+  if (isProduction && isCanonical) {
+    response.headers.set('Link', '<https://grepit.co' + request.nextUrl.pathname + '>; rel="canonical"');
+  }
+
+  return response;
 }, {
   signInUrl: '/sign-in',
   signUpUrl: '/sign-up',

@@ -1,5 +1,13 @@
 import Link from "next/link";
 
+export const metadata = {
+  title: "Refund Policy | grepit",
+  description: "Read grepit's refund policy. Learn about eligibility, exceptions, and how to request a refund for your subscription.",
+  alternates: {
+    canonical: "/refund",
+  },
+};
+
 export default function RefundPage() {
   return (
     <div className="min-h-screen bg-vb-bg text-vb-ink px-6 md:px-8 py-24 max-w-[720px] mx-auto">

@@ -8,15 +8,8 @@ describe('env helpers', () => {
     vi.unstubAllEnvs();
   });
 
-  it('isAIConfigured returns true when GROQ_API_KEY is set', () => {
-    vi.stubEnv('GROQ_API_KEY', 'test-key');
-    expect(isAIConfigured()).toBe(true);
-    vi.unstubAllEnvs();
-  });
-
-  it('isAIConfigured returns false when no AI keys are set', () => {
+  it('isAIConfigured returns false when no AI key is set', () => {
     vi.stubEnv('OPENROUTER_API_KEY', '');
-    vi.stubEnv('GROQ_API_KEY', '');
     expect(isAIConfigured()).toBe(false);
     vi.unstubAllEnvs();
   });

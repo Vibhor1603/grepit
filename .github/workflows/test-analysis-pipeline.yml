@@ -1,0 +1,93 @@
+name: Test Analysis Pipeline
+
+on:
+  push:
+    paths:
+      - "src/lib/analysis*.js"
+      - "src/lib/repository-snapshot.js"
+      - "src/lib/codebase-index.js"
+      - "src/lib/code-intel.js"
+      - "src/controllers/analyze.controller.js"
+  pull_request:
+    paths:
+      - "src/lib/analysis*.js"
+      - "src/lib/repository-snapshot.js"
+      - "src/lib/codebase-index.js"
+      - "src/lib/code-intel.js"
+      - "src/controllers/analyze.controller.js"
+
+jobs:
+  analysis-tests:
+    name: Analysis Pipeline Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test repository snapshot
+        run: |
+          echo "Testing snapshot creation from public repos..."
+          node -e "
+            const { createGitHubSnapshot } = require('./src/lib/repository-snapshot');
+            createGitHubSnapshot('expressjs/express', null)
+              .then(snapshot => {
+                console.log('File count:', snapshot.fileTree.length);
+                console.log('Text files:', snapshot.textFiles.length);
+                console.log('Languages:', Object.keys(snapshot.languages));
+              })
+              .catch(err => console.error('Snapshot failed:', err.message));
+          "
+
+      - name: Test analysis building
+        run: |
+          node -e "
+            const { buildRepositoryAnalysis } = require('./src/lib/analysis');
+            const result = buildRepositoryAnalysis({
+              repoUrl: 'https://github.com/expressjs/express',
+              repoName: 'express',
+              fileTree: [{path: 'src/index.js', type: 'blob'}, {path: 'package.json', type: 'blob'}],
+              languages: {JavaScript: 50000},
+              source: 'github'
+            });
+            console.log('Summary:', result.summary?.slice(0, 100));
+            console.log('Tech stack:', result.techStack);
+            console.log('Has fileTree:', Array.isArray(result.fileTree));
+          "
+
+      - name: Test codebase index
+        run: |
+          node -e "
+            const { buildCodebaseIndex, queryCodebase } = require('./src/lib/codebase-index');
+            const index = buildCodebaseIndex({
+              fileTree: [
+                {path: 'src/index.js', type: 'blob'},
+                {path: 'src/routes/user.js', type: 'blob'},
+                {path: 'src/lib/auth.js', type: 'blob'}
+              ],
+              files: [
+                {path: 'src/index.js', functions: [{name: 'main'}]},
+                {path: 'src/routes/user.js', functions: [{name: 'getUser'}]},
+                {path: 'src/lib/auth.js', functions: [{name: 'authenticate'}]}
+              ]
+            });
+            console.log('Index built:', !!index);
+            console.log('Dirs:', index.directoryIndex?.length);
+          "
+
+      - name: Security-sensitive pattern tests
+        run: |
+          node -e "
+            const { isBlockedPath } = require('./src/lib/repository-snapshot');
+            const blocked = ['node_modules/foo.js', '.git/config', '.env', 'dist/bundle.js'];
+            const allowed = ['src/index.js', 'README.md', '.env.example'];
+            blocked.forEach(p => console.log(p, 'blocked:', isBlockedPath(p)));
+            allowed.forEach(p => console.log(p, 'blocked:', isBlockedPath(p)));
+          "

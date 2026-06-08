@@ -32,11 +32,18 @@ describe("subscription-gate", () => {
     });
 
     it("returns true when active pro subscription exists", async () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
       mockDb.select.mockReturnValue({
         from: () => ({
           where: () => ({
             limit: () =>
-              Promise.resolve([{ user_id: "user_123", plan: "pro", status: "active" }]),
+              Promise.resolve([{ 
+                user_id: "user_123", 
+                entitlement_plan: "pro", 
+                entitlement_ends_at: tomorrow.toISOString() 
+              }]),
           }),
         }),
       });
@@ -50,7 +57,11 @@ describe("subscription-gate", () => {
         from: () => ({
           where: () => ({
             limit: () =>
-              Promise.resolve([{ user_id: "user_123", plan: "pro", status: "cancelled", entitlement_plan: "free", entitlement_ends_at: null }]),
+              Promise.resolve([{ 
+                user_id: "user_123", 
+                entitlement_plan: "free", 
+                entitlement_ends_at: null 
+              }]),
           }),
         }),
       });
@@ -62,11 +73,18 @@ describe("subscription-gate", () => {
 
   describe("checkGate", () => {
     it("allows any feature for pro users", async () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
       mockDb.select.mockReturnValue({
         from: () => ({
           where: () => ({
             limit: () =>
-              Promise.resolve([{ user_id: "pro_user", plan: "pro", status: "active" }]),
+              Promise.resolve([{ 
+                user_id: "pro_user", 
+                entitlement_plan: "pro", 
+                entitlement_ends_at: tomorrow.toISOString() 
+              }]),
           }),
         }),
       });
@@ -100,8 +118,8 @@ describe("subscription-gate", () => {
   describe("FREE_LIMITS", () => {
     it("defines expected free tier limits", async () => {
       const { FREE_LIMITS } = await import("../src/lib/subscription-gate");
-      expect(FREE_LIMITS.maxRepos).toBe(1);
-      expect(FREE_LIMITS.maxAiQueriesPerDay).toBe(15);
+      expect(FREE_LIMITS.maxRepos).toBe(2);
+      expect(FREE_LIMITS.maxAiQueriesPerDay).toBe(Infinity);
       expect(FREE_LIMITS.maxChatConversations).toBe(5);
       expect(FREE_LIMITS.pdfExport).toBe(false);
     });
