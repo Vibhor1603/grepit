@@ -22,6 +22,8 @@ const isPublicRoute = createRouteMatcher([
   '/privacy',
   '/refund',
   '/faq',
+  '/sitemap.xml',
+  '/robots.txt',
   '/internal-admin(.*)',
   '/api/internal/admin(.*)',
 ]);
@@ -122,7 +124,7 @@ export const config = {
     // Clerk proxy path for production vercel.app domain
     '/__clerk/(.*)',
     // Exclude monitoring tunnel route, Next.js internals, and static files
-    '/((?!monitoring|_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/((?!monitoring|_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml|txt)).*)',
     '/(api|trpc)(.*)',
   ],
 };
