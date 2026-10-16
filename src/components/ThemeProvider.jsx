@@ -40,10 +40,11 @@ let activeThemeTransition = null;
 function swallowTransitionAbort(transition) {
   transition.ready?.catch(() => {});
   transition.updateCallbackDone?.catch(() => {});
-  transition.finished?.catch(() => {});
-  transition.finished?.finally(() => {
-    if (activeThemeTransition === transition) activeThemeTransition = null;
-  });
+  transition.finished
+    ?.catch(() => {})
+    .finally(() => {
+      if (activeThemeTransition === transition) activeThemeTransition = null;
+    });
 }
 
 /** Fast, low-overhead theme switch tuned for UI responsiveness. */
