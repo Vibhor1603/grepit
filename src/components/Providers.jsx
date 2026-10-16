@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import PostHogProviderWrapper from "./PostHogProvider";
 import CookieConsent from "./CookieConsent";
 import { MobileNoticeProvider } from "./MobileNotice";
+import ClerkLoadFallback from "./ClerkLoadFallback";
 import { migrateLegacyStorage } from "../lib/storage-migrate";
 
 /**
@@ -102,6 +103,7 @@ export default function Providers({ children }) {
               <CacheClearOnUserChange />
               {children}
               <CookieConsent />
+              <ClerkLoadFallback />
             </MobileNoticeProvider>
           </PostHogProviderWrapper>
         </ThemeProvider>
