@@ -16,6 +16,13 @@ Sentry.init({
 
   enableLogs: true,
 
+  // Client noise: aborted ViewTransitions; Clerk JS blocked by ad blockers / networks
+  ignoreErrors: [
+    /Transition was aborted because of invalid state/,
+    /Failed to load Clerk JS/,
+    /failed_to_load_clerk_js/,
+  ],
+
   integrations: [
     Sentry.replayIntegration(),
   ],

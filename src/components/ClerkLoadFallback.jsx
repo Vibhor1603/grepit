@@ -24,17 +24,18 @@ function FailedUI() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-c-bg/90 p-6">
-      <div className="text-center">
-        <p className="text-[15px] text-c-text mb-4">Couldn&apos;t load sign-in</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="h-10 px-4 rounded-[8px] bg-c-accent text-c-bg text-[13px] font-semibold hover:opacity-90"
-        >
-          Retry
-        </button>
-      </div>
+    <div
+      role="alert"
+      className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:max-w-[320px] z-[9999] rounded-lg border border-c-line bg-c-surface p-3.5 shadow-[0_14px_34px_rgba(0,0,0,0.34)]"
+    >
+      <p className="text-[13px] text-c-text mb-2.5">Couldn&apos;t load sign-in</p>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="h-9 px-3.5 rounded-[8px] bg-c-accent text-c-bg text-[13px] font-semibold hover:opacity-90"
+      >
+        Retry
+      </button>
     </div>
   );
 }

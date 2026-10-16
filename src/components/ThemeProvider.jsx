@@ -34,6 +34,18 @@ function applyClass(resolved) {
   else root.classList.remove("dark");
 }
 
+/** Active ViewTransition; aborted promises must be caught or they surface as unhandled rejections. */
+let activeThemeTransition = null;
+
+function swallowTransitionAbort(transition) {
+  transition.ready?.catch(() => {});
+  transition.updateCallbackDone?.catch(() => {});
+  transition.finished?.catch(() => {});
+  transition.finished?.finally(() => {
+    if (activeThemeTransition === transition) activeThemeTransition = null;
+  });
+}
+
 /** Fast, low-overhead theme switch tuned for UI responsiveness. */
 function applyThemeClass(resolved) {
   if (typeof document === "undefined") return;
@@ -44,19 +56,44 @@ function applyThemeClass(resolved) {
     return;
   }
 
-  if (typeof document.startViewTransition === "function") {
-    document.startViewTransition(() => {
+  const supportsVT = typeof document.startViewTransition === "function";
+  const canStartVT =
+    supportsVT && document.visibilityState === "visible" && !activeThemeTransition;
+
+  if (canStartVT) {
+    try {
+      const transition = document.startViewTransition(() => {
+        applyClass(resolved);
+      });
+      activeThemeTransition = transition;
+      swallowTransitionAbort(transition);
+      return;
+    } catch {
+      activeThemeTransition = null;
       applyClass(resolved);
-    });
+      return;
+    }
+  }
+
+  // Tab hidden or transition already in flight — apply instantly (skip in-flight if any)
+  if (activeThemeTransition) {
+    try {
+      activeThemeTransition.skipTransition?.();
+    } catch {}
+    activeThemeTransition = null;
+  }
+
+  if (!supportsVT) {
+    const root = document.documentElement;
+    root.classList.add("theme-transitioning");
+    applyClass(resolved);
+    window.setTimeout(() => {
+      root.classList.remove("theme-transitioning");
+    }, THEME_TRANSITION_MS);
     return;
   }
 
-  const root = document.documentElement;
-  root.classList.add("theme-transitioning");
   applyClass(resolved);
-  window.setTimeout(() => {
-    root.classList.remove("theme-transitioning");
-  }, THEME_TRANSITION_MS);
 }
 
 export function ThemeProvider({ children }) {
